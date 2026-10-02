@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LeoCart | The kart racer that fits in a browser tab</title>
+  <meta name="description" content="LeoCart is a free 3D kart racer for your browser. Six racers, three tracks, drifting with mini-turbos, eight items and a three-race cup. Every model, texture and song is generated in code." />
+  <meta name="theme-color" content="#0b0e1f" />
+  <meta name="color-scheme" content="dark" />
+  <meta property="og:title" content="LeoCart | The kart racer that fits in a browser tab" />
+  <meta property="og:description" content="Six racers, three tracks, one cup. No download, and everything is generated in code." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0e1f'/%3E%3Cpath d='M10 40h44l-4 10H14z' fill='%23ffcf2e'/%3E%3Ccircle cx='20' cy='52' r='6' fill='%23fff'/%3E%3Ccircle cx='44' cy='52' r='6' fill='%23fff'/%3E%3Cpath d='M18 40l6-14h16l6 14z' fill='%23ff4f6d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./style.css" />
+  <script>
+    // Hide animated copy until main.js has applied its start states, so there is no flash.
+    // The timeout is the safety net: if the script never runs, everything is revealed anyway.
+    (function () {
+      var d = document.documentElement;
+      if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+        d.classList.add('js-pre');
+        setTimeout(function () { d.classList.remove('js-pre'); }, 4000);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <canvas id="stage" aria-hidden="true"></canvas>
+
+  <header class="nav" id="nav">
+    <a class="logo" href="#top" aria-label="LeoCart home">LEO<b>CART</b></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#drift">Drifting</a>
+      <a href="#racers">Racers</a>
+      <a href="#tracks">Tracks</a>
+      <a href="#items">Items</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="../">Play now</a>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <h1 class="display" data-hero-title>The kart racer that fits in a browser tab.</h1>
+        <p class="lede" data-hero-lede>Six racers, three tracks, one cup. No download, and every model, texture and song is generated in code.</p>
+        <div class="cta-row" data-hero-cta>
+          <a class="btn btn-primary" href="../">Play now</a>
+          <a class="btn btn-ghost" href="#racers">Meet the racers</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="drift" id="drift" aria-labelledby="drift-title">
+      <div class="drift-inner">
+        <div class="drift-copy">
+          <h2 class="h2" id="drift-title" data-split>Hold the slide. Earn the boost.</h2>
+          <p class="body">Drift longer and the sparks climb through three colors. Each one pays out a bigger mini-turbo when you let go.</p>
+
+          <div class="meter" aria-hidden="true">
+            <span class="meter-seg" data-seg="1"><i></i></span>
+            <span class="meter-seg" data-seg="2"><i></i></span>
+            <span class="meter-seg" data-seg="3"><i></i></span>
+          </div>
+
+          <ol class="steps">
+            <li class="step" data-step="1">
+              <h3>Blue</h3>
+              <p>0.85 seconds into the slide. A short kick of 0.55 seconds.</p>
+            </li>
+            <li class="step" data-step="2">
+              <h3>Orange</h3>
+              <p>1.8 seconds. Nearly a full second of boost.</p>
+            </li>
+            <li class="step" data-step="3">
+              <h3>Purple</h3>
+              <p>2.9 seconds. One and a half seconds of speed, if you can hold the line.</p>
+            </li>
+            <li class="step" data-step="4">
+              <h3>Release</h3>
+              <p>Let go and it all fires. The kart kicks forward and the view stretches.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="racers" id="racers" aria-labelledby="racers-title">
+      <div class="racers-inner">
+        <div class="racers-copy">
+          <h2 class="h2" id="racers-title" data-split>Six racers. No best pick.</h2>
+          <p class="body">Every racer's four stats add up to 12, so Vex's top speed costs him in the corners and Mochi's grip costs her on the straights.</p>
+          <div class="roster" id="roster-list"></div>
+          <div class="roster-tabs" id="roster-tabs" role="group" aria-label="Choose a racer"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tracks" id="tracks" aria-labelledby="tracks-title">
+      <div class="tracks-head">
+        <h2 class="h2" id="tracks-title" data-split>Three tracks, three moods.</h2>
+        <p class="body">Three laps each, with checkpoints so nobody can cheat a lap. Your best times are saved on your device.</p>
+      </div>
+      <div class="stack">
+        <article class="stack-item">
+          <div class="track-card">
+            <figure class="track-shot">
+              <img src="../docs/screenshots/03-meadow-run.jpg" width="1280" height="720" alt="A kart leads the pack through a sunny meadow track with red and white kerbs." loading="lazy" decoding="async" />
+            </figure>
+            <div class="track-text">
+              <h3 class="h3">Meadow Run</h3>
+              <p>A sunny beginner loop. Wide corners, clear sight lines, and the place to learn how a drift feels.</p>
+            </div>
+          </div>
+        </article>
+        <article class="stack-item">
+          <div class="track-card track-card--flip">
+            <figure class="track-shot">
+              <img src="../docs/screenshots/04-dune-canyon-shortcut.jpg" width="1280" height="720" alt="A kart cuts across a dirt shortcut on a sunset desert track." loading="lazy" decoding="async" />
+            </figure>
+            <div class="track-text">
+              <h3 class="h3">Dune Canyon</h3>
+              <p>Sunset desert with two shortcuts across the hairpins. A boost pad marks each entrance, the dirt costs you speed.</p>
+            </div>
+          </div>
+        </article>
+        <article class="stack-item">
+          <div class="track-card">
+            <figure class="track-shot">
+              <img src="../docs/screenshots/05-neon-district-drift.jpg" width="1280" height="720" alt="A kart drifts through a night city track lined with glowing barriers." loading="lazy" decoding="async" />
+            </figure>
+            <div class="track-text">
+              <h3 class="h3">Neon District</h3>
+              <p>A night city with staircase chicanes. The hardest track to keep clean, and the best one to drift.</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="items" id="items" aria-labelledby="items-title">
+      <div class="items-inner">
+        <div class="items-head">
+          <h2 class="h2" id="items-title" data-split>Last place gets the better items.</h2>
+          <p class="body">Six items for everyone. Two comeback items only show up for the back of the pack, so a bad first lap is never the end of the race.</p>
+        </div>
+        <ul class="item-grid">
+          <li class="item"><h3>Bolt</h3><p>Throw it forward, or backward while holding brake. Bounces off walls.</p></li>
+          <li class="item"><h3>Seeker</h3><p>A homing missile that hunts the racer ahead of you.</p></li>
+          <li class="item"><h3>Turbo Cell</h3><p>One strong burst of speed.</p></li>
+          <li class="item"><h3>Turbo Trio</h3><p>Three short bursts, spend them when you like.</p></li>
+          <li class="item"><h3>Oil Slick</h3><p>Drops a slick behind you. Rivals spin out.</p></li>
+          <li class="item"><h3>Aegis</h3><p>A shield that absorbs the next hit.</p></li>
+          <li class="item item--comeback"><h3>Comet</h3><p>Comeback item. Autopilot at huge speed, and nothing can hurt you.</p></li>
+          <li class="item item--comeback"><h3>Pulse</h3><p>Comeback item. Shocks every racer ahead of you.</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="finale" id="play" aria-labelledby="play-title">
+      <div class="finale-inner">
+        <h2 class="display display--xl" id="play-title" data-split>Pick a racer. Take the first corner.</h2>
+        <p class="lede">Keyboard or gamepad. Free, and there is no account to make.</p>
+        <a class="btn btn-primary btn-xl" href="../" data-magnet>Play now</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <a class="logo" href="#top" aria-label="Back to top">LEO<b>CART</b></a>
+    <p>MIT licensed. Built with Three.js and GSAP.</p>
+    <a href="https://github.com/leoloneumeister-collab/leocart" rel="noopener">Source on GitHub</a>
+  </footer>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

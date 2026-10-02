@@ -12,7 +12,7 @@ function run(label, cmd, args, env = {}) {
 }
 
 let ok = true;
-ok = run('lint', 'npx', ['eslint', 'src', 'scripts', 'tests']) && ok;
+ok = run('lint', 'npx', ['eslint', 'src', 'scripts', 'tests', 'site']) && ok;
 ok = run('track validation', 'node', ['scripts/validate-tracks.mjs']) && ok;
 
 const server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
@@ -31,6 +31,25 @@ try {
   ok = run('performance budget', 'node', ['tests/perf.mjs'], { BASE_URL: BASE }) && ok;
 } finally {
   server.kill();
+}
+
+// The landing page has its own Vite config, so it gets its own throwaway server.
+const SITE_PORT = 4598;
+const SITE_BASE = `http://localhost:${SITE_PORT}/`;
+const siteServer = spawn('npx', ['vite', '-c', 'vite.site.config.js', '--port', String(SITE_PORT), '--strictPort'], { stdio: 'ignore' });
+try {
+  for (let i = 0; i < 60; i++) {
+    try {
+      const res = await fetch(SITE_BASE);
+      if (res.ok) break;
+    } catch {
+      /* not up yet */
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  ok = run('landing page (stages, reduced motion, phone, no WebGL)', 'node', ['tests/site.mjs'], { BASE_URL: SITE_BASE }) && ok;
+} finally {
+  siteServer.kill();
 }
 console.log(ok ? '\nALL CHECKS PASSED' : '\nSOME CHECKS FAILED');
 process.exit(ok ? 0 : 1);

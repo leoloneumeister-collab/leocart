@@ -51,6 +51,15 @@ Notes on the calls I made while building, mostly where the brief left something 
 - **I could not listen to it.** The audio test renders every loop and effect offline and checks level, clipping and NaNs. That tells me the sound is present and clean, not that it is good, so the mix is worth a listen.
 - **Audio starts on the first click or key press,** because browsers block it until then.
 
+## Landing page
+
+- **Separate Vite config, not a second entry in the game build.** `scripts/build-single-file.mjs` picks the first JS and CSS file in `dist/assets`, and a shared Three.js chunk would break it. `vite.site.config.js` builds `site/` into `dist/site/` after the game build, and the deploy workflow runs both.
+- **Vanilla JS, not React and Tailwind.** ThreeUI's npm package and most of 21st.dev are React. The repo has neither, so the page ports the ideas (a halftone dot floor, warp-field streak lines) and keeps the toolchain as it was.
+- **It renders the game's own karts and particles.** `site/scene.js` imports `KartModel`, `Particles`, `CHARACTERS` and `DRIFT_LEVELS`, so the page shows what Play shows and the racer copy cannot drift from the stats.
+- **One fixed canvas driven by numbers.** GSAP scrubs `scene.p` (charge, boost, roster). Stages only set targets and everything eases toward them with lead compensation, so a jump to `#items` or the bottom of the page still lands on the right scene. A stage is picked from trigger progress, not from enter and leave events, because those never fire for a trigger that is skipped.
+- **Dark only.** The game's boot screen and theme color are already navy and the hero is a night scene. The design rules ask for both modes by default, so this is a deliberate override.
+- **Motion has a reason each time.** The drift pin explains the mini-turbo, the roster pin is browsing, the track stack compares, the confetti ends the page like a race. Reduced motion gets a still frame, no pins and every racer listed.
+
 ## Things I would do with more time
 
 - Elevation and jumps on the tracks, plus a replay mode.

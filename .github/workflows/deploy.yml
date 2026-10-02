@@ -32,6 +32,8 @@ jobs:
           npm run lint
           npm run validate
       - run: npm run build
+      # Landing page (published under /site/), after the game build because that clears dist/
+      - run: npm run build:site
       # Shadow Protocol shooter (published under /shooter/)
       - run: npm ci
         working-directory: shooter

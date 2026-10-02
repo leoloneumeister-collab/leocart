@@ -7,8 +7,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:site": "vite -c vite.site.config.js",
+    "build:site": "vite build -c vite.site.config.js",
+    "preview:site": "vite preview -c vite.site.config.js --port 4174",
     "preview": "vite preview",
-    "lint": "eslint src scripts tests",
+    "lint": "eslint src scripts tests site",
     "validate": "node scripts/validate-tracks.mjs",
     "sim": "node scripts/sim.mjs",
     "test": "node tests/run-all.mjs",
@@ -16,6 +19,10 @@
     "media": "node scripts/capture-media.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/unbounded": "^5.3.0",
+    "gsap": "^3.15.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

@@ -18,4 +18,21 @@ export default [
       'no-unreachable': 'warn',
     },
   },
+  {
+    files: ['site/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        window: 'readonly', document: 'readonly', navigator: 'readonly', performance: 'readonly', console: 'readonly',
+        requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly', setTimeout: 'readonly', ResizeObserver: 'readonly', Promise: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'error',
+      'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_' }],
+      'no-dupe-keys': 'error',
+      'no-unreachable': 'warn',
+    },
+  },
 ];

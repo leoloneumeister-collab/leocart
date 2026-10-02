@@ -69,7 +69,7 @@ More of the reasoning is in [DECISIONS.md](DECISIONS.md).
 
 ## Tech stack
 
-Vite 8, Three.js r186, plain JavaScript (ES modules), Web Audio API, DOM/CSS for the UI. No runtime dependencies other than Three.js and no backend. Tests use Playwright. About 7,600 lines of source.
+Vite 8, Three.js r186, plain JavaScript (ES modules), Web Audio API, DOM/CSS for the UI. The game has no runtime dependencies other than Three.js and no backend. The landing page (`site/`) adds GSAP and self-hosted fonts. Tests use Playwright. About 7,600 lines of game source.
 
 ## Run locally
 
@@ -89,11 +89,12 @@ npx playwright install chromium   # first time only
 npm test
 ```
 
-`npm test` runs lint, track validation, and then three browser suites against a throwaway dev server:
+`npm test` runs lint, track validation, and then the browser suites against throwaway dev servers (the first three use the game, the last one the landing page):
 
 - **End to end** (`tests/e2e.mjs`): keyboard and gamepad driving, drift and mini-turbo, pause, a full 3-lap race on all three tracks with all six karts finishing, a complete 3-race cup played through the UI, key rebinding, lap-cheat checks, and a failure on any console error or warning.
 - **Audio** (`tests/audio.mjs`): renders every music loop and sound effect offline and checks they are audible, do not clip and contain no NaNs.
 - **Performance budget** (`tests/perf.mjs`): simulation cost per step, draw calls and triangle counts.
+- **Landing page** (`tests/site.mjs`): scroll-driven stages, reduced motion, phone layout, no-WebGL fallback, and copy rules (hero fits two lines, no dash characters).
 
 `npm run sim` runs headless solo laps for every character on every track, which is how the stats were balanced.
 
@@ -105,6 +106,17 @@ One-time setup, because a workflow cannot switch Pages on by itself: **Settings 
 
 To host it anywhere else, run `npm run build` and upload the `dist/` folder to any static host. `node scripts/build-single-file.mjs out.html` packs the build into one self-contained HTML file for hosts that take a single page.
 
+## Landing page
+
+`site/` is an animated marketing page for the game: a pinned drift explainer, a roster you scroll through, a sticky stack of the three tracks and a closing line-up. It renders the game's own kart models and particles in one fixed Three.js canvas and drives them with GSAP ScrollTrigger. It honors `prefers-reduced-motion`, collapses to one column on phones and still works without WebGL.
+
+```bash
+npm run dev:site     # http://localhost:5174
+npm run build:site   # writes dist/site/ (run npm run build first, it clears dist/)
+```
+
+It is published at `/site/` next to the game. `.claude/skills/animated-web-builder/` holds the skill (design rules, GSAP, ThreeUI and 21st.dev notes) it was built with.
+
 ## Project layout
 
 ```
@@ -114,8 +126,9 @@ src/
   render/    track meshes, scenery, kart models, textures, sky, particles, camera, menu scene
   audio/     synth engine, music data
   ui/        HUD, menus, icons, navigation, styles
+site/        animated landing page (Vite root of vite.site.config.js)
 scripts/     track validator and plotter, balance simulator, README media capture
-tests/       end-to-end, audio and performance tests
+tests/       end-to-end, audio, performance and landing page tests
 ```
 
 ## License
