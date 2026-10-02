@@ -102,4 +102,4 @@ Add to the URL: `?debug` (FPS and `window.__game`), `auto` (skip the menu), `mod
 - No online multiplayer. It would roughly double the project (netcode, lag compensation, a server).
 - Tested in headless Chromium with software rendering. Not tested on real GPUs, Safari or Firefox.
 
-See `DECISIONS.md` for the judgment calls and known gaps.
+See `DECISIONS.md` for the judgment calls and known gaps, and `docs/SUPER_PROMPT.md` for the build spec this game was made from.

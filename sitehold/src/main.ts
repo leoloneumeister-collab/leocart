@@ -21,9 +21,11 @@ const hud = document.getElementById('hud') as HTMLElement;
 const ui = document.getElementById('ui') as HTMLElement;
 
 function boot() {
+  const t0 = performance.now();
   try {
     const game = new Game(canvas, hud, ui, flags);
     if (flags.auto) game.startMatch();
+    (window as unknown as { __bootMs: number }).__bootMs = performance.now() - t0;
     requestAnimationFrame(() => document.getElementById('boot')?.remove());
   } catch (e) {
     console.error(e);
