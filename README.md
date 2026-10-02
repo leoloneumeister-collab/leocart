@@ -10,7 +10,8 @@
 |---|---|
 | ![Title screen](docs/screenshots/01-title.jpg) | ![Character select](docs/screenshots/02-character-select.jpg) |
 | ![Meadow Run](docs/screenshots/03-meadow-run.jpg) | ![Dune Canyon shortcut](docs/screenshots/04-dune-canyon-shortcut.jpg) |
-| ![Neon District](docs/screenshots/05-neon-district-drift.jpg) | ![Cup podium](docs/screenshots/06-results.jpg) |
+| ![Neon District](docs/screenshots/05-neon-district-drift.jpg) | ![Race results](docs/screenshots/06-results.jpg) |
+| ![Cup podium](docs/screenshots/07-cup-podium.jpg) | |
 
 Everything here is original: the characters, track layouts, item names, music and sounds. Nothing comes from any existing racing franchise.
 
@@ -102,7 +103,7 @@ The repo deploys itself: `.github/workflows/deploy.yml` builds with Vite and pub
 
 One-time setup, because a workflow cannot switch Pages on by itself: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Then open the **Actions** tab, pick **Deploy to GitHub Pages**, and press **Re-run all jobs** (or push any commit). The site appears at `https://<your-username>.github.io/leocart/`.
 
-To host it anywhere else, run `npm run build` and upload the `dist/` folder to any static host.
+To host it anywhere else, run `npm run build` and upload the `dist/` folder to any static host. `node scripts/build-single-file.mjs out.html` packs the build into one self-contained HTML file for hosts that take a single page.
 
 ## Project layout
 
