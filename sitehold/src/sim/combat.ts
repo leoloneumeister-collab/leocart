@@ -145,6 +145,13 @@ export function killActor(sim: Sim, victim: Actor, killer: Actor | null, weaponI
       sim.reward(killer, -300, 'teamkill');
     }
   }
+  if (sim.cfg.mode === 'comp') {
+    if (killer && killer !== victim && killer.isBot && sim.isEnemy(killer, victim) && sim.rng.chance(0.3)) sim.ai[killer.team].say(killer, sim.rng.chance(0.5) ? 'Enemy down' : `One down, ${sim.placeName(victim.pos)}`);
+    else if (victim.isBot && sim.rng.chance(0.3)) {
+      const mate = sim.actors.find((a) => a.alive && a.isBot && a.team === victim.team && a !== victim);
+      if (mate) sim.ai[victim.team].say(mate, `${victim.name} is down, ${sim.placeName(victim.pos)}`);
+    }
+  }
   sim.emit({ t: 'kill', killer: killer ? killer.id : victim.id, victim: victim.id, weapon: weaponId, head, wallbang, assist, pos: { ...victim.pos } });
   sim.onDeath(victim);
 }

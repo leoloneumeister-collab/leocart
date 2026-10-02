@@ -104,8 +104,18 @@ export class GameAudio {
     return g;
   }
 
+  private voiceWindow = 0;
+  private voiceCount = 0;
+  /** Far sounds give way when too many start at once, near sounds always play. */
+  private allow(dist: number): boolean {
+    const now = performance.now();
+    if (now - this.voiceWindow > 120) { this.voiceWindow = now; this.voiceCount = 0; }
+    this.voiceCount++;
+    return dist < 14 || this.voiceCount <= 12 || (dist < 40 && this.voiceCount <= 18);
+  }
+
   gun(cls: WeaponClass, pos: Vec3 | null, dist: number, pitch = 1, vol = 1) {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.allow(dist)) return;
     const ctx = this.ctx, p = GUNS[cls], t = this.t();
     const far = Math.min(1, dist / 70);
     const o = this.out(pos, vol * 1.5, p.wet * (1 + far), dist);
@@ -187,7 +197,7 @@ export class GameAudio {
   }
 
   step(surface: string, pos: Vec3 | null, dist: number, vol = 0.5) {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.allow(dist)) return;
     const ctx = this.ctx, t = this.t();
     const o = this.out(pos, vol * 1.2, 0.08, dist);
     const n = this.noiseSrc(0.09);

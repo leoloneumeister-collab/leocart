@@ -506,7 +506,14 @@ export class Game {
 
   // ======================================================================= events
 
-  private distTo(p: Vec3) { return Math.hypot(p.x - this.camera.position.x, p.y - this.camera.position.y, p.z - this.camera.position.z); }
+  /** Distance used for sound muffling: sounds behind walls count as farther away so they are dull and wetter. */
+  private distTo(p: Vec3) {
+    const c = this.camera.position;
+    const d = Math.hypot(p.x - c.x, p.y - c.y, p.z - c.z);
+    if (d < 3 || !this.sim) return d;
+    const open = this.sim.world.los(c.x, c.y, c.z, p.x, Math.max(0.3, p.y + 0.8), p.z);
+    return open ? d : d * 1.9 + 8;
+  }
 
   private handleEvents(events: SimEvent[]) {
     const sim = this.sim!;
