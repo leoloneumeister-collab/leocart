@@ -102,6 +102,24 @@ export class TeamAI {
     for (const g of order) if (a.money >= (g === 'flash' ? 200 : 300) + 100) buy(g);
   }
 
+  /** A human teammate asked for a weapon during freeze time: the richest bot buys a rifle and drops it. */
+  giveDrop(requester: Actor) {
+    const sim = this.sim;
+    if (sim.m.phase !== 'freeze' || requester.primary) return;
+    const rifle = this.team === TEAM_SENTINEL ? 'carbine' : 'vk47';
+    const cheap = this.team === TEAM_SENTINEL ? 'ranger' : 'reaper';
+    const donors = this.bots.filter((a) => a.alive && a !== requester && a.money >= 1800).sort((a, b) => b.money - a.money);
+    const d = donors[0];
+    if (!d) { sim.emit({ t: 'warn', text: 'Nobody can afford to drop you a weapon' }); return; }
+    if (d.primary) sim.dropWeapon(d, 'primary');
+    const want = d.money >= 2700 ? rifle : cheap;
+    if (buyItem(sim, d, want)) {
+      sim.dropWeapon(d, 'primary');
+      d.cmd.yaw = Math.atan2(-(requester.pos.x - d.pos.x), -(requester.pos.z - d.pos.z));
+      this.sim.emit({ t: 'radio', id: d.id, text: 'Here, take this' });
+    }
+  }
+
   spawnLook(a: Actor): Vec3 {
     return a.team === TEAM_BREACHER ? v3(48, 1.5, 24) : v3(48, 1.5, 46);
   }

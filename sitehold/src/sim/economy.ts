@@ -52,8 +52,9 @@ export function priceFor(a: Actor, item: BuyItem): number {
   return -1;
 }
 
-export function buyItem(sim: Sim, a: Actor, item: BuyItem, free = false): boolean {
+export function buyItem(sim: Sim, a: Actor, item: BuyItem, freeArg = false): boolean {
   if (!canBuy(sim, a)) return false;
+  const free = freeArg || sim.cfg.mode === 'dm';
   const price = priceFor(a, item);
   if (price < 0) return false;
   if (!free && a.money < price) return false;
