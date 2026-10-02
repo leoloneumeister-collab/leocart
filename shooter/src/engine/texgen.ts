@@ -90,7 +90,7 @@ function sample(kind: TexKind, u: number, v: number, N: number): Field {
       const dirt = fbm(u, v, 5, 4, 11);
       const h = 0.5 + n * 0.08 + fine * 0.05 - scr * 0.2;
       const a = 0.82 + n * 0.12 - (dirt > 0.6 ? (dirt - 0.6) * 0.6 : 0) - scr * 0.12;
-      return { h, a, r: 0.42 + dirt * 0.3 + fine * 0.1 + scr * 0.2, m: 0.35 - scr * 0.2 };
+      return { h, a, r: 0.45 + dirt * 0.3 + fine * 0.1 + scr * 0.2, m: 0.12 };
     }
     case 'wood': {
       const planks = 5, pl = Math.floor(u * planks);
@@ -115,12 +115,12 @@ function sample(kind: TexKind, u: number, v: number, N: number): Field {
     case 'asphalt': {
       const agg = fbm(u, v, 64, 3, 20), mid = fbm(u, v, 12, 4, 21), low = fbm(u, v, 3, 3, 22);
       const speck = hash2(Math.floor(px), Math.floor(py), 23) > 0.93 ? 1 : 0;
-      const crack = (() => { const c = Math.abs(fbm(u * 1, v * 1, 5, 4, 24) - 0.5); return c < 0.012 ? 1 : 0; })();
+      const crack = (() => { const c = Math.abs(fbm(u * 1, v * 1, 5, 4, 24) - 0.5); return c < 0.006 ? 1 : 0; })();
       const patch = low > 0.58 ? 1 : 0;
       const puddle = low < 0.4 ? 1 : 0;
       const h = 0.5 + agg * 0.3 + mid * 0.1 - crack * 0.5 + speck * 0.08;
-      const a = 0.55 + agg * 0.2 + mid * 0.18 + speck * 0.18 - crack * 0.35 - patch * 0.1 + puddle * -0.05;
-      return { h, a, r: puddle ? 0.12 + mid * 0.25 : 0.82 + agg * 0.12 - speck * 0.1, m: 0 };
+      const a = (0.32 + agg * 0.14 + mid * 0.12 + speck * 0.16 - crack * 0.2 - patch * 0.05);
+      return { h, a, r: puddle ? 0.2 + mid * 0.2 : 0.82 + agg * 0.12 - speck * 0.1, m: 0 };
     }
   }
 }
@@ -141,7 +141,7 @@ export function getTexSet(kind: TexKind, opts: { size?: number; wet?: boolean } 
     for (let x = 0; x < N; x++) {
       const f = sample(kind, (x + 0.5) / N, (y + 0.5) / N, N);
       const i = y * N + x;
-      H[i] = f.h; A[i] = f.a; R[i] = opts.wet && kind === 'asphalt' ? Math.min(f.r, 0.35 + f.a * 0.3) : f.r; M[i] = f.m;
+      H[i] = f.h; A[i] = f.a; R[i] = opts.wet && kind === 'asphalt' ? Math.min(f.r, 0.58 + f.a * 0.25) : f.r; M[i] = f.m;
     }
   }
   const strength = kind === 'brick' ? 5 : kind === 'corrugated' ? 4.2 : kind === 'concrete' ? 3.5 : kind === 'asphalt' ? 3 : kind === 'wood' ? 3 : kind === 'fabric' ? 4 : 1.5;
@@ -171,7 +171,7 @@ export function getTexSet(kind: TexKind, opts: { size?: number; wet?: boolean } 
     return t;
   };
   const tile = kind === 'concrete' ? 2.8 : kind === 'brick' ? 1.0 : kind === 'corrugated' ? 1.0 : kind === 'paint' ? 2.0 : kind === 'wood' ? 1.0 : kind === 'fabric' ? 0.5 : 4;
-  const set: TexSet = { map: mk(alb, true), normalMap: mk(nor, false), ormMap: mk(orm, false), normalScale: 1, metal: kind === 'corrugated' ? 0.7 : kind === 'paint' ? 0.5 : 0, tile };
+  const set: TexSet = { map: mk(alb, true), normalMap: mk(nor, false), ormMap: mk(orm, false), normalScale: 1, metal: kind === 'corrugated' ? 0.7 : kind === 'paint' ? 0.4 : 0, tile };
   cache.set(key, set);
   return set;
 }

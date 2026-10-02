@@ -165,7 +165,7 @@ export class Mission1 implements Mission {
     b.sandbags(-36, -64, 5);
 
     const bounds = { minX: -76, maxX: 76, minZ: -100, maxZ: 80 };
-    const level = b.build(bounds, 0xa39d8e, 7);
+    const level = b.build(bounds, 0x74767c, 7, { wet: true });
     const sea = makeSea(500, 240, 0, 80 + 120, 0x07202e);
     level.group.add(sea);
     const sky = makeSky({ top: 0x01040a, horizon: 0x112a40, ground: 0x1c2a38, sunDir: new THREE.Vector3(-0.4, 0.5, -0.7), sunColor: 0xa8bcff, sunSize: 46, stars: true });

@@ -53,16 +53,16 @@ export class Mission2 implements Mission {
     b.wallRect(-26, 40, 24, 16, 9, 0.6, [
       { side: 'e', at: -3, width: 2.4 }, { side: 'e', at: 5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 's', at: 0, width: 2, sill: 1.1, top: 2.4 },
       { side: 'n', at: -6, width: 2.4 }, { side: 'e', at: 0, width: 1.6, sill: 3.4, top: 4.8 }, { side: 'e', at: -6, width: 1.6, sill: 3.4, top: 4.8 },
-    ], brick[0], { roofColor: 0x2a2d30 });
+    ], brick[0], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(-26, 14, 24, 18, 7, 0.6, [
       { side: 'e', at: 0, width: 2.4 }, { side: 'e', at: -6, width: 1.6, sill: 1.1, top: 2.3 }, { side: 'n', at: 4, width: 2.4 }, { side: 's', at: -5, width: 2.4 },
-    ], brick[1], { roofColor: 0x2a2d30 });
+    ], brick[1], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(26, 40, 24, 16, 10, 0.6, [
       { side: 'w', at: 2, width: 2.4 }, { side: 'w', at: -5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 's', at: 4, width: 2, sill: 1.1, top: 2.4 }, { side: 'n', at: 0, width: 2.4 },
-    ], brick[2], { roofColor: 0x2a2d30 });
+    ], brick[2], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(26, 16, 24, 18, 8, 0.6, [
       { side: 'w', at: -2, width: 2.4 }, { side: 'w', at: 5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 'n', at: -5, width: 2.4 }, { side: 's', at: 5, width: 2.4 },
-    ], brick[3], { roofColor: 0x2a2d30 });
+    ], brick[3], { roofColor: 0x2a2d30, mat: 'brick' });
     b.crate(-30, 40, 1.2); b.crateStack(-22, 12); b.crateStack(30, 38); b.crate(24, 14, 1.2);
     b.lamp(-26, 7.5, 40, 0xffc890, 1, true); b.lamp(26, 8.5, 40, 0xffc890, 1, false); b.lamp(-26, 5.5, 14, 0xffc890, 1, true); b.lamp(26, 6.5, 16, 0xffc890, 1, false);
     b.car(-4, 46, false, 0x445566, true); b.car(5, 37, true, 0x445566, true); b.car(-6, 29, false, 0x445566, true); b.car(2, 22, true, 0x445566, true);
@@ -74,8 +74,8 @@ export class Mission2 implements Mission {
     b.container(-9, 52, false, C.rust); b.container(10, 54, false, C.blue);
 
     // ---- zone 1: market plaza
-    b.wallRect(-56, -14, 14, 26, 9, 0.6, [{ side: 'e', at: -4, width: 2.6 }, { side: 'e', at: 6, width: 2.6 }, { side: 'n', at: 0, width: 2 }], brick[1], { roofColor: 0x2a2d30 });
-    b.wallRect(56, -10, 14, 28, 9, 0.6, [{ side: 'w', at: -4, width: 2.6 }, { side: 'w', at: 6, width: 2.6 }, { side: 's', at: 0, width: 2 }], brick[0], { roofColor: 0x2a2d30 });
+    b.wallRect(-56, -14, 14, 26, 9, 0.6, [{ side: 'e', at: -4, width: 2.6 }, { side: 'e', at: 6, width: 2.6 }, { side: 'n', at: 0, width: 2 }], brick[1], { roofColor: 0x2a2d30, mat: 'brick' });
+    b.wallRect(56, -10, 14, 28, 9, 0.6, [{ side: 'w', at: -4, width: 2.6 }, { side: 'w', at: 6, width: 2.6 }, { side: 's', at: 0, width: 2 }], brick[0], { roofColor: 0x2a2d30, mat: 'brick' });
     b.box(0, 0, -12, 14, 1.2, 14, 0x5c5f60); b.box(0, 1.2, -12, 4, 2.2, 4, 0x6a6d6e); b.box(0, 3.4, -12, 2, 1, 2, 0x555a5e);
     for (const [x, z, c] of [[-24, -2, 0x8a3b2a], [24, 0, 0x2f4a62], [-30, -20, 0x3f4c38], [30, -22, 0x8a7d5c], [-14, -26, 0x2f4a62], [16, -28, 0x8a3b2a], [-36, 6, 0x8a7d5c], [38, 8, 0x3f4c38]] as [number, number, number][]) {
       b.box(x, 0, z, 3.2, 1.0, 1.6, 0x4a4036, { kind: 'wood' });
@@ -129,7 +129,7 @@ export class Mission2 implements Mission {
     for (const x of [-22, 22]) b.shaft(x, 8, -66.3, x - 14, 0, -59.3, 3.0, 0xffc890, 0.14);
 
     const bounds = { minX: -66, maxX: 66, minZ: -110, maxZ: 60 };
-    const level = b.build(bounds, 0x7c7872, 19);
+    const level = b.build(bounds, 0x8a8782, 19);
     const sky = makeSky({ top: 0x2c4a7a, horizon: 0xf0986a, ground: 0x7a6254, sunDir: new THREE.Vector3(0.8, 0.28, -0.4), sunColor: 0xffa862, sunSize: 130, stars: false });
     return {
       level, fogColor: 0xa6806a, fogDensity: 0.010, exposure: 1.4,

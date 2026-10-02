@@ -399,44 +399,48 @@ export class Enemy {
   // ------------------------------------------------------------------ anim
   private animate(dt: number, dist: number, ctx: GameCtx) {
     const r = this.rig, s = r.scale;
-    this.anim += dt * (3 + this.speedNow * 1.55);
-    const amp = clamp(this.speedNow / 5.5, 0, 1);
-    const sw = Math.sin(this.anim) * 0.9 * amp;
+    this.anim += dt * (2.4 + this.speedNow * 1.15);
+    const amp = clamp(this.speedNow / 5, 0, 1);
+    const ph = this.anim;
+    const A = 0.28 + 0.5 * amp;
+    const sw = Math.sin(ph) * A * amp;
     r.legL.rotation.x = sw; r.legR.rotation.x = -sw;
-    r.hips.position.y = 0.88 * s * 1 / s + Math.abs(Math.cos(this.anim)) * 0.045 * amp - 0.02 * this.flinch;
-    r.hips.position.y = 0.88 + Math.abs(Math.cos(this.anim)) * 0.045 * amp;
-    const breath = Math.sin(ctx.time * 2 + this.id) * 0.012;
-    r.torso.position.y = breath;
-    // lean forward when running
-    const lean = amp * 0.18 + (this.type === 'rusher' ? 0.15 * amp : 0);
-    r.torso.rotation.x = lean - this.flinch * 0.28;
-    r.torso.rotation.z = Math.sin(this.anim * 0.5) * 0.03 * amp + this.flinch * (this.id % 2 ? 0.1 : -0.1);
+    r.shinL.rotation.x = Math.max(0, -Math.cos(ph)) * (0.2 + 1.0 * amp) * amp;
+    r.shinR.rotation.x = Math.max(0, Math.cos(ph)) * (0.2 + 1.0 * amp) * amp;
+    r.hips.position.y = 0.95 - 0.03 * amp + Math.abs(Math.sin(ph)) * 0.04 * amp;
+    const breath = Math.sin(ctx.time * 2 + this.id) * 0.008;
+    r.torso.position.y = 0.08 + breath;
+    const lean = amp * 0.12 + (this.type === 'rusher' ? 0.12 * amp : 0);
+    r.torso.rotation.x = lean - this.flinch * 0.25;
+    r.torso.rotation.z = Math.sin(ph) * 0.03 * amp + this.flinch * (this.id % 2 ? 0.08 : -0.08);
+    r.torso.rotation.y = Math.sin(ph) * 0.07 * amp;
 
     const aimP = this.aim;
-    // pitch toward player
     const pitch = clamp(Math.atan2(ctx.player.pos.y + 1.4 - (this.pos.y + 1.4 * s), Math.max(1, dist)), -0.5, 0.5);
-    if (this.type === 'rusher') {
-      const wind = this.meleeWind > 0 ? 1 - this.meleeWind / 0.32 : 0;
-      r.armR.rotation.x = -0.9 + (this.meleeWind > 0 ? -1.9 * (1 - wind) + wind * 1.4 : sw * 0.9);
-      r.armL.rotation.x = -0.9 - sw * 0.9;
+    if (!r.hasGun) {
+      // rusher: pumping arms, melee strike
       r.gun.visible = false;
+      const wind = this.meleeWind > 0 ? 1 - this.meleeWind / 0.32 : 0;
+      const strike = this.meleeWind > 0;
+      r.armR.rotation.set(strike ? lerp(-2.3, -0.6, wind) : Math.sin(ph) * 0.9 * amp - 0.25, 0, -0.1);
+      r.foreR.rotation.set(strike ? lerp(-1.4, -0.3, wind) : -0.9 - 0.7 * amp, 0, 0);
+      r.armL.rotation.set(-Math.sin(ph) * 0.9 * amp - 0.25, 0, 0.1);
+      r.foreL.rotation.set(-0.9 - 0.7 * amp, 0, 0);
+    } else if (this.type === 'boss' && this.invuln > 0) {
+      r.armL.rotation.set(-2.7, 0, 0.35); r.armR.rotation.set(-2.7, 0, -0.35);
+      r.foreL.rotation.set(-0.25, 0, 0); r.foreR.rotation.set(-0.25, 0, 0);
+      r.visor.scale.set(1.15, 1.3 + Math.sin(ctx.time * 30) * 0.3, 1);
     } else {
-      const carryR = -0.55 + sw * 0.6, carryL = -0.4 - sw * 0.6;
-      r.armR.rotation.x = lerp(carryR, -1.4 - pitch, aimP);
-      r.armL.rotation.x = lerp(carryL, -1.3 - pitch, aimP);
-      r.armL.rotation.y = lerp(0, 0.45, aimP);
-      r.armR.rotation.y = lerp(0, -0.12, aimP);
-      r.gun.position.set(0.12 * (this.type === 'heavy' ? 1.35 : 1), lerp(0.36, 0.56, aimP), lerp(0.24, 0.4, aimP));
-      r.gun.rotation.x = lerp(0.5, -pitch, aimP);
+      if (this.type === 'boss') r.visor.scale.set(1, 1, 1);
+      const wd = this.type === 'heavy' ? 1.25 : 1;
+      r.gun.position.set(lerp(0.1, 0.12, aimP) * wd, lerp(0.3, 0.44, aimP), lerp(0.2, 0.3, aimP) - this.flinch * 0.03);
+      r.gun.rotation.set(lerp(0.5, -pitch, aimP), lerp(0.12, 0, aimP), Math.sin(ph) * 0.05 * amp);
+      r.solveArms();
     }
-    if (this.type === 'boss' && this.invuln > 0) {
-      r.armL.rotation.x = -2.8; r.armR.rotation.x = -2.8;
-      r.visor.scale.set(1.2, 1.5 + Math.sin(ctx.time * 30) * 0.5, 1);
-    } else if (this.type === 'boss') r.visor.scale.set(1, 1, 1);
-    r.head.rotation.y = this.aware ? 0 : Math.sin(ctx.time * 0.6 + this.id) * 0.4;
+    r.head.rotation.y = this.aware ? clamp(angleDiff(this.yaw, Math.atan2(ctx.player.pos.x - this.pos.x, ctx.player.pos.z - this.pos.z)) * 0.5, -0.8, 0.8) : Math.sin(ctx.time * 0.6 + this.id) * 0.4;
+    r.head.rotation.x = this.aware ? -pitch * 0.5 : 0;
     r.root.position.copy(this.pos);
     r.root.rotation.set(0, this.yaw, 0);
-    r.root.rotation.x = 0;
   }
 
   private updateDeath(dt: number) {
