@@ -34,6 +34,7 @@ const defaults = () => ({
   shake: true,
   quality: 'high',
   speedUnit: 'kmh',
+  difficulty: 'normal',
   bindings: JSON.parse(JSON.stringify(DEFAULT_BINDINGS)),
   records: {}, // trackId -> { race: seconds, lap: seconds }
   lastCharacter: 'nova',
