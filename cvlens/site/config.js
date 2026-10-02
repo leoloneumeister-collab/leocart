@@ -1,16 +1,20 @@
 // Everything you need to edit before going live is in this file.
 // Empty strings are safe: the page hides or disables whatever depends on them.
 
+// Filled in at build time from SITE_URL, or from the production domain when built on Vercel.
+// Local builds leave it empty. Replace the two values below to hard-code them instead.
+const deployed = typeof __SITE_URL__ === 'string' ? __SITE_URL__ : '';
+
 export const config = {
   brand: 'CV Lens',
 
   // Public address of this website, e.g. 'https://cvlens.example.com'.
   // Printed in the footer of every exported image, so it is the traffic funnel.
-  siteUrl: '',
+  siteUrl: deployed,
 
   // Address of the deployed MCP server, e.g. 'https://cvlens.example.com/mcp'.
-  // GitHub Pages cannot host it: see README.md, "Deploy the server".
-  mcpUrl: '',
+  // GitHub Pages cannot host it: see README.md, "Go live".
+  mcpUrl: deployed ? `${deployed}/mcp` : '',
 
   // Where "built by" in the footer points (your portfolio). Hidden when empty.
   portfolioUrl: '',

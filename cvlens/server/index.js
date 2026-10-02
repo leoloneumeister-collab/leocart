@@ -96,6 +96,33 @@ export function buildServer({ siteUrl = '' } = {}) {
   return server;
 }
 
+export const MAX_BODY_BYTES = 102_400;
+
+/**
+ * Answers one MCP request. Shared by the Express route below and by the Vercel
+ * function in api/mcp.js, so both behave identically. Stateless: a fresh server
+ * and transport per request.
+ */
+export async function handleMcp(req, res, body, { siteUrl = '' } = {}) {
+  const server = buildServer({ siteUrl });
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  res.on('close', () => {
+    transport.close();
+    server.close();
+  });
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, body);
+  } catch (err) {
+    console.error('mcp request failed:', err instanceof Error ? err.message : err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal server error' }, id: null }));
+    }
+  }
+}
+
 // Sliding window per client address, kept only in memory. Addresses are used as
 // map keys and never logged.
 function rateLimiter(limit, windowMs = 60_000) {
@@ -139,23 +166,7 @@ export function createApp(options = {}) {
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
-  app.post('/mcp', limit, async (req, res) => {
-    const server = buildServer({ siteUrl });
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on('close', () => {
-      transport.close();
-      server.close();
-    });
-    try {
-      await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
-    } catch (err) {
-      console.error('mcp request failed:', err instanceof Error ? err.message : err);
-      if (!res.headersSent) {
-        res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal server error' }, id: null });
-      }
-    }
-  });
+  app.post('/mcp', limit, (req, res) => handleMcp(req, res, req.body, { siteUrl }));
   const notAllowed = (_req, res) =>
     res.status(405).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed.' }, id: null });
   app.get('/mcp', notAllowed);

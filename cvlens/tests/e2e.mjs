@@ -13,6 +13,12 @@ import { AppBridge } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { createApp, WIDGET_URI } from '../server/index.js';
 import { sampleCv } from '../core/sample.js';
 
+// A stuck browser should fail the run, not hang it.
+setTimeout(() => {
+  console.error('e2e timed out after 3 minutes');
+  process.exit(2);
+}, 180_000).unref();
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const shots = path.join(root, 'docs', 'screenshots');
 mkdirSync(shots, { recursive: true });
