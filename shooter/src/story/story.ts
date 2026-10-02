@@ -7,6 +7,8 @@ export interface MissionText {
   briefing: string[];
   objectives: string[];
   intro: string[];
+  goal: string[];
+  howto: string[];
 }
 
 export const MISSIONS: MissionText[] = [
@@ -23,6 +25,13 @@ export const MISSIONS: MissionText[] = [
     ],
     objectives: ['Breach the compound', 'Destroy the three relay towers', 'Reach the extraction zone'],
     intro: ['GHOST TEAM  /  NIGHT BREACH', '02:14  /  NORTHERN COAST'],
+    goal: ['Destroy the three enemy relay towers inside the compound.', 'Then run to the helicopter at the landing zone.'],
+    howto: [
+      'Enemies attack in WAVES. Defeat every wave in an area (3 waves per area).',
+      'A blue shield protects each relay tower. It drops when the area is clear. Then shoot the tower to destroy it.',
+      'Destroying a tower saves a checkpoint and starts the next area.',
+      'Health comes back when you stay out of the fight. Grab green ammo crates. Shoot red barrels to blow up groups.',
+    ],
   },
   {
     id: 2,
@@ -37,6 +46,13 @@ export const MISSIONS: MissionText[] = [
     ],
     objectives: ['Fight through the district', 'Breach the warehouse', 'Eliminate Colonel Voss'],
     intro: ['GHOST TEAM  /  DEAD DROP', '05:48  /  HARBOR DISTRICT'],
+    goal: ['Fight through the district to the harbor warehouse.', 'Defeat Colonel Voss.'],
+    howto: [
+      'Enemies attack in WAVES. Defeat every wave in an area, then move on to the next marker.',
+      'Four areas: street, market plaza, warehouse yard, then the final warehouse with Voss.',
+      'Voss arrives after the last wave. He fights in three phases and brings reinforcements.',
+      'Health comes back when you stay out of the fight. Grab green ammo crates. Shoot red barrels to blow up groups.',
+    ],
   },
 ];
 

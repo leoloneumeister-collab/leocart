@@ -27,7 +27,7 @@ import { Viewmodel } from './weapons/viewmodel';
 import { WeaponSystem } from './weapons/weaponSystem';
 import type { RadioLine } from '../story/story';
 
-type State = 'boot' | 'menu' | 'loading' | 'playing' | 'paused' | 'dead' | 'complete';
+type State = 'boot' | 'menu' | 'loading' | 'intro' | 'playing' | 'paused' | 'dead' | 'complete';
 
 const PAR_TIME = [0, 780, 840];
 
@@ -116,7 +116,7 @@ export class Game implements GameCtx {
     this.menus = new Menus(document.getElementById('ui')!, this.save, {
       startMission: (id, lo, cp) => this.startMission(id, lo, cp),
       resume: () => this.resume(),
-      restartCheckpoint: () => this.startMission(this.missionId, this.loadout, this.cp),
+      restartCheckpoint: () => { this.skipIntro = true; this.startMission(this.missionId, this.loadout, this.cp); },
       quit: () => this.toMenu(),
       next: () => this.menus.briefing(this.missionId + 1),
       replay: () => this.menus.briefing(this.missionId),
@@ -145,6 +145,7 @@ export class Game implements GameCtx {
   }
 
   private screenIsClick2Play = false;
+  private skipIntro = false;
 
   // ------------------------------------------------------------------ settings
   applySettings() {
@@ -254,7 +255,7 @@ export class Game implements GameCtx {
 
   toMenu() {
     this.input.exitLock();
-    this.hud.show(false); this.touch.show(false); this.hud.clearRadio(); this.hud.bossBar(-1, ''); this.hud.setPaused(false);
+    this.hud.show(false); this.touch.show(false); this.hud.clearRadio(); this.hud.bossBar(-1, ''); this.hud.setPaused(false); this.hud.setWave(null);
     this.hud.fade(0, 200);
     this.menus.hide();
     this.loadMenuScene();
@@ -279,23 +280,97 @@ export class Game implements GameCtx {
       this.frozen = false; this.deathT = 0; this.suppressAmt = 0; this.hurtFlash = 0; this.shakeAmt = 0;
       this.weapons = new WeaponSystem(this, loadout);
       this.viewmodel.setWeapon(loadout[0]);
+      this.waveState = null; this.hud.setWave(null);
       this.mission.start(this, cp);
       this.hud.setWeapon(this.weapons.cw);
       this.hud.setHealth(100, 100);
-      this.hud.show(true); this.touch.show(true); this.hud.setPaused(false);
-      this.menus.hide();
-      this.state = 'playing';
-      this.hadLock = false;
-      this.input.requestLock();
+      this.hud.show(false); this.touch.show(false); this.hud.setPaused(false);
       this.hud.clearRadio();
-      setTimeout(() => { if (this.state === 'playing' && !this.input.locked && !this.input.isTouch && !this.debug) this.pause(false); }, 700);
-      this.hud.fade(0, 900);
-      this.hud.banner(this.mission.text.intro[0], this.mission.text.intro[1], 4200);
+      this.hud.fade(0, 600);
       audio.startMusic();
-      this.hud.cinematic(true);
-      setTimeout(() => this.hud.cinematic(false), 4200);
-      if (!this.input.isTouch && cp === 0) setTimeout(() => { if (this.state === 'playing') this.hud.flashMessage('WASD MOVE   MOUSE AIM   CLICK FIRE   R RELOAD   SHIFT SPRINT', 6000); }, 4500);
+      const showIntro = cp === 0 && !this.skipIntro && (!this.debug || new URLSearchParams(location.search).has('intro'));
+      this.skipIntro = false;
+      if (showIntro) {
+        this.state = 'intro';
+        this.menus.missionIntro(this.mission.text, () => this.beginPlay(), this.input.isTouch);
+      } else this.beginPlay();
     }, 120);
+  }
+
+  /** Called when the player confirms the briefing (or immediately on checkpoints). */
+  private beginPlay() {
+    this.menus.hide();
+    this.hud.show(true); this.touch.show(true); this.hud.setPaused(false);
+    this.state = 'playing';
+    this.hadLock = false;
+    this.input.requestLock();
+    setTimeout(() => { if (this.state === 'playing' && !this.input.locked && !this.input.isTouch && !this.debug) this.pause(false); }, 700);
+    this.hud.banner(this.mission.text.intro[0], this.mission.text.intro[1], 3600);
+    this.hud.cinematic(true);
+    setTimeout(() => this.hud.cinematic(false), 3600);
+    this.mission.begin(this, this.cp);
+  }
+
+  // ------------------------------------------------------------------ waves
+  waveState: { zone: number; waves: Spawn[][]; idx: number; delay: number; active: Enemy[]; onClear: () => void } | null = null;
+  get wavesActive() { return this.waveState !== null; }
+  /** Debug helper used by tests: kill the current wave and advance. */
+  debugClearWave() {
+    const w = this.waveState;
+    if (!w) return;
+    if (w.idx < 0) { w.delay = 0.05; return; }
+    for (const e of w.active) if (!e.dead) e.die(false, new THREE.Vector3(0, 0, -1), this);
+    w.delay = w.idx >= w.waves.length - 1 ? 0 : 0.05;
+  }
+
+  startWaves(zone: number, waves: Spawn[][], onClear: () => void, delay = 4) {
+    this.waveState = { zone, waves, idx: -1, delay, active: [], onClear };
+    this.hud.setWave(`INCOMING`);
+  }
+
+  private spawnFar(s: Spawn): Enemy {
+    const p = this.player.pos;
+    let pos = new THREE.Vector3(s.x, 0, s.z);
+    for (let i = 0; i < 14 && Math.hypot(pos.x - p.x, pos.z - p.z) < 24; i++) pos = this.level.nav.randomOpenNear(new THREE.Vector3(s.x, 0, s.z), 22, 6);
+    const e = this.spawnEnemy(s.type, pos.x, pos.z, s.zone, true);
+    e.reactTimer += 1.2;
+    return e;
+  }
+
+  private updateWaves(dt: number) {
+    const w = this.waveState;
+    if (!w) return;
+    const alive = w.active.filter((e) => !e.dead).length;
+    if (w.idx >= 0) this.hud.setWave(`WAVE ${w.idx + 1}/${w.waves.length}  -  ${alive} LEFT`);
+    if (w.idx >= 0 && alive === 0 && w.delay <= 0) {
+      if (w.idx >= w.waves.length - 1) {
+        this.waveState = null;
+        this.hud.setWave(null);
+        this.hud.banner('AREA CLEAR', 'WELL DONE', 2800);
+        audio.objective();
+        w.onClear();
+        return;
+      }
+      w.delay = 5;
+      this.hud.flashMessage('WAVE CLEARED', 2200);
+      audio.pickup();
+      const p = this.player.pos;
+      const spot = this.level.nav.randomOpenNear(new THREE.Vector3(p.x, 0, p.z), 5, 12);
+      this.addAmmo(spot.x, spot.z);
+      this.hud.flashMessage('WAVE CLEARED   AMMO DROP NEARBY', 2600);
+    }
+    if (w.delay > 0 && (w.idx < 0 || (alive === 0 && w.idx < w.waves.length - 1))) {
+      w.delay -= dt;
+      if (w.delay <= 0) {
+        w.idx++;
+        const list = w.waves[w.idx];
+        w.active = list.map((s) => this.spawnFar(s));
+        this.hud.banner(`WAVE ${w.idx + 1} OF ${w.waves.length}`, `${list.length} HOSTILES INCOMING`, 3000);
+        this.alertedOnce = true;
+        this.setMusic(0.8);
+        audio.radio('Contact');
+      }
+    }
   }
 
   pause(showMenu: boolean) {
@@ -484,7 +559,7 @@ export class Game implements GameCtx {
       this.scene.remove(old.rig.root);
       this.enemies.splice(this.enemies.indexOf(old), 1);
     }
-    if (Math.random() < 0.18 && e.type !== 'boss') {
+    if (Math.random() < 0.3 && e.type !== 'boss') {
       const p = e.pos;
       if (!this.level.nav.isBlockedAt(p.x, p.z)) this.addAmmo(p.x, p.z);
     }
@@ -584,10 +659,25 @@ export class Game implements GameCtx {
 
     if (this.state === 'playing' || this.state === 'dead') this.updateGame(dt, real);
     else if (this.state === 'menu' || this.state === 'loading') this.updateMenu(real);
+    else if (this.state === 'intro') this.updateIntro(real);
     else if (this.state === 'paused') { /* frozen */ }
     pointScale.value = (this.renderer.renderer.domElement.height / 2) / Math.tan((this.camera.fov * Math.PI) / 360);
     this.renderer.render(real, performance.now() / 1000);
     this.input.endFrame();
+  }
+
+  private updateIntro(dt: number) {
+    const p = this.player;
+    this.time += dt;
+    p.applyCamera(this.camera, this.time);
+    this.camera.fov = this.fov; this.camera.updateProjectionMatrix();
+    this.viewmodel.root.visible = false;
+    this.sun.position.copy(p.pos).addScaledVector(this.sunDir, 90);
+    this.sun.target.position.copy(p.pos); this.sun.target.updateMatrixWorld();
+    this.updateLamps(dt);
+    this.weather?.update(this.time + performance.now() / 5000, this.camera.position);
+    this.fx.update(dt);
+    for (const e of this.enemies) e.update(0, this);
   }
 
   private updateMenu(dt: number) {
@@ -652,10 +742,11 @@ export class Game implements GameCtx {
     this.burning = this.burning.filter((f) => f.t > 0);
     this.heli.update(dt);
     this.fx.update(dt);
+    this.updateWaves(dt);
     this.mission.update(dt, this);
 
     // health regen
-    if (p.alive && this.time - p.lastHurt > 4.5 && p.health < p.maxHealth) p.health = Math.min(p.maxHealth, p.health + 26 * dt);
+    if (p.alive && this.time - p.lastHurt > 2.5 && p.health < p.maxHealth) p.health = Math.min(p.maxHealth, p.health + 45 * dt);
     this.hud.setHealth(p.health, p.maxHealth);
     if (p.alive && p.health < 35) audio.heartbeat(dt * (1.4 + (35 - p.health) / 20));
 

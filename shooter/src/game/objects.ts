@@ -34,6 +34,8 @@ export class Relay implements Damageable {
   private dying = 0;
   private fireTimer = 0;
   private light: THREE.PointLight;
+  shielded = false;
+  private shieldMesh: THREE.Mesh;
   id: number;
 
   constructor(x: number, z: number, id: number, game: Game) {
@@ -57,6 +59,9 @@ export class Relay implements Damageable {
     bx(g, 0.1, 2.2, 0.1, 0, 15.3, 0, M.steel);
     this.beacon = bx(g, 0.35, 0.35, 0.35, 0, 16.5, 0, M.red);
     const light = new THREE.PointLight(0x30e0ff, 4, 14, 2); light.position.set(0, 2.4, 0); g.add(light); this.light = light;
+    this.shieldMesh = new THREE.Mesh(new THREE.SphereGeometry(4.2, 28, 18), new THREE.MeshBasicMaterial({ color: 0x30c8ff, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    this.shieldMesh.position.set(0, 3, 0); this.shieldMesh.visible = false;
+    g.add(this.shieldMesh);
     game.scene.add(g);
     const base = makeBox(x, 0, z, 3.2, 3.3, 3.2, 'metal'); (base as AABB).owner = this;
     const mast = makeBox(x, 3.3, z, 1.2, 12, 1.2, 'metal'); (mast as AABB).owner = this;
@@ -64,7 +69,14 @@ export class Relay implements Damageable {
     game.level.colliders.push(base, mast);
   }
 
+  setShielded(on: boolean) {
+    this.shielded = on;
+    this.shieldMesh.visible = on;
+    if (!on) audio.objective();
+  }
+
   update(dt: number, time: number, game: Game) {
+    if (this.shielded) (this.shieldMesh.material as THREE.MeshBasicMaterial).opacity = 0.12 + Math.sin(time * 3) * 0.05;
     if (this.destroyed) {
       this.dying -= dt;
       this.fireTimer -= dt;
@@ -82,6 +94,7 @@ export class Relay implements Damageable {
 
   damage(amount: number, game: Game) {
     if (this.destroyed) return;
+    if (this.shielded) { game.hud.flashMessage('RELAY SHIELDED   DEFEAT THE ENEMY WAVES FIRST', 1600); return; }
     this.hp -= amount;
     if (this.hp <= 0) {
       this.destroyed = true; this.dying = 3; this.light.intensity = 0;

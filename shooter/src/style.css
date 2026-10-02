@@ -196,3 +196,15 @@ h2.title { font-size: 34px; letter-spacing: 12px; margin: 0 0 22px; font-weight:
 }
 
 .hud-root.paused .banner, .hud-root.paused .sub, .hud-root.paused .msg { opacity: 0; }
+
+.wavebox { display: none; margin-top: 10px; padding: 6px 12px; font-size: 14px; letter-spacing: 3px; font-weight: 700; color: var(--red); background: rgba(0,0,0,0.45); border-left: 3px solid var(--red); }
+.intro { max-width: 880px; width: 100%; }
+.intro h1 { font-size: clamp(30px,5vw,56px); letter-spacing: 12px; margin: 0; }
+.intro .meta { color: var(--accent); letter-spacing: 5px; font-size: 13px; margin: 8px 0 20px; }
+.intro h3 { margin: 18px 0 8px; font-size: 13px; letter-spacing: 6px; color: var(--cyan); font-weight: 600; }
+.intro ul { margin: 0; padding: 0; list-style: none; }
+.intro li { padding: 5px 0 5px 22px; position: relative; font-size: 17px; line-height: 1.4; color: #dbe4e9; }
+.intro li::before { content: ''; position: absolute; left: 0; top: 13px; width: 9px; height: 9px; background: var(--accent); }
+.intro .keys { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 4px 0 22px; font-size: 14px; letter-spacing: 2px; color: var(--dim); }
+.intro .keys kbd { background: rgba(255,255,255,0.08); border: 1px solid var(--line); padding: 2px 8px; color: var(--accent); font-family: inherit; }
+.screen.intro-bg { background: linear-gradient(90deg, rgba(2,4,6,0.93), rgba(2,4,6,0.78) 60%, rgba(2,4,6,0.3)); }

@@ -19,10 +19,10 @@ const DEFS: Record<EnemyType, Def> = {
   boss:   { name: 'VOSS', hp: 1700, speed: 2.4, run: 3.4, radius: 0.5, sight: 90, head: 1.5, armor: 0.8, burstMin: 5, burstMax: 8, interval: 0.085, pauseMin: 0.6, pauseMax: 1.1, dmg: 8, acc: 0.62, minRange: 8, maxRange: 34, react: 0.2, hitHalf: 0.42, hitH: 1.95, melee: false, score: 2000 },
 };
 
-const DIFF_HP = [0.85, 1, 1.2];
-const DIFF_ACC = [0.7, 1, 1.3];
-const DIFF_DMG = [0.7, 1, 1.35];
-const DIFF_REACT = [1.5, 1, 0.6];
+const DIFF_HP = [0.7, 0.95, 1.25];
+const DIFF_ACC = [0.42, 0.75, 1.1];
+const DIFF_DMG = [0.45, 0.8, 1.2];
+const DIFF_REACT = [2.2, 1.3, 0.7];
 
 const FLASH = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const _v = new THREE.Vector3();
@@ -184,7 +184,7 @@ export class Enemy {
     if (this.aware) return;
     this.aware = true; this.awareness = 1;
     this.reactTimer = this.def.react * DIFF_REACT[ctx.difficulty] + delay;
-    ctx.alertNear(this.pos, 22, 0.4);
+    ctx.alertNear(this.pos, 14, 0.6);
   }
 
   hear(ctx: GameCtx, pos: THREE.Vector3, delay: number) {

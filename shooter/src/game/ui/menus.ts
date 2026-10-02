@@ -1,4 +1,4 @@
-import { MISSIONS } from '../../story/story';
+import { MISSIONS, MissionText } from '../../story/story';
 import { SaveData, writeSave } from '../../engine/save';
 import { WEAPONS, WEAPON_ORDER, WeaponId } from '../weapons/defs';
 import { audio } from '../../engine/audio';
@@ -50,6 +50,24 @@ export class Menus {
   loading(text = 'LOADING') {
     const s = this.only('loading');
     s.innerHTML = `<div class="load">${text}</div>`;
+  }
+
+  missionIntro(m: MissionText, onBegin: () => void, touch: boolean) {
+    const s = this.only('intro', 'clear intro-bg');
+    const keys = touch
+      ? '<span>LEFT STICK MOVE</span><span>RIGHT SIDE LOOK</span><span>FIRE / AIM / RELOAD BUTTONS</span>'
+      : '<span><kbd>WASD</kbd> MOVE</span><span><kbd>MOUSE</kbd> AIM</span><span><kbd>CLICK</kbd> FIRE</span><span><kbd>RIGHT CLICK</kbd> AIM DOWN SIGHTS</span><span><kbd>R</kbd> RELOAD</span><span><kbd>SHIFT</kbd> SPRINT</span><span><kbd>1</kbd> <kbd>2</kbd> SWITCH GUN</span>';
+    s.innerHTML = `<div class="intro">
+      <h1>${m.codename}</h1><div class="meta">${m.location}  /  ${m.time}</div>
+      <h3>YOUR MISSION</h3><ul>${m.goal.map((g) => `<li>${g}</li>`).join('')}</ul>
+      <h3>HOW IT WORKS</h3><ul>${m.howto.map((g) => `<li>${g}</li>`).join('')}</ul>
+      <h3>CONTROLS</h3><div class="keys">${keys}</div>
+      <button class="btn primary" id="begin">Begin mission</button></div>`;
+    const go = () => { document.removeEventListener('keydown', onKey); audio.uiClick(); onBegin(); };
+    const onKey = (e: KeyboardEvent) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); go(); } };
+    document.addEventListener('keydown', onKey);
+    (s.querySelector('#begin') as HTMLElement).onclick = go;
+    this.bind(s);
   }
 
   title() {

@@ -24,7 +24,7 @@ export class HUD {
     const r = document.createElement('div');
     r.className = 'hud-root';
     r.innerHTML = `
-      <div class="objs"><h4>OBJECTIVES</h4><div id="o-list"></div></div>
+      <div class="objs"><h4>OBJECTIVES</h4><div id="o-list"></div><div class="wavebox" id="wave"></div></div>
       <div class="compass" id="compass"><div class="mk" id="mk"></div><div class="mkd" id="mkd"></div></div><div class="compass-c"></div>
       <div class="boss" id="boss"><b id="boss-name">VOSS</b><div class="bar"><div id="boss-fill"></div></div></div>
       <div class="xhair" id="xhair"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
@@ -42,7 +42,7 @@ export class HUD {
       <div class="fade" id="fade"></div>`;
     parent.appendChild(r);
     this.root = r;
-    for (const id of ['o-list', 'compass', 'boss', 'boss-name', 'boss-fill', 'xhair', 'hitm', 'dmg', 'scope', 'hp', 'hpbar', 'hpfill', 'wname', 'ammo', 'sub', 'sub-who', 'sub-text', 'banner', 'b-title', 'b-sub', 'msg', 'kf', 'fps', 'fade']) {
+    for (const id of ['o-list', 'wave', 'compass', 'boss', 'boss-name', 'boss-fill', 'xhair', 'hitm', 'dmg', 'scope', 'hp', 'hpbar', 'hpfill', 'wname', 'ammo', 'sub', 'sub-who', 'sub-text', 'banner', 'b-title', 'b-sub', 'msg', 'kf', 'fps', 'fade']) {
       this.el[id] = r.querySelector('#' + id) as HTMLElement;
     }
     this.mk = r.querySelector('#mk') as HTMLElement;
@@ -60,6 +60,7 @@ export class HUD {
   }
 
   show(on: boolean) { this.root.classList.toggle('on', on); }
+  setWave(t: string | null) { const w = this.el.wave; w.textContent = t ?? ''; w.style.display = t ? 'block' : 'none'; }
   setPaused(on: boolean) { this.root.classList.toggle('paused', on); }
   cinematic(on: boolean) { this.root.classList.toggle('cine', on); }
   fade(op: number, ms = 600) { this.el.fade.style.transition = `opacity ${ms}ms`; this.el.fade.style.opacity = String(op); }
