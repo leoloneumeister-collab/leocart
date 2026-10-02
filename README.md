@@ -127,3 +127,9 @@ MIT. See [LICENSE](LICENSE).
 A 3D first-person military shooter (two story missions, four guns, wave combat, a boss fight), also generated entirely in code. It lives in [`shooter/`](shooter/README.md) and is published at `/shooter/` next to the kart racer.
 
 Run it locally: `cd shooter && npm install && npm run dev`.
+
+## Also in this repo: SITEHOLD
+
+A CS:GO style 5v5 bomb defusal shooter you play offline against bots: real movement and recoil, economy and buy menu, grenades, one original two site map, bots that plan, rotate, retake and save. Also generated entirely in code. It lives in [`sitehold/`](sitehold/README.md) and is published at `/sitehold/`.
+
+Run it locally: `cd sitehold && npm install && npm run dev`.

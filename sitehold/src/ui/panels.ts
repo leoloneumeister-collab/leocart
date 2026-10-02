@@ -216,7 +216,6 @@ export class Menus {
   howto = el('div', 'overlay hidden');
   results = el('div', 'overlay hidden');
   resume = el('div', 'overlay hidden');
-  loading = el('div', 'loading');
   private s: Settings;
   private h: MenuHandlers;
   private tab = 'Mouse';
@@ -227,8 +226,7 @@ export class Menus {
     this.s = s; this.h = h;
     this.main.id = 'menu';
     this.results.id = 'results';
-    this.loading.innerHTML = '<div>Loading</div><div class="bar"><i></i></div>';
-    parent.append(this.main, this.pause, this.settings, this.howto, this.results, this.resume, this.loading);
+    parent.append(this.main, this.pause, this.settings, this.howto, this.results, this.resume);
     window.addEventListener('keydown', (e) => {
       if (!this.rebinding) return;
       e.preventDefault(); e.stopPropagation();
@@ -245,7 +243,6 @@ export class Menus {
   }
 
   hideAll() { for (const e of [this.main, this.pause, this.settings, this.howto, this.results, this.resume]) e.classList.add('hidden'); }
-  hideLoading() { this.loading.classList.add('hidden'); }
 
   // ---------------------------------------------------------------- main menu
 

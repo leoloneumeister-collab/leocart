@@ -130,13 +130,16 @@ export class Game {
     this.input.onLock = (locked) => this.onLockChange(locked);
     this.input.onKey = (code) => this.onKeyDown(code);
     window.addEventListener('resize', () => this.resize());
+    // Ctrl+W (forward while crouching on some layouts) closes the tab and cannot be intercepted, so ask first during a match
+    window.addEventListener('beforeunload', (e) => {
+      if (!this.flags.auto && (this.state === 'playing' || this.state === 'paused') && this.sim && this.sim.m.phase !== 'over') { e.preventDefault(); e.returnValue = ''; }
+    });
     window.addEventListener('mousedown', (e) => this.onMouseDown(e));
     const gesture = () => { audio.init(); if (this.state === 'menu') audio.startMusic(); };
     window.addEventListener('pointerdown', gesture);
     window.addEventListener('keydown', gesture);
     this.applySettings();
     this.resize();
-    this.menus.hideLoading();
     this.toMenu();
     requestAnimationFrame((t) => { this.last = t; this.loop(t); });
     if (flags.debug) { (window as unknown as { __game: Game }).__game = this; (window as unknown as { __audio: typeof audio }).__audio = audio; }

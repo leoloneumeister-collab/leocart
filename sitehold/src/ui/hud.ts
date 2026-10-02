@@ -33,6 +33,17 @@ export interface HudContext {
   nearBomb: boolean;
 }
 
+const lastHtml = new WeakMap<HTMLElement, string>();
+/** Only touch the DOM when the content changed, the HUD updates every frame. */
+function setHtml(e: HTMLElement, html: string) {
+  if (lastHtml.get(e) === html) return;
+  lastHtml.set(e, html);
+  e.innerHTML = html;
+}
+function setText(e: HTMLElement, text: string) {
+  if (e.textContent !== text) e.textContent = text;
+}
+
 const KILL_ICON: Record<string, string> = { knife: 'KNIFE', he: 'HE', fire: 'FIRE', bomb: 'C4', fall: 'FALL' };
 
 export class Hud {
@@ -215,7 +226,7 @@ export class Hud {
       this.leftAlive.innerHTML = '<span style="font-size:12px;color:#9ab">YOU</span>';
       this.rightAlive.innerHTML = `<span style="font-size:12px;color:#9ab">${lead.name.toUpperCase()}</span>`;
       this.clock.className = 'clock';
-      this.clock.innerHTML = `<div class="time">${fmtClock((m.dmEnd - sim.time))}</div><div class="sub">Deathmatch</div>`;
+      setHtml(this.clock, `<div class="time">${fmtClock((m.dmEnd - sim.time))}</div><div class="sub">Deathmatch</div>`);
     } else {
       const grp = human ? human.grp : 0;
       const [a, b] = sim.scoreFor(grp);
@@ -240,20 +251,20 @@ export class Hud {
       } else if (m.phase === 'halftime') { time = '—'; sub = 'Switching sides'; }
       else if (m.phase === 'roundEnd') { time = sim.bomb.state === 'defused' ? 'DEFUSED' : '0:00'; sub = 'Round ' + m.round; }
       this.clock.className = cls;
-      this.clock.innerHTML = `<div class="time">${time}</div><div class="sub">${sub}${m.suddenDeath ? ' · sudden death' : ''}</div>`;
+      setHtml(this.clock, `<div class="time">${time}</div><div class="sub">${sub}${m.suddenDeath ? ' · sudden death' : ''}</div>`);
     }
 
     // ---- vitals
     const s = subject;
-    this.hpNum.textContent = String(Math.max(0, Math.ceil(s.health)));
+    setText(this.hpNum, String(Math.max(0, Math.ceil(s.health))));
     this.hpNum.className = 'num' + (s.health <= 25 ? ' low' : '');
-    this.arNum.textContent = String(Math.ceil(s.armor));
+    setText(this.arNum, String(Math.ceil(s.armor)));
     this.arNum.parentElement!.style.opacity = s.armor > 0 ? '1' : '0.35';
     (this.arNum.previousElementSibling as HTMLElement).textContent = s.helmet ? '⛑' : '⛨';
     if (sim.cfg.mode !== 'dm') {
       this.money.style.display = '';
       if (s.money !== this.lastMoney) this.lastMoney = s.money;
-      this.moneyNum.textContent = '$' + s.money;
+      setText(this.moneyNum, '$' + s.money);
     } else this.money.style.display = 'none';
     this.gainT = Math.max(0, this.gainT - dt);
     this.moneyGain.style.opacity = String(Math.min(1, this.gainT));
@@ -270,18 +281,18 @@ export class Hud {
     const g = s.grenades;
     const gren = (['flash', 'smoke', 'he', 'fire'] as const).filter((k) => g[k] > 0).map((k) => `<span class="${s.cur === 'grenade' && s.grenadeSel === k ? 'sel' : ''}">${k === 'he' ? 'HE' : k === 'fire' ? 'FIRE' : k.toUpperCase()}${g[k] > 1 ? ' ×' + g[k] : ''}</span>`).join('');
     const kb = this.s.keys;
-    this.ammo.innerHTML = `<div class="wname">${name}</div><div class="count ${low ? 'low' : ''}">${cnt}</div>
+    setHtml(this.ammo, `<div class="wname">${name}</div><div class="count ${low ? 'low' : ''}">${cnt}</div>
       <div class="slots">${slot(`${keyName(kb.primary[0])} ${s.primary?.def.name ?? ''}`, !!s.primary, s.cur === 'primary')}${slot(`${keyName(kb.secondary[0])} ${s.secondary?.def.name ?? ''}`, !!s.secondary, s.cur === 'secondary')}${slot(`${keyName(kb.knife[0])} Knife`, true, s.cur === 'knife')}${slot(`${keyName(kb.bomb[0])} C4`, s.hasBomb, s.cur === 'bomb')}</div>
-      <div class="gear">${gren}${s.kit ? '<span>KIT</span>' : ''}${s.hasBomb && s.cur !== 'bomb' ? '<span class="sel">C4</span>' : ''}</div>`;
+      <div class="gear">${gren}${s.kit ? '<span>KIT</span>' : ''}${s.hasBomb && s.cur !== 'bomb' ? '<span class="sel">C4</span>' : ''}</div>`);
 
     // ---- place, progress, prompt, spectate
-    this.place.textContent = sim.placeName(s.pos);
+    setText(this.place, sim.placeName(s.pos));
     let progress = 0, ptext = '';
     if (s.planting > 0) { progress = s.planting / ROUND.plant; ptext = 'Planting the bomb'; }
     else if (s.defusing > 0) { progress = s.defusing / (s.kit ? ROUND.defuseKit : ROUND.defuse); ptext = s.kit ? 'Defusing (kit)' : 'Defusing'; }
     this.prog.classList.toggle('hidden', progress <= 0);
     this.progBar.style.width = `${Math.min(100, progress * 100)}%`;
-    this.progText.textContent = ptext;
+    setText(this.progText, ptext);
 
     let prompt = '';
     if (!c.spectating && human && human.alive) {
@@ -290,12 +301,12 @@ export class Hud {
       else if (human.team === 0 && c.nearBomb && sim.bomb.state === 'planted') prompt = `Hold ${keyName(kb.use[0])} to defuse${human.kit ? ' (kit)' : ''}`;
       else if (c.nearDrop) prompt = `Press ${keyName(kb.use[0])} to pick up ${c.nearDrop}`;
     }
-    this.prompt.textContent = prompt;
+    setText(this.prompt, prompt);
     this.prompt.classList.toggle('hidden', !prompt);
 
     if (c.spectating) {
       this.spec.classList.remove('hidden');
-      this.spec.innerHTML = `<small>SPECTATING</small>${s.name}<small>click to cycle players</small>`;
+      setHtml(this.spec, `<small>SPECTATING</small>${s.name}<small>click to cycle players</small>`);
     } else this.spec.classList.add('hidden');
 
     // ---- timers for transient things
@@ -309,7 +320,7 @@ export class Hud {
     this.msg.style.opacity = this.msgT > 0 ? '1' : '0';
     this.scope.classList.toggle('on', c.scopeLevel > 0);
 
-    this.fps.textContent = this.s.showFps ? `${fps.toFixed(0)} fps` : '';
+    setText(this.fps, this.s.showFps ? `${fps.toFixed(0)} fps` : '');
     this.drawCrosshair(c);
     this.drawRadar(c);
   }

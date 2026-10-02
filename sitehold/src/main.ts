@@ -24,6 +24,7 @@ function boot() {
   try {
     const game = new Game(canvas, hud, ui, flags);
     if (flags.auto) game.startMatch();
+    requestAnimationFrame(() => document.getElementById('boot')?.remove());
   } catch (e) {
     console.error(e);
     document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;background:#0b0e12;color:#fff;z-index:99">SITEHOLD could not start. It needs WebGL2, please try a recent Chrome, Edge, Firefox or Safari.<br><small style="opacity:.6">${String(e)}</small></div>`);
