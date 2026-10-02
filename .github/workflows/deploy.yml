@@ -31,6 +31,7 @@ jobs:
         run: |
           npm run lint
           npm run validate
+          npm run test:apps
       - run: npm run build
       # Shadow Protocol shooter (published under /shooter/)
       - run: npm ci
@@ -44,6 +45,8 @@ jobs:
       - run: npm run build
         working-directory: moba
       - run: mkdir -p dist/moba && cp -r moba/dist/. dist/moba/
+      # Pushwake, BiteLog and Voicepad are plain static files, published under /apps/
+      - run: mkdir -p dist/apps && cp -r apps/. dist/apps/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

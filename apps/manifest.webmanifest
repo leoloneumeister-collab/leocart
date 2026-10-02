@@ -1,0 +1,14 @@
+{
+  "name": "LeoCart Apps",
+  "short_name": "LeoCart Apps",
+  "description": "Small free apps that run in your browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0e1c",
+  "theme_color": "#0b0e1c",
+  "icons": [
+    { "src": "icons/apps-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/apps-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

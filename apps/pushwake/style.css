@@ -1,0 +1,47 @@
+:root { --accent: #ff7a45; --accent2: #ff3d81; --bg: #12080f; --bg2: #1b0e18; --card: #231320; --card2: #2e1a2b; --line: #44263d; }
+body { background: radial-gradient(1200px 600px at 50% -10%, #3a1330 0%, var(--bg) 60%) fixed; }
+.top { padding: 4px 0 12px; }
+.brand { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+.brand b { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.streak { background: var(--card2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-weight: 700; }
+.clock { padding: 12px 0 4px; }
+.clock-time { font-size: clamp(3rem, 15vw, 4.8rem); font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; line-height: 1; }
+input.time { font-size: 1.5rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper { display: flex; align-items: center; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stepper .btn { border: 0; border-radius: 0; min-width: 52px; font-size: 1.4rem; background: transparent; }
+.stepper output { flex: 1; text-align: center; font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.days { gap: 6px; justify-content: space-between; }
+.days .chip { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
+.presets { gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.presets .chip { min-height: 32px; padding: 4px 12px; font-size: 0.82rem; }
+.btn.big { min-height: 56px; font-size: 1.1rem; }
+.how summary { cursor: pointer; font-weight: 700; }
+.how ol { padding-left: 1.2rem; margin: 12px 0; display: grid; gap: 8px; }
+.warn-text { background: #3a2610; border: 1px solid #6b4513; color: #ffd9a0; border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.armed-ring { font-size: 4rem; margin-top: 20px; }
+.big-count { font-size: clamp(2.6rem, 14vw, 4rem); font-weight: 800; font-variant-numeric: tabular-nums; }
+.left { text-align: left; }
+.checks { padding-left: 1.1rem; margin: 8px 0 0; display: grid; gap: 6px; color: var(--muted); }
+
+/* Full screen ringing view */
+.ring { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); background: radial-gradient(900px 600px at 50% 30%, #7a1236 0%, #2a0716 70%); animation: pulse 0.52s infinite alternate; }
+.ring.practice { background: radial-gradient(900px 600px at 50% 30%, #153c63 0%, #08121f 70%); animation: none; }
+@keyframes pulse { from { filter: brightness(0.85); } to { filter: brightness(1.15); } }
+.ring-title { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.06em; }
+.ring-sub { color: #ffd0dc; margin-top: 6px; }
+.ring.practice .ring-sub { color: #b9d9ff; }
+.rep-big { font-size: clamp(7rem, 38vw, 12rem); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.rep-big small { font-size: 0.35em; opacity: 0.6; font-weight: 700; }
+.meter { width: min(320px, 80vw); height: 14px; background: rgba(255, 255, 255, 0.15); border-radius: 99px; overflow: hidden; }
+.meter i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width 0.08s linear; }
+.ring-hint { min-height: 1.4em; color: #ffe29a; font-weight: 600; }
+#cam { width: 120px; height: 90px; border-radius: 12px; object-fit: cover; transform: scaleX(-1); background: #000; opacity: 0.85; border: 1px solid rgba(255, 255, 255, 0.25); }
+#cam.off { visibility: hidden; }
+.ring-actions { display: grid; gap: 10px; width: min(360px, 100%); }
+#giveup { position: relative; overflow: hidden; border-color: rgba(255, 255, 255, 0.3); color: #ffd0dc; }
+#giveup-bar { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255, 255, 255, 0.25); }
+
+.grid2 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+input.time { min-width: 0; padding-left: 10px; padding-right: 8px; font-size: 1.2rem; }
+.stepper { min-width: 0; }
+.stepper .btn { min-width: 44px; padding: 0 8px; }

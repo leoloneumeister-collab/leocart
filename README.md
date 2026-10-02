@@ -4,6 +4,8 @@
 
 **[▶ Play it live](https://leoloneumeister-collab.github.io/leocart/)**
 
+**More:** [small apps you can share](https://leoloneumeister-collab.github.io/leocart/apps/) (a pushup alarm, a calorie tracker and voice notes). See [`apps/`](apps/README.md).
+
 ![LeoCart gameplay](docs/gameplay.gif)
 
 | | |
@@ -137,3 +139,9 @@ Run it locally: `cd shooter && npm install && npm run dev`.
 A single-player 5v5 MOBA against bots (three lanes, minion waves, towers, jungle, items, fog of war, five original champions), generated entirely in code. It lives in [`moba/`](moba/README.md) and is published at `/moba/`. It is an unofficial genre game and is not affiliated with Riot Games.
 
 Run it locally: `cd moba && npm install && npm run dev` (port 5174).
+
+## Also in this repo: small apps
+
+Three small free apps and a hub page: **Pushwake** (an alarm that only stops when you do your pushups, counted by the phone camera), **BiteLog** (calorie and macro tracker) and **Voicepad** (talk, get tidy notes). Plain HTML and JavaScript, no sign-up, everything stays on the device. They live in [`apps/`](apps/README.md) and are published at `/apps/`, with a share sheet (QR code, link, WhatsApp, text) on each one.
+
+Run them locally: `npx vite` and open `/apps/`.

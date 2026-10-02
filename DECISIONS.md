@@ -57,3 +57,17 @@ Notes on the calls I made while building, mostly where the brief left something 
 - Touch controls.
 - Online ghost times.
 - A proper listening pass on the music mix and engine sounds.
+
+## Small apps (`apps/`)
+
+- **Why these three.** The brief was to copy what is making money on the Starter Story channel. YouTube and starterstory.com are blocked in this build environment, so the picks come from web search summaries, not the videos. I took the ideas that work as a free static page: a pushup alarm (Early), a calorie tracker (Cal AI and its local copies) and voice notes (Audiopen). I left out the ones that need a paid AI model and a server. Details and the honest caveats are in `apps/IDEAS.md`.
+- **No build step, no framework.** Plain ES modules, so the folder can be copied to any static host and the deploy workflow only needs a `cp`. Each app is 400 to 900 lines of JavaScript, BiteLog's being the longest because it includes a 137 row food table.
+- **Logic is separate from the page.** `counter.js`, `alarm.js`, `calc.js` and `clean.js` have no DOM access and are covered by Node unit tests. The browser tests then only need to prove the wiring.
+- **Pushwake counts reps from camera brightness, not pose detection.** Pose models are the better method but need a large download from a third-party CDN and I could not test them here. Brightness works with the phone lying face up under your chest and needs no external files. The counter ignores flicker (cycles under 0.8 s), brief hand waves, slow lighting changes and a covered lens at the start. It has only been tested on a synthetic video, not a real phone, so there is a Sensitivity setting, a Practise mode and a Tap fallback.
+- **The camera permission is asked when arming, not when ringing.** A permission prompt at 6 am is the way a user ends up with a silent alarm.
+- **BiteLog never sets a deficit for under 18s,** and floors adult goals at 1,200 kcal (women) and 1,500 kcal (men). Calorie apps are popular with teenagers and a deficit for a growing body is the wrong default.
+- **Food values are typed from memory** (typical averages in the style of USDA tables). A unit test checks that each food's calories roughly match its protein, carbs and fat, which catches typos, not wrong data. Treat them as estimates.
+- **Voicepad's rules are English only.** The filler and spoken-command rules would damage other languages (German "er" means "he"), so other languages only get capitals and full stops. "Period" is treated as punctuation only outside noun phrases, because the first version turned "the period of time" into "The. Of time".
+- **The service worker is network first.** A cache-first worker would keep serving old versions after a deploy, which is worse than not working offline.
+- **Vendored QR library** (`qrcode-generator`, MIT) rather than hand-written QR encoding. The codes were decoded with an independent library (jsQR) during development to prove a phone camera can read them.
+- **Not done:** payments, accounts, push notifications, photo calories. All need accounts or paid services the owner has to create.
