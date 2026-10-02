@@ -1,0 +1,25 @@
+{
+  "name": "lanefall",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5175 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/sim.ts && node tests/smoke.mjs",
+    "test:sim": "node tests/sim.ts",
+    "test:smoke": "node tests/smoke.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/three": "^0.186.0",
+    "playwright": "^1.63.0",
+    "typescript": "5.9",
+    "vite": "^8.3.2"
+  }
+}

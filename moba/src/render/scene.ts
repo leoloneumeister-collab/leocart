@@ -1,0 +1,618 @@
+/** Three.js renderer: scene setup, unit views, projectiles and event driven effects. */
+import * as THREE from 'three';
+import { CHAMPIONS } from '../data/champions.ts';
+import { MINIONS } from '../data/units.ts';
+import type { MinionType, SimEvent, Team, Unit } from '../sim/types.ts';
+import type { World } from '../sim/world.ts';
+import { angleLerp, TAU } from '../sim/math.ts';
+import { CameraRig } from './camera.ts';
+import { Decals, Particles } from './fx.ts';
+import { G, lambert, teamColor } from './geo.ts';
+import { buildChampion, buildInhibitor, buildMinionGeometry, buildMonster, buildNexus, buildTower } from './models.ts';
+import type { Rig, StructureRig } from './models.ts';
+import { buildTerrain } from './terrain.ts';
+
+export type Quality = 'low' | 'medium' | 'high';
+
+const FIXED_DT = 1 / 30;
+
+class ChampionView {
+  group = new THREE.Group();
+  rig: Rig;
+  ring: THREE.Mesh;
+  yaw = 0;
+  phase = Math.random() * 6;
+  speed = 0;
+  attackT = 0;
+  castT = 0;
+  hurtT = 0;
+  baseGlow: number[];
+
+  constructor(u: Unit, isPlayer: boolean) {
+    const def = CHAMPIONS[u.defId];
+    this.rig = buildChampion(def);
+    this.group.add(this.rig.root);
+    const col = teamColor(u.team);
+    const ringMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(u.radius * 1.15, u.radius * 1.5, 28), ringMat);
+    this.ring.rotation.x = -Math.PI / 2;
+    this.ring.position.y = 0.08;
+    this.ring.renderOrder = 1;
+    this.group.add(this.ring);
+    if (isPlayer) {
+      const sel = new THREE.Mesh(new THREE.RingGeometry(u.radius * 1.7, u.radius * 1.85, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+      sel.rotation.x = -Math.PI / 2;
+      sel.position.y = 0.09;
+      this.group.add(sel);
+    }
+    this.baseGlow = this.rig.glow.map((m) => m.emissiveIntensity);
+    this.yaw = u.facing;
+  }
+}
+
+class StructureView {
+  rig: StructureRig;
+  lastAlive = true;
+  smoke = 0;
+  constructor(u: Unit) {
+    if (u.kind === 'tower') this.rig = buildTower(u.team, u.radius, u.height);
+    else if (u.kind === 'inhibitor') this.rig = buildInhibitor(u.team, u.radius);
+    else this.rig = buildNexus(u.team, u.radius);
+    this.rig.root.position.set(u.x, 0, u.z);
+    this.lastAlive = u.alive;
+  }
+}
+
+interface ProjView {
+  mesh: THREE.Mesh;
+  trail: number;
+}
+
+const PROJ_COLORS: Record<string, number> = {};
+
+export class GameRenderer {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly scene = new THREE.Scene();
+  readonly camera: THREE.PerspectiveCamera;
+  readonly rig = new CameraRig();
+  readonly particles: Particles;
+  readonly decals = new Decals();
+  readonly canvas: HTMLCanvasElement;
+  private sun: THREE.DirectionalLight;
+  private champViews = new Map<number, ChampionView>();
+  private structViews = new Map<number, StructureView>();
+  private monsterViews = new Map<number, THREE.Group>();
+  private minionBatches = new Map<string, THREE.InstancedMesh>();
+  private minionAnim = new Map<number, { atk: number; phase: number }>();
+  private projViews = new Map<number, ProjView>();
+  private projSphere = new THREE.SphereGeometry(0.5, 10, 8);
+  private projBolt = new THREE.CylinderGeometry(0.22, 0.22, 3.2, 6).rotateX(Math.PI / 2);
+  private raycaster = new THREE.Raycaster();
+  private ndc = new THREE.Vector2();
+  private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private tmpV = new THREE.Vector3();
+  private time = 0;
+  private viewerTeam: Team = 0;
+  private playerId = 0;
+  quality: Quality = 'medium';
+  width = 1;
+  height = 1;
+
+  constructor(container: HTMLElement, quality: Quality) {
+    this.quality = quality;
+    const renderer = new THREE.WebGLRenderer({ antialias: quality !== 'low', powerPreference: 'high-performance' });
+    this.renderer = renderer;
+    this.canvas = renderer.domElement;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.5));
+    renderer.shadowMap.enabled = quality !== 'low';
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    container.appendChild(this.canvas);
+    this.camera = new THREE.PerspectiveCamera(38, 1, 1, 600);
+    this.scene.background = new THREE.Color(0x0d100e);
+    this.scene.fog = new THREE.Fog(0x0d100e, 140, 330);
+
+    const hemi = new THREE.HemisphereLight(0xcfe0ff, 0x35432e, 1.05);
+    this.scene.add(hemi);
+    this.sun = new THREE.DirectionalLight(0xfff0d8, 2.3);
+    this.sun.position.set(-40, 80, 35);
+    this.sun.castShadow = quality !== 'low';
+    const sc = this.sun.shadow.camera;
+    sc.left = -60;
+    sc.right = 60;
+    sc.top = 60;
+    sc.bottom = -60;
+    sc.near = 10;
+    sc.far = 220;
+    this.sun.shadow.mapSize.set(quality === 'high' ? 2048 : 1024, quality === 'high' ? 2048 : 1024);
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.05;
+    this.scene.add(this.sun, this.sun.target);
+
+    this.scene.add(buildTerrain());
+    this.scene.add(this.decals.group);
+    this.particles = new Particles(this.camera);
+    this.scene.add(this.particles.mesh);
+    this.resize();
+  }
+
+  resize() {
+    const w = this.canvas.parentElement?.clientWidth || window.innerWidth;
+    const h = this.canvas.parentElement?.clientHeight || window.innerHeight;
+    this.width = w;
+    this.height = h;
+    this.renderer.setSize(w, h, false);
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  setViewer(team: Team, playerId: number) {
+    this.viewerTeam = team;
+    this.playerId = playerId;
+  }
+
+  // ------------------------------------------------------------------ picking
+
+  private setRay(sx: number, sy: number) {
+    const rect = this.canvas.getBoundingClientRect();
+    this.ndc.set(((sx - rect.left) / rect.width) * 2 - 1, -((sy - rect.top) / rect.height) * 2 + 1);
+    this.raycaster.setFromCamera(this.ndc, this.camera);
+  }
+
+  groundAt(sx: number, sy: number): { x: number; z: number } | null {
+    this.setRay(sx, sy);
+    const hit = this.raycaster.ray.intersectPlane(this.plane, this.tmpV);
+    return hit ? { x: hit.x, z: hit.z } : null;
+  }
+
+  /** Nearest visible unit under the cursor, using view-space sphere tests. */
+  pickUnit(sx: number, sy: number, w: World, filter: (u: Unit) => boolean): Unit | null {
+    this.setRay(sx, sy);
+    const ray = this.raycaster.ray;
+    let best: Unit | null = null;
+    let bestD = Infinity;
+    const c = new THREE.Vector3();
+    for (const u of w.units) {
+      if (!u.alive || !filter(u) || !this.isVisible(w, u)) continue;
+      const rad = Math.max(u.radius * 1.15, 1.3) + (u.kind === 'champion' ? 0.4 : 0);
+      c.set(u.x, u.height * 0.45, u.z);
+      const dist = ray.distanceToPoint(c);
+      if (dist <= rad) {
+        const along = c.clone().sub(ray.origin).dot(ray.direction);
+        // prefer champions and closer ones
+        const score = along - (u.kind === 'champion' ? 6 : 0);
+        if (score < bestD) {
+          bestD = score;
+          best = u;
+        }
+      }
+    }
+    return best;
+  }
+
+  project(x: number, y: number, z: number): { x: number; y: number; visible: boolean } {
+    this.tmpV.set(x, y, z).project(this.camera);
+    return { x: (this.tmpV.x * 0.5 + 0.5) * this.width, y: (-this.tmpV.y * 0.5 + 0.5) * this.height, visible: this.tmpV.z < 1 && this.tmpV.z > -1 };
+  }
+
+  isVisible(w: World, u: Unit): boolean {
+    if (u.team === this.viewerTeam || u.struct) return true;
+    return w.visible[this.viewerTeam].has(u.id);
+  }
+
+  // ------------------------------------------------------------------ views
+
+  private minionBatch(type: MinionType, team: number): THREE.InstancedMesh {
+    const key = `${type}:${team}`;
+    let b = this.minionBatches.get(key);
+    if (!b) {
+      b = new THREE.InstancedMesh(buildMinionGeometry(type, team), lambert(0xffffff, { vertexColors: true }), 260);
+      b.castShadow = this.quality !== 'low';
+      b.frustumCulled = false;
+      b.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      this.scene.add(b);
+      this.minionBatches.set(key, b);
+    }
+    return b;
+  }
+
+  sync(w: World, alpha: number, dt: number) {
+    this.time += dt;
+    const t = this.time;
+    const viewer = w.get(this.playerId) ?? w.champions.find((c) => c.team === this.viewerTeam);
+    // Champions
+    for (const u of w.champions) {
+      let v = this.champViews.get(u.id);
+      if (!v) {
+        v = new ChampionView(u, u.id === this.playerId);
+        this.champViews.set(u.id, v);
+        this.scene.add(v.group);
+      }
+      this.updateChampion(v, u, w, alpha, dt, t);
+    }
+    // Structures
+    for (const s of w.structures) {
+      let v = this.structViews.get(s.id);
+      if (!v) {
+        v = new StructureView(s);
+        this.structViews.set(s.id, v);
+        this.scene.add(v.rig.root);
+      }
+      this.updateStructure(v, s, dt, t);
+    }
+    // Minions and monsters
+    const counts = new Map<string, number>();
+    const seenMonsters = new Set<number>();
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const e = new THREE.Euler();
+    const pos = new THREE.Vector3();
+    const scl = new THREE.Vector3(1, 1, 1);
+    for (const u of w.units) {
+      if (!u.alive) continue;
+      if (u.kind === 'minion') {
+        if (!this.isVisible(w, u)) continue;
+        const type = u.minion!.type;
+        const key = `${type}:${u.team}`;
+        const batch = this.minionBatch(type, u.team);
+        const n = counts.get(key) ?? 0;
+        if (n >= 260) continue;
+        counts.set(key, n + 1);
+        let anim = this.minionAnim.get(u.id);
+        if (!anim) {
+          anim = { atk: 0, phase: u.id * 0.7 };
+          this.minionAnim.set(u.id, anim);
+        }
+        anim.atk = Math.max(0, anim.atk - dt);
+        const moving = u.moved > 0.001;
+        if (moving) anim.phase += dt * 11;
+        const x = u.px + (u.x - u.px) * alpha;
+        const z = u.pz + (u.z - u.pz) * alpha;
+        const bob = moving ? Math.abs(Math.sin(anim.phase)) * 0.18 : 0;
+        const lunge = anim.atk > 0 ? Math.sin((anim.atk / 0.25) * Math.PI) * 0.35 : 0;
+        pos.set(x, bob, z);
+        e.set(lunge * 0.5, u.facing, moving ? Math.sin(anim.phase) * 0.06 : 0, 'YXZ');
+        q.setFromEuler(e);
+        m.compose(pos, q, scl);
+        batch.setMatrixAt(n, m);
+      } else if (u.kind === 'monster') {
+        seenMonsters.add(u.id);
+        let g = this.monsterViews.get(u.id);
+        if (!g) {
+          g = buildMonster(u.name, (u.monster?.gold ?? 0) > 60, u.radius, u.height);
+          this.monsterViews.set(u.id, g);
+          this.scene.add(g);
+        }
+        g.visible = this.isVisible(w, u);
+        g.position.set(u.px + (u.x - u.px) * alpha, Math.abs(Math.sin(t * 6 + u.id)) * (u.moved > 0.001 ? 0.2 : 0), u.pz + (u.z - u.pz) * alpha);
+        g.rotation.y = u.facing;
+      }
+    }
+    for (const [key, batch] of this.minionBatches) {
+      batch.count = counts.get(key) ?? 0;
+      batch.instanceMatrix.needsUpdate = true;
+    }
+    for (const [id, g] of this.monsterViews) {
+      if (!seenMonsters.has(id)) {
+        this.scene.remove(g);
+        this.monsterViews.delete(id);
+      }
+    }
+    // Projectiles
+    const live = new Set<number>();
+    for (const p of w.projectiles) {
+      live.add(p.id);
+      let pv = this.projViews.get(p.id);
+      if (!pv) {
+        pv = this.makeProjectile(p.visual, p.radius);
+        this.projViews.set(p.id, pv);
+        this.scene.add(pv.mesh);
+      }
+      const x = p.px + (p.x - p.px) * alpha;
+      const z = p.pz + (p.z - p.pz) * alpha;
+      const spell = p.visual.startsWith('spell:');
+      pv.mesh.position.set(x, spell ? 2.2 : p.visual === 'tower' ? 8 : 2.4, z);
+      if (p.vx !== 0 || p.vz !== 0) pv.mesh.rotation.y = Math.atan2(p.vx, p.vz);
+      const color = this.projColor(p.visual);
+      pv.trail -= dt;
+      if (pv.trail <= 0) {
+        pv.trail = 0.02;
+        this.particles.emit(x, pv.mesh.position.y, z, color, { life: 0.35, size: spell ? 1.1 : 0.55, vy: 0.4 });
+      }
+    }
+    for (const [id, pv] of this.projViews) {
+      if (!live.has(id)) {
+        this.scene.remove(pv.mesh);
+        this.projViews.delete(id);
+      }
+    }
+    if (this.minionAnim.size > 400) {
+      const alive = new Set(w.units.filter((u) => u.kind === 'minion').map((u) => u.id));
+      for (const id of this.minionAnim.keys()) if (!alive.has(id)) this.minionAnim.delete(id);
+    }
+    void viewer;
+    // Statuses
+    for (const u of w.champions) {
+      if (!u.alive || !this.isVisible(w, u)) continue;
+      if (u.order.t === 'recall' && Math.random() < dt * 22) {
+        const a = Math.random() * TAU;
+        this.particles.emit(u.x + Math.cos(a) * 1.8, 0.3, u.z + Math.sin(a) * 1.8, 0x7ac8ff, { vy: 4, life: 0.8, size: 0.7 });
+      }
+      for (const s of u.statuses) {
+        if (s.type === 'stun' && s.until > w.time && Math.random() < dt * 14) {
+          const a = Math.random() * TAU;
+          this.particles.emit(u.x + Math.cos(a) * 0.9, u.height + 0.6, u.z + Math.sin(a) * 0.9, 0xffe060, { life: 0.4, size: 0.5 });
+        } else if (s.type === 'slow' && s.until > w.time && Math.random() < dt * 6) {
+          this.particles.emit(u.x + (Math.random() - 0.5) * 1.5, 0.4, u.z + (Math.random() - 0.5) * 1.5, 0x80c8ff, { life: 0.5, size: 0.6, vy: 0.8 });
+        } else if (s.type === 'shield' && s.until > w.time && Math.random() < dt * 5) {
+          this.particles.emit(u.x + (Math.random() - 0.5) * 2, 0.5 + Math.random() * u.height * 0.8, u.z + (Math.random() - 0.5) * 2, 0xe8f4ff, { life: 0.4, size: 0.4 });
+        }
+      }
+    }
+    this.particles.update(dt);
+    this.decals.update(dt);
+    void FIXED_DT;
+  }
+
+  private projColor(visual: string): number {
+    let c = PROJ_COLORS[visual];
+    if (c !== undefined) return c;
+    c = 0xffffff;
+    if (visual === 'tower') c = 0xffb060;
+    else if (visual === 'attack') c = 0xffe9a0;
+    else if (visual.startsWith('champ:')) {
+      const def = CHAMPIONS[visual.split(':')[1]];
+      c = def ? def.look.accent : 0xffffff;
+    } else if (visual.startsWith('spell:')) {
+      const [, id, slot] = visual.split(':');
+      const def = CHAMPIONS[id];
+      c = def ? def.abilities[Number(slot)].color : 0xffffff;
+    }
+    PROJ_COLORS[visual] = c;
+    return c;
+  }
+
+  private makeProjectile(visual: string, radius: number): ProjView {
+    const color = this.projColor(visual);
+    const spell = visual.startsWith('spell:');
+    const elongated = spell || visual === 'champ:kestrel';
+    const mat = new THREE.MeshBasicMaterial({ color });
+    const mesh = new THREE.Mesh(elongated ? this.projBolt : this.projSphere, mat);
+    if (spell) mesh.scale.set(Math.max(0.6, radius * 0.8), Math.max(0.6, radius * 0.8), 1);
+    else if (visual === 'tower') mesh.scale.setScalar(1.3);
+    else if (visual === 'attack') mesh.scale.setScalar(0.7);
+    else if (visual === 'champ:kestrel') mesh.scale.set(0.35, 0.35, 0.8);
+    else mesh.scale.setScalar(0.9);
+    return { mesh, trail: 0 };
+  }
+
+  private updateChampion(v: ChampionView, u: Unit, w: World, alpha: number, dt: number, t: number) {
+    const show = u.alive && this.isVisible(w, u);
+    v.group.visible = show;
+    if (!show) return;
+    let x = u.px + (u.x - u.px) * alpha;
+    let z = u.pz + (u.z - u.pz) * alpha;
+    if (Math.hypot(u.x - u.px, u.z - u.pz) > 7) {
+      x = u.x;
+      z = u.z;
+    }
+    let y = 0;
+    const airborne = u.statuses.some((s) => s.type === 'stun' && s.tag === 'airborne' && s.until > w.time);
+    if (airborne) y = 2.4 * Math.sin(Math.min(1, (w.time % 1) * 1.6) * Math.PI * 0.5 + 0.3);
+    if (u.dash) y = 1.2;
+    v.group.position.set(x, y, z);
+    v.yaw = angleLerp(v.yaw, u.facing, Math.min(1, dt * 14));
+    v.group.rotation.y = v.yaw;
+    const sp = u.moved / FIXED_DT;
+    v.speed += (sp - v.speed) * Math.min(1, dt * 12);
+    const k = Math.min(1, v.speed / 5);
+    v.phase += v.speed * dt * 1.5;
+    const rig = v.rig;
+    const swing = Math.sin(v.phase) * 0.85 * k;
+    rig.legL.rotation.x = swing;
+    rig.legR.rotation.x = -swing;
+    v.attackT = Math.max(0, v.attackT - dt);
+    v.castT = Math.max(0, v.castT - dt);
+    v.hurtT = Math.max(0, v.hurtT - dt);
+    const melee = CHAMPIONS[u.defId].melee;
+    if (v.attackT > 0) {
+      const s = 1 - v.attackT / 0.3;
+      rig.armR.rotation.x = melee ? -2.6 + 3.3 * Math.min(1, s * 1.6) : -1.5 + Math.sin(s * Math.PI) * 0.4;
+      rig.armL.rotation.x = melee ? -0.3 : -1.4;
+    } else if (v.castT > 0) {
+      const s = v.castT / 0.45;
+      rig.armR.rotation.x = -2.4 * s;
+      rig.armL.rotation.x = -2.0 * s;
+    } else {
+      rig.armR.rotation.x = swing * 0.7;
+      rig.armL.rotation.x = -swing * 0.7;
+    }
+    rig.body.position.y = Math.abs(Math.sin(v.phase)) * 0.14 * k;
+    rig.body.rotation.x = u.dash ? 0.45 : 0;
+    const breathe = 1 + Math.sin(t * 2 + u.id) * 0.012;
+    rig.body.scale.set(1, breathe, 1);
+    for (let i = 0; i < rig.glow.length; i++) rig.glow[i].emissiveIntensity = v.baseGlow[i] * (1 + v.castT * 3 + Math.sin(t * 3) * 0.1);
+    // Selection ring pulse for stunned
+    (v.ring.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 4) * 0.12;
+  }
+
+  private updateStructure(v: StructureView, s: Unit, dt: number, t: number) {
+    const rig = v.rig;
+    if (s.alive !== v.lastAlive) {
+      v.lastAlive = s.alive;
+      rig.alive.visible = s.alive;
+      rig.rubble.visible = !s.alive;
+      if (!s.alive) {
+        const big = s.kind === 'nexus' ? 3 : 1.4;
+        this.particles.burst(s.x, 3, s.z, 0xffa860, Math.floor(60 * big), 16 * big, 1.2, 1.8);
+        this.particles.burst(s.x, 2, s.z, 0x9a9a9a, Math.floor(40 * big), 8 * big, 1.8, 2.6, -1);
+        this.rig.shake(s.kind === 'nexus' ? 2.6 : 1.1, 0.5);
+      } else {
+        this.particles.burst(s.x, 3, s.z, teamColor(s.team), 60, 14, 1.2, 1.4);
+      }
+    }
+    if (!s.alive) return;
+    for (const sp of rig.spin) sp.rotation.y += dt * (sp === rig.orb ? 0.8 : 0.4);
+    const pulse = 1.2 + Math.sin(t * 2.2 + s.id) * 0.35;
+    const vulnerable = s.struct ? this.vulnerableCache.get(s.id) !== false : true;
+    for (const g of rig.glow) g.emissiveIntensity = (vulnerable ? pulse : pulse * 0.5) * (s.hp / s.s.maxHp < 0.35 ? 0.7 + Math.random() * 0.6 : 1);
+    if (rig.orb && s.kind === 'tower') rig.orb.position.y += Math.sin(t * 2 + s.id) * 0.003;
+    if (s.hp / s.s.maxHp < 0.3 && Math.random() < dt * 7) {
+      this.particles.emit(s.x + (Math.random() - 0.5) * 3, s.height * 0.8, s.z + (Math.random() - 0.5) * 3, 0x707070, { vy: 3, life: 1.2, size: 1.8, grow: 2 });
+    }
+  }
+
+  vulnerableCache = new Map<number, boolean>();
+
+  /** Called with the current world each frame so structure glow can reflect protection. */
+  updateProtection(w: World) {
+    for (const s of w.structures) this.vulnerableCache.set(s.id, w.structureVulnerable(s));
+  }
+
+  // ------------------------------------------------------------------ events
+
+  handleEvents(events: SimEvent[], w: World) {
+    for (const ev of events) {
+      switch (ev.t) {
+        case 'attack': {
+          const a = w.get(ev.id);
+          if (!a) break;
+          const cv = this.champViews.get(ev.id);
+          if (cv) cv.attackT = 0.3;
+          const ma = this.minionAnim.get(ev.id);
+          if (ma) ma.atk = 0.25;
+          if (a.kind === 'tower') {
+            const tv = this.structViews.get(a.id);
+            if (tv?.rig.orb) this.particles.burst(a.x, a.height * 0.75, a.z, teamColor(a.team), 6, 6, 0.3, 1);
+          }
+          break;
+        }
+        case 'cast': {
+          const cv = this.champViews.get(ev.id);
+          if (cv) cv.castT = 0.45;
+          const def = CHAMPIONS[ev.champ];
+          if (def) {
+            this.decals.flash(ev.x, ev.z, 3.2, def.abilities[ev.slot].color, 0.4);
+            this.particles.burst(ev.x, 2.5, ev.z, def.abilities[ev.slot].color, 10, 7, 0.5, 0.8);
+          }
+          break;
+        }
+        case 'damage': {
+          const color = ev.dmgType === 'magic' ? 0xb090ff : ev.dmgType === 'true' ? 0xffffff : 0xffe0a0;
+          const u = w.get(ev.id);
+          const h = u ? u.height * 0.6 : 2;
+          this.particles.burst(ev.x, h, ev.z, color, ev.amount > 150 ? 12 : 5, ev.amount > 150 ? 9 : 5, 0.35, 0.55);
+          break;
+        }
+        case 'death': {
+          const col = ev.team === 0 ? 0x5aa8ff : ev.team === 1 ? 0xff6a6a : 0xc8b050;
+          if (ev.kind === 'minion' || ev.kind === 'monster') {
+            this.particles.burst(ev.x, 1.2, ev.z, col, 14, 6, 0.6, 0.9, 6);
+            this.particles.burst(ev.x, 1.2, ev.z, 0x888888, 8, 3, 0.8, 1.2);
+          } else if (ev.kind === 'champion') {
+            this.particles.burst(ev.x, 2.5, ev.z, col, 50, 12, 1.1, 1.2, 4);
+            this.particles.burst(ev.x, 2.5, ev.z, 0xffffff, 20, 8, 0.8, 0.9);
+            this.decals.flash(ev.x, ev.z, 7, col, 0.6);
+            this.rig.shake(0.7, 0.25);
+          }
+          this.minionAnim.delete(ev.id);
+          break;
+        }
+        case 'respawn': {
+          const u = w.get(ev.id);
+          if (u) {
+            this.particles.burst(u.x, 1, u.z, 0x9ad8ff, 40, 8, 1, 1.2);
+            for (let i = 0; i < 24; i++) this.particles.emit(u.x + (Math.random() - 0.5) * 2, Math.random() * 3, u.z + (Math.random() - 0.5) * 2, 0x9ad8ff, { vy: 7, life: 0.9, size: 0.9 });
+            this.decals.flash(u.x, u.z, 6, 0x9ad8ff, 0.7);
+          }
+          break;
+        }
+        case 'levelUp': {
+          const u = w.get(ev.id);
+          if (u) {
+            this.decals.flash(u.x, u.z, 6, 0xffd860, 0.8);
+            for (let i = 0; i < 26; i++) {
+              const a = Math.random() * TAU;
+              this.particles.emit(u.x + Math.cos(a) * 1.8, 0.2, u.z + Math.sin(a) * 1.8, 0xffd860, { vy: 6 + Math.random() * 3, life: 1, size: 0.8 });
+            }
+          }
+          break;
+        }
+        case 'heal': {
+          for (let i = 0; i < 3; i++) this.particles.emit(ev.x + (Math.random() - 0.5) * 1.5, 1 + Math.random() * 2, ev.z + (Math.random() - 0.5) * 1.5, 0x6aff9a, { vy: 3, life: 0.7, size: 0.6 });
+          break;
+        }
+        case 'zone': {
+          const def = this.visualColor(ev.visual);
+          this.decals.telegraph(ev.x, ev.z, ev.radius, def, ev.delay);
+          break;
+        }
+        case 'zoneHit': {
+          const c = this.visualColor(ev.visual);
+          this.decals.flash(ev.x, ev.z, ev.radius, c, 0.45);
+          this.particles.burst(ev.x, 1, ev.z, c, 30, ev.radius * 2.2, 0.7, 1.3);
+          if (ev.radius > 7) this.rig.shake(0.9, 0.3);
+          break;
+        }
+        case 'dash': {
+          const n = 14;
+          for (let i = 0; i < n; i++) {
+            const k = i / n;
+            this.particles.emit(ev.fx + (ev.tx - ev.fx) * k, 1.5, ev.fz + (ev.tz - ev.fz) * k, 0xffffff, { life: 0.4, size: 1.2 });
+          }
+          break;
+        }
+        case 'blink': {
+          this.particles.burst(ev.fx, 2, ev.fz, 0xc690ff, 24, 8, 0.6, 1);
+          this.particles.burst(ev.tx, 2, ev.tz, 0xc690ff, 24, 8, 0.6, 1);
+          this.decals.flash(ev.tx, ev.tz, 4, 0xc690ff, 0.4);
+          break;
+        }
+        case 'recallDone': {
+          const u = w.get(ev.id);
+          if (u) this.particles.burst(u.x, 2, u.z, 0x7ac8ff, 40, 9, 1, 1.2);
+          break;
+        }
+        case 'structureDown':
+          break;
+        case 'inhibRespawn':
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  private visualColor(visual: string): number {
+    return this.projColor(visual);
+  }
+
+  clickMarker(x: number, z: number, color = 0x7affb0) {
+    this.decals.marker(x, z, color);
+  }
+
+  // ------------------------------------------------------------------ frame
+
+  render(dt: number, followX: number, followZ: number) {
+    this.rig.apply(this.camera, dt);
+    this.sun.target.position.set(followX, 0, followZ);
+    this.sun.position.set(followX - 40, 80, followZ + 35);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  dispose() {
+    this.renderer.dispose();
+    this.canvas.remove();
+  }
+
+  /** Minion stats are looked up for health bar sizing. */
+  static minionRadius(type: MinionType): number {
+    return MINIONS[type].radius;
+  }
+}
+
+export { G };
