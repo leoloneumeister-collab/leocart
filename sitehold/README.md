@@ -57,6 +57,7 @@ Mouse wheel switches weapons by default, or can be bound to jump in Settings. Al
 npm run dev          # dev server
 npm run build        # typecheck and production build into dist/
 npm run preview      # serve the production build
+npm run single       # one self contained dist/sitehold.html you can open by double clicking
 npm test             # fast tests: types, map validation, movement, guns, 10 bot matches
 npm run test:browser # end to end test in headless Chromium (about a minute)
 npm run test:all     # both

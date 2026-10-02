@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "single": "npm run build && node scripts/single-file.mjs",
     "typecheck": "tsc --noEmit",
     "validate": "node scripts/validate-map.ts",
     "sim": "node scripts/sim.ts --matches 20",
