@@ -60,8 +60,13 @@ export class MenuScene {
     this.scene.add(plat);
 
     this.shadowTex = blobShadowTexture();
+    const skyTex = this.sky.material.map;
+    skyTex.mapping = THREE.EquirectangularReflectionMapping;
+    const pm = new THREE.PMREMGenerator(renderer);
+    this.envRT = pm.fromEquirectangular(skyTex);
+    pm.dispose();
     this.models = CHARACTERS.map((c) => {
-      const m = new KartModel(c, { shadowTexture: this.shadowTex });
+      const m = new KartModel(c, { shadowTexture: this.shadowTex, envMap: this.envRT.texture });
       m.addTo(this.scene);
       m.shadow.visible = false;
       return m;
@@ -131,17 +136,17 @@ export class MenuScene {
 
   _layoutTitle() {
     this.slots.forEach((s, i) => {
-      const row = i % 2;
-      const col = Math.floor(i / 2);
-      s.tx = (col - 1) * 5.4 + (row ? 1.6 : -1.6);
-      s.tz = -col * 0.8 - row * 4.4 + 2;
+      const row = Math.floor(i / 6);
+      const col = i % 6;
+      s.tx = (col - 2.5) * 4.7 + row * 2.2;
+      s.tz = -row * 6.2 - col * 0.5 + 3;
       s.ty = 0;
-      s.th = 0.75 + (i - 2.5) * -0.04;
+      s.th = 0.7 + (col - 2.5) * -0.05;
       s.ts = 1;
       s.tv = true;
     });
-    this.camTargetPos.set(10.5, 4.2, 14.5);
-    this.camTargetLook.set(-5.4, 1.4, -0.6);
+    this.camTargetPos.set(13, 6, 19);
+    this.camTargetLook.set(-6.5, 1.2, -2);
     this.titleBase = this.camTargetPos.clone();
   }
 

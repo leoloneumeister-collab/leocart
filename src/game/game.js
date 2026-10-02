@@ -23,6 +23,8 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.75, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
 
     this.audio = new AudioEngine();
     this.input = new Input();
@@ -160,24 +162,38 @@ export class Game {
 
   // ------------------------------------------------------------------ cup
 
+  /** Player plus five random opponents out of the twelve racers. */
+  _pickField(playerId, seed) {
+    const rng = mulberry32(seed * 104729 + 17);
+    const others = CHARACTERS.filter((c) => c.id !== playerId).map((c) => c.id);
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    return [playerId, ...others.slice(0, 5)];
+  }
+
   startCup(charId) {
+    const field = this._pickField(charId, 1 + Math.floor(Math.random() * 100000));
     this.cup = {
       charId,
+      field,
       index: 0,
       tracks: TRACKS.map((t) => t.id),
-      totals: Object.fromEntries(CHARACTERS.map((c) => [c.id, 0])),
-      lastPlace: Object.fromEntries(CHARACTERS.map((c) => [c.id, 6])),
+      totals: Object.fromEntries(field.map((id) => [id, 0])),
+      lastPlace: Object.fromEntries(field.map((id) => [id, 6])),
     };
     this.beginRace({ trackId: this.cup.tracks[0], playerId: charId });
   }
 
   _gridOrder(playerId, seed) {
-    const rng = mulberry32(seed * 7919 + 3);
     if (this.cup && this.cup.index > 0) {
       // later cup races: the points leader starts at the front
-      return [...CHARACTERS].sort((a, b) => this.cup.totals[b.id] - this.cup.totals[a.id] || this.cup.lastPlace[a.id] - this.cup.lastPlace[b.id]).map((c) => c.id);
+      return [...this.cup.field].sort((a, b) => this.cup.totals[b] - this.cup.totals[a] || this.cup.lastPlace[a] - this.cup.lastPlace[b]);
     }
-    const others = CHARACTERS.filter((c) => c.id !== playerId).map((c) => c.id);
+    const field = this.cup ? this.cup.field : this._pickField(playerId, seed);
+    const rng = mulberry32(seed * 7919 + 3);
+    const others = field.filter((id) => id !== playerId);
     for (let i = others.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [others[i], others[j]] = [others[j], others[i]];
@@ -311,7 +327,7 @@ export class Game {
   }
 
   showCupFinal() {
-    const standings = CHARACTERS.map((c) => ({ char: c, points: this.cup.totals[c.id] })).sort(
+    const standings = this.cup.field.map((id) => ({ char: CHARACTER_BY_ID[id], points: this.cup.totals[id] })).sort(
       (a, b) => b.points - a.points || this.cup.lastPlace[a.char.id] - this.cup.lastPlace[b.char.id],
     );
     const order = standings.map((s) => CHARACTERS.indexOf(s.char));

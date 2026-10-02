@@ -230,11 +230,11 @@ kbd { background: #fff; color: #0b0e1f; border-radius: 6px; padding: 1px 7px; fo
 .footer { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .6; padding: 0 12px; }
 
 /* character select */
-.screen.select { display: grid; grid-template-columns: minmax(300px, 34%) 1fr minmax(300px, 32%); padding: 3vh 2.5vw; gap: 2vw; align-items: stretch; }
+.screen.select { display: grid; grid-template-columns: minmax(360px, 38%) 1fr minmax(300px, 30%); padding: 3vh 2.5vw; gap: 2vw; align-items: stretch; }
 .screen.select .panel.left { grid-column: 1; display: flex; flex-direction: column; gap: 12px; }
 .screen.select .panel.info { grid-column: 3; align-self: end; display: flex; flex-direction: column; gap: 10px; }
 .screen.select .hint { grid-column: 2; align-self: end; justify-self: center; text-align: center; font-size: 13px; opacity: .75; max-width: 420px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: start; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; align-content: start; }
 .card { appearance: none; color: #fff; cursor: pointer; font-family: var(--font); text-align: left; position: relative; border-radius: 16px; border: 2px solid rgba(255,255,255,.18); }
 .card.char {
   background: linear-gradient(160deg, color-mix(in srgb, var(--c) 55%, #141a3a) 0%, #141a3a 75%);
@@ -358,3 +358,7 @@ input[type=range]:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
   .logo small { display: none; }
   h3 { margin: 10px 0 4px; }
 }
+
+.card.char { padding: 8px 8px 8px 12px !important; min-height: 62px !important; border-left: 6px solid var(--c); }
+.card.char .badge { display: none !important; }
+.card.char .cname { font-size: clamp(14px, 1.9vmin, 19px); }

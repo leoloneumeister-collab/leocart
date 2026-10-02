@@ -182,7 +182,7 @@ async function newPage() {
     const pad = window.__pad;
     const first = document.activeElement?.dataset?.a;
     pad.buttons[13].pressed = true; // d-pad down
-    await new Promise((r) => setTimeout(r, 900));
+    for (let i = 0; i < 40 && document.activeElement?.dataset?.a === first; i++) await new Promise((r) => setTimeout(r, 150));
     pad.buttons[13].pressed = false;
     const second = document.activeElement?.dataset?.a;
     return { first, second };

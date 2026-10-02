@@ -1,6 +1,6 @@
 # LeoCart
 
-**A complete 3D kart racer that runs in your browser.** Six racers, three tracks, drifting with mini-turbos, eight items, AI opponents and a three-race Grand Prix. There are no image, model or audio files in the repo: all geometry, textures, sound effects and music are generated in code.
+**A complete 3D kart racer that runs in your browser.** Twelve racers, three tracks, drifting with mini-turbos, eight items, AI opponents and a three-race Grand Prix. There are no image, model or audio files in the repo: all geometry, textures, sound effects and music are generated in code.
 
 **[▶ Play it live](https://leoloneumeister-collab.github.io/leocart/)**
 
@@ -20,14 +20,14 @@ Everything here is original: the characters, track layouts, item names, music an
 ## Features
 
 - **Arcade driving with drifting.** Hold drift in a corner and sparks turn blue, orange, then purple. Release for a mini-turbo. Off-road slows you down, karts bump each other, and heavier racers shove lighter ones.
-- **Six racers with real trade-offs.** Speed, acceleration, handling and weight each run 1 to 5, and every racer's stats add up to 12, so nobody is simply the best. Vex is the fastest kart but hard to steer; Mochi grips the road but tops out lower.
+- **Twelve racers with real trade-offs.** Speed, acceleration, handling and weight each run 1 to 5, and every racer's stats add up to 12, so nobody is simply the best. Each race uses you plus five random opponents. Vex is the fastest kart but hard to steer; Mochi grips the road but tops out lower.
 - **Three tracks.** *Meadow Run* (sunny beginner loop), *Dune Canyon* (sunset desert with two shortcuts across the hairpins) and *Neon District* (night city, staircase chicanes). Three laps each, with checkpoints so nobody can cheat a lap.
 - **Eight items, weighted by position.** Bolt (throw forward or back, bounces), Seeker (homing), Turbo Cell, Turbo Trio, Oil Slick, Aegis (shield), and two comeback items for the back of the pack: Comet (invulnerable autopilot burst) and Pulse (shocks everyone ahead). Last place gets stronger items than first.
 - **Five AI opponents** that follow a racing line, brake for corners, drift, dodge karts and oil, use items sensibly, take shortcuts, and rubber-band lightly. Each character has its own skill level, and there is an Easy / Normal / Hard setting.
 - **Full race flow.** Intro fly-in, countdown with a rocket start, lap counter, live standings, minimap, wrong-way warning, results with points, and a 3-race cup with total standings and a podium.
 - **Menus and settings.** Title, character select with stat bars, track select with saved best times, how-to-play, pause, and settings for volume, graphics quality, difficulty and rebindable keys. Menus work with keyboard and gamepad.
 - **Procedural audio.** Original music for each track plus menu music, played by a small pattern sequencer built on the Web Audio API. Engine voices for every kart, tyre screech, and synthesised sound effects for items and impacts.
-- **Visual polish.** Baked sky domes, fog, a shadow map that follows the player plus blob shadows, GPU particles for sparks, smoke and flames, camera shake, FOV kick on boost, and speed lines.
+- **Visual polish.** Filmic tone mapping, bloom on High quality, reflective karts lit by the track's own sky, baked sky domes, fog, a shadow map that follows the player plus blob shadows, GPU particles for sparks, smoke and flames, camera shake, FOV kick on boost, and speed lines.
 
 ## Controls
 
@@ -42,9 +42,13 @@ Everything here is original: the characters, track layouts, item names, music an
 | Reset to track | `R` | Back |
 | Pause | `Esc` / `P` | Start |
 
+Driving assist (Settings, on by default) gently keeps you pointed along the road when you are not steering.
+
 All keyboard controls can be rebound in Settings.
 
 ## The racers
+
+Six shown here; the roster also has Pip (penguin), Hopper (frog), Kiko (panda), Rusty (raccoon), Zed (alien) and Sol (lion).
 
 | Racer | Speed | Accel | Handling | Weight | Style |
 |---|:-:|:-:|:-:|:-:|---|
@@ -129,3 +133,15 @@ MIT. See [LICENSE](LICENSE).
 A 3D first-person military shooter (two story missions, four guns, wave combat, a boss fight), also generated entirely in code. It lives in [`shooter/`](shooter/README.md) and is published at `/shooter/` next to the kart racer.
 
 Run it locally: `cd shooter && npm install && npm run dev`.
+
+## Also in this repo: LANEFALL
+
+A single-player 5v5 MOBA against bots (three lanes, minion waves, towers, jungle, items, fog of war, five original champions), generated entirely in code. It lives in [`moba/`](moba/README.md) and is published at `/moba/`. It is an unofficial genre game and is not affiliated with Riot Games.
+
+Run it locally: `cd moba && npm install && npm run dev` (port 5174).
+
+## Also in this repo: small apps
+
+Three small free apps and a hub page: **Pushwake** (an alarm that only stops when you do your pushups, counted by the phone camera), **BiteLog** (calorie and macro tracker) and **Voicepad** (talk, get tidy notes). Plain HTML and JavaScript, no sign-up, everything stays on the device. They live in [`apps/`](apps/README.md) and are published at `/apps/`, with a share sheet (QR code, link, WhatsApp, text) on each one.
+
+Run them locally: `npx vite` and open `/apps/`.
