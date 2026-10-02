@@ -174,43 +174,64 @@ function mirrorObstacle(o: Obstacle): Obstacle {
   return { x: -o.x, z: -o.z, r: o.r, kind: o.kind };
 }
 
+/** Camps in the blue half of the jungle (the red half is the 180 degree rotation). Angle is where the camp opens. */
+const BLUE_CAMP_DEFS: (CampSpot & { open: number })[] = [
+  { x: -64, z: -8, kind: 'golem', open: Math.PI / 2 },
+  { x: -72, z: 24, kind: 'thorns', open: Math.PI / 4 },
+  { x: -42, z: 10, kind: 'brutes', open: Math.PI / 4 },
+  { x: -6, z: 62, kind: 'golem', open: (Math.PI * 3) / 4 },
+  { x: -38, z: 68, kind: 'thorns', open: Math.PI },
+  { x: 16, z: 44, kind: 'brutes', open: (-Math.PI * 3) / 4 },
+];
+
+/** Wall piece parallel to the mid lane, `off` units to the side, over parameter range t0..t1. */
+function midWall(side: 1 | -1, t0: number, t1: number): Obstacle[] {
+  const off = 14.5 / Math.SQRT2;
+  const ax = t0 + side * off;
+  const az = -t0 + side * off;
+  const bx = t1 + side * off;
+  const bz = -t1 + side * off;
+  return line(ax, az, bx, bz, 2.2, 3, 'wall');
+}
+
 /** Obstacles for the blue half of the jungle. The red half is the 180 degree rotation. */
 const BLUE_HALF_OBSTACLES: Obstacle[] = [
-  // Walls that separate the top-lane jungle from the mid lane (blue side), with gaps
-  ...line(-70, 30, -52, 12, 2.4, 3, 'wall'),
-  ...line(-70, -2, -52, -20, 2.4, 3, 'wall'),
-  // Walls between bot lane jungle and mid lane
-  ...line(-30, 70, -12, 52, 2.4, 3, 'wall'),
-  ...line(2, 70, 20, 52, 2.4, 3, 'wall'),
-  // Camp enclosures (rock rings with an opening)
-  ...ring(-70, 12, 8, 12, 1.8, 'rock', [3, 4]),
-  ...ring(-42, 66, 8, 12, 1.8, 'rock', [9, 10]),
-  ...ring(-70, 40, 6, 9, 1.6, 'rock', [0, 1]),
-  ...ring(-24, 82, 6, 9, 1.6, 'rock', [4, 5]),
-  // Scattered rocks near the river
-  { x: -30, z: 30, r: 3, kind: 'rock' },
-  { x: -20, z: 40, r: 2.4, kind: 'rock' },
-  { x: -44, z: 22, r: 2.4, kind: 'rock' },
-  { x: -10, z: 22, r: 2.6, kind: 'rock' },
-  { x: -22, z: 14, r: 2.2, kind: 'rock' },
+  // Walls along the mid lane with gaps for entrances
+  ...midWall(-1, -50, -32),
+  ...midWall(-1, -23, -8),
+  ...midWall(1, -50, -34),
+  ...midWall(1, -25, -9),
+  // Camp enclosures: rock rings with an opening toward the way in
+  ...BLUE_CAMP_DEFS.flatMap((c) => {
+    const n = 11;
+    const skip: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      let d = Math.abs(a - ((c.open + Math.PI * 2) % (Math.PI * 2)));
+      if (d > Math.PI) d = Math.PI * 2 - d;
+      if (d < 0.62) skip.push(i);
+    }
+    return ring(c.x, c.z, 7.2, n, 1.8, 'rock', skip);
+  }),
+  // Boulders along the river banks
+  { x: -34, z: -20, r: 2.6, kind: 'rock' },
+  { x: -20, z: -36, r: 2.4, kind: 'rock' },
+  { x: -52, z: -40, r: 2.8, kind: 'rock' },
+  { x: -22, z: 22, r: 2.6, kind: 'rock' },
+  { x: -34, z: 34, r: 2.2, kind: 'rock' },
+  { x: 8, z: 22, r: 2.4, kind: 'rock' },
 ];
 
 export const OBSTACLES: Obstacle[] = [...BLUE_HALF_OBSTACLES, ...BLUE_HALF_OBSTACLES.map(mirrorObstacle)];
 
-/** Jungle camp spots (blue half; red half is rotated). */
+/** Jungle camp spots. */
 export interface CampSpot {
   x: number;
   z: number;
   kind: 'brutes' | 'thorns' | 'golem';
 }
 
-const BLUE_CAMPS: CampSpot[] = [
-  { x: -70, z: 12, kind: 'golem' },
-  { x: -42, z: 66, kind: 'golem' },
-  { x: -70, z: 40, kind: 'brutes' },
-  { x: -24, z: 82, kind: 'brutes' },
-  { x: -46, z: 46, kind: 'thorns' },
-  { x: -26, z: 50, kind: 'thorns' },
+export const CAMP_SPOTS: CampSpot[] = [
+  ...BLUE_CAMP_DEFS.map((c) => ({ x: c.x, z: c.z, kind: c.kind })),
+  ...BLUE_CAMP_DEFS.map((c) => ({ x: -c.x, z: -c.z, kind: c.kind })),
 ];
-
-export const CAMP_SPOTS: CampSpot[] = [...BLUE_CAMPS, ...BLUE_CAMPS.map((c) => ({ ...c, x: -c.x, z: -c.z }))];

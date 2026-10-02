@@ -73,9 +73,9 @@ export const MONSTER_CAMPS: Record<MonsterDef['id'], MonsterDef> = {
     respawn: 100,
     firstSpawn: 75,
     members: [
-      { name: 'Moss Brute', hp: 1500, ad: 46, armor: 14, mr: 10, as: 0.75, range: 1.8, radius: 1.6, height: 3.8, gold: 70, xp: 120, ms: 5.5, dx: 0, dz: 0, big: true },
-      { name: 'Moss Pup', hp: 520, ad: 20, armor: 4, mr: 0, as: 0.9, range: 1.2, radius: 1.0, height: 2.2, gold: 22, xp: 40, ms: 6, dx: 3, dz: 2, big: false },
-      { name: 'Moss Pup', hp: 520, ad: 20, armor: 4, mr: 0, as: 0.9, range: 1.2, radius: 1.0, height: 2.2, gold: 22, xp: 40, ms: 6, dx: -3, dz: 2, big: false },
+      { name: 'Moss Brute', hp: 1050, ad: 30, armor: 10, mr: 10, as: 0.75, range: 1.8, radius: 1.6, height: 3.8, gold: 70, xp: 120, ms: 5.5, dx: 0, dz: 0, big: true },
+      { name: 'Moss Pup', hp: 340, ad: 13, armor: 3, mr: 0, as: 0.9, range: 1.2, radius: 1.0, height: 2.2, gold: 22, xp: 40, ms: 6, dx: 3, dz: 2, big: false },
+      { name: 'Moss Pup', hp: 340, ad: 13, armor: 3, mr: 0, as: 0.9, range: 1.2, radius: 1.0, height: 2.2, gold: 22, xp: 40, ms: 6, dx: -3, dz: 2, big: false },
     ],
   },
   thorns: {
@@ -84,9 +84,9 @@ export const MONSTER_CAMPS: Record<MonsterDef['id'], MonsterDef> = {
     respawn: 90,
     firstSpawn: 70,
     members: [
-      { name: 'Thornback', hp: 1000, ad: 40, armor: 8, mr: 8, as: 0.8, range: 1.6, radius: 1.3, height: 3, gold: 52, xp: 90, ms: 6, dx: 0, dz: 0, big: true },
-      { name: 'Thorn Sprite', hp: 380, ad: 18, armor: 0, mr: 0, as: 1, range: 1.0, radius: 0.9, height: 2, gold: 20, xp: 34, ms: 6.4, dx: 2.4, dz: 2.4, big: false },
-      { name: 'Thorn Sprite', hp: 380, ad: 18, armor: 0, mr: 0, as: 1, range: 1.0, radius: 0.9, height: 2, gold: 20, xp: 34, ms: 6.4, dx: -2.4, dz: 2.4, big: false },
+      { name: 'Thornback', hp: 720, ad: 26, armor: 6, mr: 8, as: 0.8, range: 1.6, radius: 1.3, height: 3, gold: 52, xp: 90, ms: 6, dx: 0, dz: 0, big: true },
+      { name: 'Thorn Sprite', hp: 250, ad: 12, armor: 0, mr: 0, as: 1, range: 1.0, radius: 0.9, height: 2, gold: 20, xp: 34, ms: 6.4, dx: 2.4, dz: 2.4, big: false },
+      { name: 'Thorn Sprite', hp: 250, ad: 12, armor: 0, mr: 0, as: 1, range: 1.0, radius: 0.9, height: 2, gold: 20, xp: 34, ms: 6.4, dx: -2.4, dz: 2.4, big: false },
     ],
   },
   golem: {
@@ -95,7 +95,7 @@ export const MONSTER_CAMPS: Record<MonsterDef['id'], MonsterDef> = {
     respawn: 130,
     firstSpawn: 90,
     members: [
-      { name: 'Crystal Golem', hp: 2600, ad: 64, armor: 24, mr: 24, as: 0.7, range: 2.0, radius: 2.0, height: 4.6, gold: 120, xp: 200, ms: 5.2, dx: 0, dz: 0, big: true },
+      { name: 'Crystal Golem', hp: 1900, ad: 40, armor: 18, mr: 24, as: 0.7, range: 2.0, radius: 2.0, height: 4.6, gold: 120, xp: 200, ms: 5.2, dx: 0, dz: 0, big: true },
     ],
   },
 };

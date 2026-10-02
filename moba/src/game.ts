@@ -82,6 +82,7 @@ export class Game {
     parent.appendChild(this.gameEl);
     this.renderer = new GameRenderer(this.gameEl, choice.quality);
     this.renderer.setViewer(this.team, this.playerId);
+    this.renderer.fog.setEnabled(choice.fog);
     this.overlay = new Overlay(parent);
     this.hud = new Hud(parent, {
       levelUp: (slot) => this.cmd({ type: 'levelUp', slot }),
@@ -120,6 +121,7 @@ export class Game {
     this.cmd({ type: 'levelUp', slot: 0 });
     this.audio.init();
     this.audio.startMusic();
+    this.hud.showMessage('Right click to move. Q W E R cast abilities. You have 500 gold: press P to shop in your base.', 9);
     window.addEventListener('resize', this.onResize);
     this.lastT = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -320,6 +322,7 @@ export class Game {
 
     this.hover = this.paused ? null : this.renderer.pickUnit(this.input.mx, this.input.my, w, (u) => u.team !== this.team || u.kind === 'champion');
     this.gameEl.style.cursor = this.attackMoveMode ? 'crosshair' : this.hover && this.targetFilter(this.hover) ? 'crosshair' : 'default';
+    this.gameEl.classList.toggle('dead', !p.alive);
     this.hud.update(w, p, dtReal, this.fps, SPEEDS[this.speedIdx], this.scoreboardOn);
     this.shop.update(p);
     this.overlay.draw(w, this.renderer, this.team, this.playerId, dtReal, this.hover);

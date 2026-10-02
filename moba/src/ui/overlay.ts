@@ -54,6 +54,7 @@ export class Overlay {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const player = w.get(playerId);
+    if (this.trail.size > 400) for (const id of [...this.trail.keys()]) if (!w.get(id)) this.trail.delete(id);
     for (const u of w.units) {
       if (!u.alive) continue;
       if (!r.isVisible(w, u)) continue;

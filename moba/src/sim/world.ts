@@ -16,7 +16,9 @@ import {
   SPAWN_POS,
   structurePoint,
 } from '../data/map.ts';
-import { MINIONS, STRUCTURES } from '../data/units.ts';
+import { STRUCTURES } from '../data/units.ts';
+import { initCamps } from './monsters.ts';
+import type { Camp } from './monsters.ts';
 import { clamp, Rng } from './math.ts';
 import { NavGrid } from './nav.ts';
 import type { Circle } from './nav.ts';
@@ -98,6 +100,7 @@ export class World {
   spatial: Spatial;
   structCircle = new Map<number, Circle>();
   spawnQueue: SpawnQueueItem[] = [];
+  camps: Camp[] = [];
   nextWave = CONFIG.firstWaveTime;
   waveNumber = 0;
   /** Teams' tower kills, champion kills etc. for the scoreboard. */
@@ -118,6 +121,7 @@ export class World {
     this.spatial = { cell: SPATIAL_CELL, n, cells: Array.from({ length: n * n }, () => []) };
     this.buildStructures();
     this.spawnChampions();
+    initCamps(this);
   }
 
   // ---------------------------------------------------------------- creation

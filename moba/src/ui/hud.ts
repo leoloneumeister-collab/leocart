@@ -187,10 +187,10 @@ export class Hud {
     return this.root;
   }
 
-  showMessage(text: string) {
+  showMessage(text: string, secs = 1.6) {
     this.msgEl.textContent = text;
     this.msgEl.classList.add('on');
-    this.msgT = 1.6;
+    this.msgT = secs;
   }
 
   announce(text: string, team: number) {
@@ -302,7 +302,7 @@ export class Hud {
       this.recallEl.classList.remove('hidden');
       this.recallFill.style.width = `${(1 - u.order.left / CONFIG.recallTime) * 100}%`;
     } else this.recallEl.classList.add('hidden');
-    this.shopHint.classList.toggle('hidden', !(c.inShop && u.alive));
+    this.shopHint.classList.toggle('hidden', !(c.inShop && u.alive) || document.querySelector('.shop:not(.hidden)') !== null);
 
     // Banner and message timers
     if (this.bannerT > 0) {

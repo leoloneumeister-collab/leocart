@@ -235,7 +235,7 @@ function updatePlan(w: World, bb: TeamBB) {
       threat = { lane, amount };
     }
   }
-  if (threat && Math.random() < 0.01 + sk.macro) {
+  if (threat && w.rng.next() < 0.01 + sk.macro) {
     bb.plan = { mode: 'defend', lane: threat.lane, until: w.time + 6 };
     return;
   }
@@ -253,7 +253,7 @@ function updatePlan(w: World, bb: TeamBB) {
       const ownF = Number.isFinite(f.own) ? (team === 0 ? f.own : total - f.own) : 0;
       let towersDown = 0;
       for (const s of w.structures) if (s.team !== team && s.struct!.lane === lane && !s.alive) towersDown++;
-      const score = ownF / total + towersDown * 0.45 + f.ownN * 0.05 - f.enemyN * 0.03 + Math.random() * 0.05;
+      const score = ownF / total + towersDown * 0.45 + f.ownN * 0.05 - f.enemyN * 0.03 + w.rng.next() * 0.05;
       if (score > bestScore) {
         bestScore = score;
         bestLane = lane;
@@ -671,6 +671,12 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
     moveTo(w, u, b, rp.x, rp.z);
     return;
   }
+  // Hurt and nobody around: go heal instead of limping on
+  if (!inBase && !unsafe && hpFrac(u) < 0.5 && (w.time - c.lastDamagedAt > 4)) {
+    w.push({ type: 'recall', unit: u.id });
+    b.mode = 'recall';
+    return;
+  }
   if (!inBase && rich && !unsafe && hpFrac(u) > 0.2) {
     const rp = retreatPoint(w, bb, u, lane);
     if (dist(u.x, u.z, rp.x, rp.z) > 16 && c.gold < 2200) {
@@ -724,6 +730,9 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
     }
   }
 
+  // 5b. Early jungle clear for the roaming champion
+  if (CHAMPIONS[c.defId].laneHint === 'roam' && w.time > 20 && w.time < 330 && jungleBehaviour(w, u, b)) return;
+
   // 6. Plan
   const plan = bb.plan;
   let goalLane: Lane = lane;
@@ -752,6 +761,36 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
     return;
   }
   laneBehaviour(w, u, b, bb, sk, goalLane, near);
+}
+
+/** Clear the nearest ready camp on our half of the jungle. Returns false if there is nothing to do. */
+function jungleBehaviour(w: World, u: Unit, b: Bot): boolean {
+  const own = w.camps.filter((cm) => (u.team === 0 ? cm.id < 6 : cm.id >= 6) && cm.respawnAt === 0 && cm.members.some((id) => w.get(id)?.alive));
+  if (own.length === 0) return false;
+  let best = own[0];
+  let bd = Infinity;
+  for (const cm of own) {
+    const d = dist(u.x, u.z, cm.x, cm.z) - (cm.kind === 'golem' ? 8 : 0);
+    if (d < bd) {
+      bd = d;
+      best = cm;
+    }
+  }
+  if (hpFrac(u) < 0.4) return false;
+  b.mode = 'lane';
+  u.champ!.holdFire = false;
+  if (dist(u.x, u.z, best.x, best.z) > 9) {
+    moveTo(w, u, b, best.x, best.z);
+    return true;
+  }
+  // Use abilities on the biggest monster in reach
+  let big: Unit | null = null;
+  w.query(u.x, u.z, 14, (v) => {
+    if (v.kind === 'monster' && (!big || v.s.maxHp > big.s.maxHp)) big = v;
+  });
+  if (big && u.mana > u.s.maxMana * 0.4) useSkills(w, u, b, SKILL.normal, 'lane', big, []);
+  attackMoveTo(w, u, b, best.x, best.z);
+  return true;
 }
 
 function tdist(u: Unit, t: Unit): number {

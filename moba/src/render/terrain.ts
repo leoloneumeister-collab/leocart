@@ -168,13 +168,12 @@ function nearestLaneDist(x: number, z: number): number {
   return best;
 }
 
-export function buildTerrain(): THREE.Group {
+export function buildTerrain(onMaterial?: (m: THREE.Material) => void): THREE.Group {
   const root = new THREE.Group();
   // Ground
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({ map: buildGroundTexture(), roughness: 1, metalness: 0 }),
-  );
+  const groundMat = new THREE.MeshStandardMaterial({ map: buildGroundTexture(), roughness: 1, metalness: 0 });
+  onMaterial?.(groundMat);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   root.add(ground);
@@ -185,7 +184,8 @@ export function buildTerrain(): THREE.Group {
   root.add(far);
 
   // Border cliffs
-  const cliffMat = new THREE.MeshStandardMaterial({ color: 0x3a3d40, roughness: 1, flatShading: true });
+  const cliffMat = new THREE.MeshStandardMaterial({ color: 0x4a4e52, roughness: 1, flatShading: true });
+  onMaterial?.(cliffMat);
   const rng = new Rng(21);
   const cliffGeo = buildRock(1, 3);
   const cliffs = new THREE.InstancedMesh(cliffGeo, cliffMat, 520);
@@ -216,6 +216,7 @@ export function buildTerrain(): THREE.Group {
 
   // Obstacles
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x8a8a84, roughness: 0.95, flatShading: true });
+  onMaterial?.(rockMat);
   const rocks = new THREE.InstancedMesh(buildRock(1, 9), rockMat, OBSTACLES.length);
   const col = new THREE.Color();
   OBSTACLES.forEach((o, i) => {
@@ -240,7 +241,9 @@ export function buildTerrain(): THREE.Group {
   ];
   const treeGeo = mergeParts(treeParts);
   const maxTrees = 520;
-  const trees = new THREE.InstancedMesh(treeGeo, new THREE.MeshLambertMaterial({ vertexColors: true }), maxTrees);
+  const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  onMaterial?.(treeMat);
+  const trees = new THREE.InstancedMesh(treeGeo, treeMat, maxTrees);
   let ti = 0;
   let guard = 0;
   while (ti < maxTrees && guard++ < 20000) {

@@ -1,6 +1,8 @@
 import './style.css';
 import { AudioEngine } from './audio/audio.ts';
 import { Game } from './game.ts';
+import { grantXp, killUnit } from './sim/core.ts';
+import { stepWorld } from './sim/match.ts';
 import { Menu } from './ui/screens.ts';
 import type { MenuChoice } from './ui/screens.ts';
 
@@ -32,8 +34,11 @@ function saveChoice(c: MenuChoice) {
 declare global {
   interface Window {
     __game?: Game;
+    /** Small debug and test API (headless smoke tests drive the sim with it). */
+    __api?: { stepWorld: typeof stepWorld; grantXp: typeof grantXp; killUnit: typeof killUnit };
   }
 }
+window.__api = { stepWorld, grantXp, killUnit };
 
 function startGame(choice: MenuChoice, slice = false) {
   saveChoice(choice);

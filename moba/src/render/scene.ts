@@ -11,6 +11,7 @@ import { G, lambert, teamColor } from './geo.ts';
 import { buildChampion, buildInhibitor, buildMinionGeometry, buildMonster, buildNexus, buildTower } from './models.ts';
 import type { Rig, StructureRig } from './models.ts';
 import { buildTerrain } from './terrain.ts';
+import { FogOfWar } from './fog.ts';
 
 export type Quality = 'low' | 'medium' | 'high';
 
@@ -77,6 +78,7 @@ export class GameRenderer {
   readonly rig = new CameraRig();
   readonly particles: Particles;
   readonly decals = new Decals();
+  readonly fog = new FogOfWar();
   readonly canvas: HTMLCanvasElement;
   private sun: THREE.DirectionalLight;
   private champViews = new Map<number, ChampionView>();
@@ -105,7 +107,7 @@ export class GameRenderer {
     this.canvas = renderer.domElement;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.5));
     renderer.shadowMap.enabled = quality !== 'low';
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -131,7 +133,7 @@ export class GameRenderer {
     this.sun.shadow.normalBias = 0.05;
     this.scene.add(this.sun, this.sun.target);
 
-    this.scene.add(buildTerrain());
+    this.scene.add(buildTerrain((m) => this.fog.patch(m)));
     this.scene.add(this.decals.group);
     this.particles = new Particles(this.camera);
     this.scene.add(this.particles.mesh);
@@ -353,6 +355,7 @@ export class GameRenderer {
         }
       }
     }
+    this.fog.update(w, this.viewerTeam, dt);
     this.particles.update(dt);
     this.decals.update(dt);
     void FIXED_DT;

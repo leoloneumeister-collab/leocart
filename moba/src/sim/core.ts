@@ -220,6 +220,12 @@ function monsterKilled(w: World, m: Unit, killer: Unit | null) {
     killer.champ.cs++;
     giveGold(w, killer, ms.gold);
     grantXp(w, killer, ms.xp);
+    if (m.defId === 'golem') {
+      w.addStatus(killer, { type: 'buff', stat: 'ad', pct: true, amount: 0.12, until: w.time + 100, source: killer.id, tag: 'golemad' });
+      w.addStatus(killer, { type: 'buff', stat: 'ms', pct: true, amount: 0.05, until: w.time + 100, source: killer.id, tag: 'golemms' });
+      w.recomputeStats(killer);
+      w.emit({ t: 'msg', unit: killer.id, text: 'Crystal Might: +12% damage' });
+    }
   }
 }
 
@@ -262,6 +268,13 @@ function championKilled(w: World, v: Unit, killer: Unit | null) {
   // Experience for nearby enemies
   shareXp(w, enemyTeam, v.x, v.z, 90 + 22 * vc.level);
   w.emit({ t: 'kill', killer: killer?.id ?? 0, victim: v.id, assists: assisters.map((a) => a.id), killerTeam: killer ? killer.team : enemyTeam, x: v.x, z: v.z });
+  if (w.teamKills[0] + w.teamKills[1] === 1) w.emit({ t: 'announce', text: 'First Blood!', team: enemyTeam });
+  else if (killerChamp && [3, 5, 7].includes(killerChamp.champ!.streak)) {
+    const n = CHAMPIONS[killerChamp.champ!.defId].name;
+    const tag = killerChamp.champ!.streak === 3 ? 'is on a killing spree!' : killerChamp.champ!.streak === 5 ? 'is dominating!' : 'is legendary!';
+    w.emit({ t: 'announce', text: `${n} ${tag}`, team: enemyTeam });
+  }
+  if (w.champions.filter((c) => c.team === v.team).every((c) => !c.alive)) w.emit({ t: 'announce', text: 'ACE!', team: enemyTeam });
   // Shift position to spawn when respawning (handled in the champion step)
 }
 

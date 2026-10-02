@@ -65,6 +65,8 @@ export class Particles {
   private q = new THREE.Quaternion();
   private col = new THREE.Color();
   private cam: THREE.Camera;
+  private tp = new THREE.Vector3();
+  private ts = new THREE.Vector3();
 
   constructor(cam: THREE.Camera, cap = 2400) {
     this.cam = cam;
@@ -128,7 +130,9 @@ export class Particles {
       p.z += p.vz * dt;
       const t = p.life / p.max;
       const s = (p.size + p.grow * (1 - t)) * (0.35 + 0.65 * t);
-      this.m.compose(new THREE.Vector3(p.x, p.y, p.z), this.q, new THREE.Vector3(s, s, s));
+      this.tp.set(p.x, p.y, p.z);
+      this.ts.set(s, s, s);
+      this.m.compose(this.tp, this.q, this.ts);
       this.mesh.setMatrixAt(n, this.m);
       this.col.setRGB(p.r * t, p.g * t, p.b * t);
       this.mesh.setColorAt(n, this.col);

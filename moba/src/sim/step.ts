@@ -4,6 +4,7 @@ import { stepChampions } from './champions.ts';
 import { processCommands } from './commands.ts';
 import { stepEconomy } from './economy.ts';
 import { stepMinions } from './minions.ts';
+import { stepMonsters } from './monsters.ts';
 import { separateUnits } from './movement.ts';
 import { stepProjectiles } from './projectiles.ts';
 import { stepStatuses } from './status.ts';
@@ -29,6 +30,7 @@ export function stepWorld(w: World) {
   stepBots(w, dt);
   stepChampions(w, dt);
   stepMinions(w, dt);
+  stepMonsters(w, dt);
   stepStructures(w, dt);
   separateUnits(w);
   stepProjectiles(w, dt);

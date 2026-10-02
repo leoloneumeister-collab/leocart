@@ -1321,3 +1321,7 @@ kbd {
     font-size: 44px;
   }
 }
+
+#game.dead canvas {
+  filter: grayscale(0.85) brightness(0.8);
+}
