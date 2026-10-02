@@ -19,6 +19,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run validate
+      - name: Unit tests for the small apps
+        run: npm run test:apps
       - run: npm run build
       - run: npm ci
         working-directory: shooter

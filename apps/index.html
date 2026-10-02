@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LeoCart Apps | Small free apps to share</title>
+  <meta name="description" content="Free little apps that run in your browser: a pushup alarm clock, a calorie tracker and voice notes. No sign-up, nothing to install, easy to share." />
+  <meta name="theme-color" content="#0b0e1c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/apps.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apps-180.png" />
+  <link rel="stylesheet" href="shared/base.css" />
+  <style>
+    body { background: radial-gradient(1000px 500px at 50% -10%, #1d2460 0%, var(--bg) 60%) fixed; }
+    .hero { padding: 18px 0 8px; }
+    .hero h1 { font-size: clamp(2rem, 9vw, 2.6rem); line-height: 1.05; letter-spacing: -0.03em; }
+    .hero h1 b { background: linear-gradient(135deg, #ff7a45, #7c5cff 55%, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .app { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; padding: 14px; }
+    .app img { width: 64px; height: 64px; border-radius: 16px; display: block; }
+    .app h2 { font-size: 1.15rem; }
+    .app p { color: var(--muted); font-size: 0.92rem; }
+    .app .row { margin-top: 10px; flex-wrap: wrap; }
+    .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-top: 6px; }
+    a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    .foot { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main class="page stack">
+    <header class="hero stack">
+      <h1>Small apps.<br /><b>Big on sharing.</b></h1>
+      <p class="muted">Free, nothing to install, no sign-up. Open a link, or scan a code from a friend's phone.</p>
+      <button class="btn primary" data-share="" data-title="LeoCart Apps" data-text="A few free little apps, nothing to install:">Share all of these</button>
+    </header>
+
+    <article class="card app">
+      <img src="icons/pushwake-192.png" alt="" width="64" height="64" />
+      <div>
+        <h2>Pushwake</h2>
+        <p>An alarm that only stops when you do your pushups. The phone camera counts them.</p>
+        <span class="tag">Phone, camera</span>
+        <div class="row"><a class="btn small primary" href="pushwake/">Open</a><button class="btn small" data-share="pushwake/" data-title="Pushwake" data-text="An alarm that only stops when you do your pushups:">Share</button></div>
+      </div>
+    </article>
+
+    <article class="card app">
+      <img src="icons/bitelog-192.png" alt="" width="64" height="64" />
+      <div>
+        <h2>BiteLog</h2>
+        <p>Calorie and macro tracker. Works out your daily goal, 130+ foods, barcode lookup, 14 day chart.</p>
+        <span class="tag">Phone or desktop</span>
+        <div class="row"><a class="btn small primary" href="bitelog/">Open</a><button class="btn small" data-share="bitelog/" data-title="BiteLog" data-text="A simple calorie and macro tracker:">Share</button></div>
+      </div>
+    </article>
+
+    <article class="card app">
+      <img src="icons/voicepad-192.png" alt="" width="64" height="64" />
+      <div>
+        <h2>Voicepad</h2>
+        <p>Talk, get tidy notes. Cuts the ums, adds punctuation, turns rambling into bullets or to-dos.</p>
+        <span class="tag">Chrome, Edge, Safari</span>
+        <div class="row"><a class="btn small primary" href="voicepad/">Open</a><button class="btn small" data-share="voicepad/" data-title="Voicepad" data-text="Talk and get tidy notes:">Share</button></div>
+      </div>
+    </article>
+
+    <article class="card app">
+      <img src="icons/apps-192.png" alt="" width="64" height="64" />
+      <div>
+        <h2>LeoCart</h2>
+        <p>3D kart racer with drifting, items and a three race cup.</p>
+        <span class="tag">Desktop, keyboard</span>
+        <div class="row"><a class="btn small primary" href="../">Play</a><button class="btn small" data-share="../" data-title="LeoCart" data-text="A 3D kart racer in your browser:">Share</button></div>
+      </div>
+    </article>
+
+    <p class="muted small center foot">Tip: on a phone, open an app, then use <b>Share</b> or <b>Add to Home Screen</b> in your browser menu to get an icon like a normal app. Everything you enter stays on your own device.</p>
+  </main>
+  <script type="module">
+    import { wireShareButtons } from './shared/share.js';
+    import { registerOffline } from './shared/pwa.js';
+    wireShareButtons({ title: 'LeoCart Apps' });
+    registerOffline('./sw.js');
+  </script>
+</body>
+</html>

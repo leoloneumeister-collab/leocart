@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BiteLog | Simple calorie and macro tracker</title>
+  <meta name="description" content="A free calorie and macro tracker with a daily goal worked out for you, a food database, barcode lookup and a 14 day chart. Works in your browser, no sign-up, your data stays on your phone." />
+  <meta name="theme-color" content="#07140f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="../icons/bitelog.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../icons/bitelog-180.png" />
+  <link rel="stylesheet" href="../shared/base.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="row between top">
+      <a class="brand" href="../">Bite<b>Log</b></a>
+      <div class="row">
+        <span class="streak" id="streak" hidden>🔥 <b id="streak-n">0</b></span>
+        <button class="btn small ghost" data-share="" data-title="BiteLog" data-text="A simple calorie and macro tracker. Free, no sign-up:">Share</button>
+      </div>
+    </header>
+
+    <!-- TODAY -->
+    <section id="tab-today" class="stack">
+      <div class="row between datebar">
+        <button class="btn small" id="prev" aria-label="Previous day">&lsaquo;</button>
+        <button class="chip" id="date-label">Today</button>
+        <button class="btn small" id="next" aria-label="Next day">&rsaquo;</button>
+      </div>
+      <div class="card summary">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 120 120" class="ring-svg" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" class="ring-bg"></circle>
+            <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg" transform="rotate(-90 60 60)"></circle>
+          </svg>
+          <div class="ring-center"><b id="left-n">0</b><span id="left-l">kcal left</span></div>
+        </div>
+        <div class="stack grow macros">
+          <div class="row between small"><span class="muted">Eaten</span><b id="eaten">0</b></div>
+          <div class="row between small"><span class="muted">Goal</span><b id="goal">0</b></div>
+          <div class="mrow"><span>Protein</span><div class="bar"><i id="bar-p"></i></div><b id="val-p">0 / 0 g</b></div>
+          <div class="mrow"><span>Carbs</span><div class="bar"><i id="bar-c"></i></div><b id="val-c">0 / 0 g</b></div>
+          <div class="mrow"><span>Fat</span><div class="bar"><i id="bar-f"></i></div><b id="val-f">0 / 0 g</b></div>
+        </div>
+      </div>
+      <div class="warn-text hidden" id="default-goal">Using a default 2,000 kcal goal. <a href="#" id="go-profile">Set your own goal</a> in 30 seconds.</div>
+      <div id="meals" class="stack"></div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="tab-progress" class="stack hidden">
+      <div class="card stack">
+        <div class="row between"><h2>Last 14 days</h2><span class="muted small" id="avg-line"></span></div>
+        <div id="chart"></div>
+        <div class="row legend small muted"><span><i class="dot ok"></i> On target</span><span><i class="dot over"></i> Over</span><span><i class="dash"></i> Goal</span></div>
+      </div>
+      <div class="card stack">
+        <h2>Weight</h2>
+        <div class="row">
+          <input class="input grow" id="weight-in" inputmode="decimal" placeholder="Today's weight" aria-label="Today's weight" />
+          <span class="muted" id="weight-unit">kg</span>
+          <button class="btn primary" id="weight-save">Save</button>
+        </div>
+        <div id="weight-chart"></div>
+        <div class="muted small" id="weight-note"></div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="tab-profile" class="stack hidden">
+      <div class="card stack" id="welcome">
+        <h2>Let's work out your daily goal</h2>
+        <p class="muted">Takes half a minute. Everything stays on this phone.</p>
+      </div>
+      <div class="card stack">
+        <div class="field"><label>Units</label>
+          <div class="seg" id="units"><button data-v="metric" aria-pressed="true">Metric</button><button data-v="imperial" aria-pressed="false">Imperial</button></div>
+        </div>
+        <div class="field"><label>Sex (used by the calorie formula)</label>
+          <div class="seg" id="sex"><button data-v="f" aria-pressed="true">Female</button><button data-v="m" aria-pressed="false">Male</button></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="age">Age</label><input class="input" id="age" inputmode="numeric" placeholder="30" /></div>
+          <div class="field" id="weight-field"><label for="weight" id="weight-label">Weight (kg)</label><input class="input" id="weight" inputmode="decimal" placeholder="70" /></div>
+        </div>
+        <div class="field" id="height-metric"><label for="height-cm">Height (cm)</label><input class="input" id="height-cm" inputmode="decimal" placeholder="170" /></div>
+        <div class="grid2 hidden" id="height-imperial">
+          <div class="field"><label for="height-ft">Height (ft)</label><input class="input" id="height-ft" inputmode="numeric" placeholder="5" /></div>
+          <div class="field"><label for="height-in">(in)</label><input class="input" id="height-in" inputmode="numeric" placeholder="9" /></div>
+        </div>
+        <div class="field"><label for="activity">Activity</label><select class="input" id="activity"></select></div>
+        <div class="field"><label>Goal</label>
+          <div class="seg" id="goal-seg"><button data-v="lose" aria-pressed="false">Lose</button><button data-v="maintain" aria-pressed="true">Maintain</button><button data-v="gain" aria-pressed="false">Gain</button></div>
+        </div>
+        <p class="warn-text hidden" id="profile-error" role="alert"></p>
+        <button class="btn primary block" id="save-profile">Save my goal</button>
+      </div>
+      <div class="card stack hidden" id="target-card">
+        <h2>Your daily targets</h2>
+        <div class="target-grid">
+          <div><b id="t-kcal">0</b><span>kcal</span></div>
+          <div><b id="t-p">0</b><span>protein g</span></div>
+          <div><b id="t-c">0</b><span>carbs g</span></div>
+          <div><b id="t-f">0</b><span>fat g</span></div>
+        </div>
+        <p class="muted small" id="t-note"></p>
+      </div>
+      <div class="card stack">
+        <h2>Your data</h2>
+        <p class="muted small">Saved only in this browser. Export a backup before clearing browser data or switching phones.</p>
+        <div class="row"><button class="btn grow" id="export">Export backup</button><button class="btn grow" id="import">Import backup</button></div>
+        <input type="file" id="import-file" accept="application/json,.json" class="hidden" />
+        <button class="btn danger" id="reset">Delete all my data</button>
+      </div>
+      <p class="muted small center">Calorie goals are estimates from a standard formula, not medical advice. Food values are typical averages. If you are under 18, pregnant, or have a medical condition, check with a doctor before changing how you eat.</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab" data-tab="today" aria-current="page"><span>🍽️</span>Today</button>
+    <button class="tab" data-tab="progress"><span>📈</span>Progress</button>
+    <button class="tab" data-tab="profile"><span>⚙️</span>Goal</button>
+  </nav>
+
+  <dialog id="add-dlg">
+    <div class="dlg">
+      <div class="row between"><h2 id="add-title">Add food</h2><button class="btn small ghost" id="add-close" aria-label="Close">Close</button></div>
+      <div class="seg" id="add-tabs">
+        <button data-p="search" aria-pressed="true">Search</button>
+        <button data-p="barcode" aria-pressed="false">Barcode</button>
+        <button data-p="quick" aria-pressed="false">Quick add</button>
+      </div>
+
+      <div id="p-search" class="stack">
+        <input class="input" id="q" type="search" placeholder="Search foods, e.g. banana" autocomplete="off" aria-label="Search foods" />
+        <div id="results" class="results"></div>
+      </div>
+
+      <div id="p-barcode" class="stack hidden">
+        <p class="muted small">Type the number under the barcode, or scan it where your browser supports that. The lookup uses Open Food Facts, a free community database. Only the barcode number is sent.</p>
+        <div class="row"><input class="input grow" id="barcode" inputmode="numeric" placeholder="e.g. 5000159407236" aria-label="Barcode number" /><button class="btn primary" id="barcode-go">Look up</button></div>
+        <button class="btn hidden" id="barcode-scan">Scan with camera</button>
+        <video id="scan-video" class="hidden" playsinline muted></video>
+        <div class="muted small" id="barcode-status"></div>
+      </div>
+
+      <div id="p-quick" class="stack hidden">
+        <div class="field"><label for="qa-name">Name (optional)</label><input class="input" id="qa-name" placeholder="Lunch at work" /></div>
+        <div class="field"><label for="qa-kcal">Calories</label><input class="input" id="qa-kcal" inputmode="numeric" placeholder="450" /></div>
+        <div class="grid2" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="field"><label for="qa-p">Protein g</label><input class="input" id="qa-p" inputmode="decimal" /></div>
+          <div class="field"><label for="qa-c">Carbs g</label><input class="input" id="qa-c" inputmode="decimal" /></div>
+          <div class="field"><label for="qa-f">Fat g</label><input class="input" id="qa-f" inputmode="decimal" /></div>
+        </div>
+        <label class="row small muted"><input type="checkbox" id="qa-save" /> Also save to My foods</label>
+        <p class="warn-text hidden" id="qa-error" role="alert"></p>
+        <button class="btn primary block" id="qa-add">Add</button>
+      </div>
+
+      <div id="p-amount" class="stack hidden">
+        <div><b id="am-name"></b><div class="muted small" id="am-serving"></div></div>
+        <div class="row"><input class="input grow" id="am-qty" inputmode="decimal" value="1" aria-label="Amount" /><div class="seg am-unit" id="am-unit"><button data-v="serving" aria-pressed="true">Servings</button><button data-v="g" aria-pressed="false">Grams</button></div></div>
+        <div class="row presets" id="am-presets"></div>
+        <div class="card preview"><b id="am-kcal">0</b> kcal <span class="muted" id="am-macros"></span></div>
+        <div class="row"><button class="btn" id="am-back">Back</button><button class="btn primary grow" id="am-add">Add</button></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

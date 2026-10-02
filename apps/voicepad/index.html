@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Voicepad | Talk, get tidy notes</title>
+  <meta name="description" content="Talk and get clean, readable notes. Removes ums and stutters, adds punctuation, turns rambling into bullets or a to-do list. Free, in your browser, notes stay on your phone." />
+  <meta name="theme-color" content="#0d0b22" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="../icons/voicepad.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../icons/voicepad-180.png" />
+  <link rel="stylesheet" href="../shared/base.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page stack">
+    <header class="row between top">
+      <a class="brand" href="../">Voice<b>pad</b></a>
+      <button class="btn small ghost" data-share="" data-title="Voicepad" data-text="Talk and get tidy notes. Free, no sign-up:">Share</button>
+    </header>
+
+    <div class="warn-text hidden" id="no-speech" role="note">This browser can't listen to you. Try Chrome, Edge or Safari. You can still type or paste below and use the tidy tools.</div>
+
+    <section class="card stack mic-card">
+      <div class="row between">
+        <div class="field grow"><label for="lang">Language</label><select class="input" id="lang"></select></div>
+      </div>
+      <div class="mic-wrap">
+        <button class="mic" id="mic" aria-pressed="false" aria-label="Start talking"><svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12h-2z"/></svg></button>
+        <div class="status" id="status" aria-live="polite">Tap and start talking</div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <textarea class="input note" id="text" rows="9" placeholder="Your words appear here. You can also type or paste." aria-label="Note text"></textarea>
+      <div class="interim" id="interim" aria-hidden="true"></div>
+      <div class="row between small muted"><span id="count">0 words</span><label class="row"><input type="checkbox" id="auto" /> Tidy when I stop</label></div>
+      <div class="tools">
+        <button class="btn" id="tidy">Tidy</button>
+        <button class="btn" id="bullets">Bullets</button>
+        <button class="btn" id="todos">To-dos</button>
+        <button class="btn ghost" id="undo" disabled>Undo</button>
+      </div>
+      <label class="row small muted check"><input type="checkbox" id="commands" /> Spoken punctuation: say "comma", "full stop", "question mark", "new line", "bullet point"</label>
+      <div class="row">
+        <button class="btn primary grow" id="save">Save</button>
+        <button class="btn" id="copy">Copy</button>
+        <button class="btn" id="download" aria-label="Download as text file">.txt</button>
+        <button class="btn ghost" id="new">New</button>
+      </div>
+    </section>
+
+    <section class="stack" id="notes-section">
+      <h2>Saved notes</h2>
+      <div id="notes" class="stack"></div>
+    </section>
+
+    <p class="muted small center">Cleanup uses simple rules on your device, not AI, so it fixes the obvious and leaves your wording alone. Listening is done by your browser's speech service. In Chrome that means your audio is sent to Google to be turned into text. Saved notes never leave your phone.</p>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

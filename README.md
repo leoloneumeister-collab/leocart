@@ -4,6 +4,8 @@
 
 **[▶ Play it live](https://leoloneumeister-collab.github.io/leocart/)**
 
+**More:** [small apps you can share](https://leoloneumeister-collab.github.io/leocart/apps/) (a pushup alarm, a calorie tracker and voice notes). See [`apps/`](apps/README.md).
+
 ![LeoCart gameplay](docs/gameplay.gif)
 
 | | |

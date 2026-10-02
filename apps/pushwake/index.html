@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pushwake | The alarm you switch off with pushups</title>
+  <meta name="description" content="A free alarm clock that only stops when you do your pushups. The phone camera counts them. Works in your browser, no sign-up." />
+  <meta name="theme-color" content="#14080f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="../icons/pushwake.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../icons/pushwake-180.png" />
+  <link rel="stylesheet" href="../shared/base.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="row between top">
+      <a class="brand" href="../">Push<b>wake</b></a>
+      <div class="row">
+        <span class="streak" id="streak" title="Mornings in a row" hidden>🔥 <b id="streak-n">0</b></span>
+        <button class="btn small ghost" data-share="" data-title="Pushwake" data-text="An alarm that only stops when you do your pushups. Try it:">Share</button>
+      </div>
+    </header>
+
+    <!-- HOME -->
+    <section id="view-home" class="stack">
+      <div class="clock center">
+        <div class="clock-time" id="now">--:--</div>
+        <div class="muted" id="next-ring">No alarm set</div>
+      </div>
+
+      <div class="card stack">
+        <div class="grid2">
+          <div class="field">
+            <label for="time">Wake up at</label>
+            <input class="input time" id="time" type="time" value="07:00" />
+          </div>
+          <div class="field">
+            <label>Pushups</label>
+            <div class="stepper">
+              <button class="btn" id="reps-minus" aria-label="Fewer pushups">-</button>
+              <output id="reps-out" aria-live="polite">10</output>
+              <button class="btn" id="reps-plus" aria-label="More pushups">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Repeat</label>
+          <div class="row days" id="days" role="group" aria-label="Repeat on days"></div>
+          <div class="row presets">
+            <button class="chip" data-preset="weekdays">Weekdays</button>
+            <button class="chip" data-preset="every">Every day</button>
+            <button class="chip" data-preset="once">Once</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>How pushups are counted</label>
+          <div class="seg" id="mode" role="group" aria-label="Counting mode">
+            <button data-mode="camera" aria-pressed="true">Camera</button>
+            <button data-mode="tap" aria-pressed="false">Tap only</button>
+          </div>
+        </div>
+        <div class="field" id="sens-field">
+          <label>Camera sensitivity</label>
+          <div class="seg" id="sens" role="group" aria-label="Camera sensitivity">
+            <button data-sens="low" aria-pressed="false">Low</button>
+            <button data-sens="normal" aria-pressed="true">Normal</button>
+            <button data-sens="high" aria-pressed="false">High</button>
+          </div>
+        </div>
+        <p class="warn-text hidden" id="notice" role="alert"></p>
+        <button class="btn primary block big" id="arm">Set alarm</button>
+      </div>
+
+      <div class="row">
+        <button class="btn grow" id="practice">Practise</button>
+        <button class="btn grow" id="test-ring">Test alarm</button>
+      </div>
+
+      <details class="card how">
+        <summary>How it works, and its limits</summary>
+        <ol>
+          <li>Set a time and tap <b>Set alarm</b>. Allow the camera when asked.</li>
+          <li>Leave this page open, screen on, phone plugged in and volume up.</li>
+          <li>When it rings, put the phone <b>face up on the floor</b> and do pushups with your chest over the screen. The front camera sees you getting closer and counts each rep.</li>
+          <li>Try <b>Practise pushups</b> first. If counting is off, change the sensitivity.</li>
+        </ol>
+        <p class="warn-text">This is a web page, not a native app. A locked phone, a closed tab or Silent mode on iPhone will stop it from ringing. Keep your normal alarm as a backup.</p>
+        <p class="muted small">The camera feed never leaves your phone. Only the average brightness is used.</p>
+      </details>
+    </section>
+
+    <!-- ARMED -->
+    <section id="view-armed" class="stack center hidden">
+      <div class="armed-ring">⏰</div>
+      <h1 id="armed-title">Alarm set</h1>
+      <div class="big-count" id="countdown">--</div>
+      <p class="muted" id="armed-sub"></p>
+      <div class="card stack left">
+        <p><b>Before you sleep</b></p>
+        <ul class="checks">
+          <li>Keep this page open and the screen on (we ask your phone not to dim it)</li>
+          <li>Plug the phone in</li>
+          <li>Turn the volume up, and switch off Silent mode on iPhone</li>
+          <li>Keep a normal alarm as backup</li>
+        </ul>
+      </div>
+      <button class="btn danger block" id="disarm">Cancel alarm</button>
+    </section>
+
+    <!-- RING / PRACTISE -->
+    <section id="view-ring" class="ring hidden" aria-live="polite">
+      <div class="ring-top">
+        <div class="ring-title" id="ring-title">WAKE UP</div>
+        <div class="ring-sub" id="ring-sub">Phone face up on the floor. Pushups over the screen.</div>
+      </div>
+      <div class="rep-big"><span id="rep-n">0</span><small>/<span id="rep-total">10</span></small></div>
+      <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+      <div class="ring-hint" id="ring-hint"></div>
+      <video id="cam" playsinline muted autoplay></video>
+      <div class="ring-actions">
+        <button class="btn primary big hidden" id="tap-rep">TAP = 1 PUSHUP</button>
+        <button class="btn ghost small hidden" id="stop-practice">Stop practising</button>
+        <button class="btn ghost small" id="giveup"><span id="giveup-bar"></span>Hold 5 s to give up</button>
+      </div>
+    </section>
+
+    <!-- DONE -->
+    <section id="view-done" class="stack center hidden">
+      <div class="armed-ring">💪</div>
+      <h1>You're up!</h1>
+      <p class="muted" id="done-sub"></p>
+      <div class="big-count" id="done-streak"></div>
+      <button class="btn primary block hidden" id="done-keep">Keep the alarm on for next time</button>
+      <button class="btn block" id="done-ok">Back to start</button>
+      <button class="btn block" data-share="" data-title="Pushwake" data-text="I just did my pushups to turn off my alarm. Try it:">Challenge a friend</button>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

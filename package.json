@@ -8,11 +8,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src scripts tests",
+    "lint": "eslint src scripts tests apps",
     "validate": "node scripts/validate-tracks.mjs",
     "sim": "node scripts/sim.mjs",
     "test": "node tests/run-all.mjs",
     "test:e2e": "node tests/e2e.mjs",
+    "test:apps": "node --test tests/apps.mjs",
+    "test:apps:e2e": "node tests/apps-e2e.mjs",
+    "icons": "node scripts/make-app-icons.mjs",
     "media": "node scripts/capture-media.mjs"
   },
   "dependencies": {
