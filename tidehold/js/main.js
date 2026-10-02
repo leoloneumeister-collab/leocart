@@ -8,6 +8,7 @@ import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { UI } from './ui.js';
+import { connectCloud } from './cloud.js';
 import { clamp, dist } from './util.js';
 import { fmtTime, fmtFull } from './data.js';
 
@@ -152,6 +153,23 @@ class Game {
     St.save(this.S, this.storage);
     this._dirty = false;
     this.lastSave = performance.now();
+    if (this.cloud) this.cloud.push(St.serialize(this.S), this.now());
+  }
+
+  // Swap in a different save (for example the newer one from the cloud copy).
+  adoptState(S) {
+    this.S = S;
+    this.selRef = null;
+    this.ghost = null;
+    if (this.mode !== 'home') {
+      this.mode = 'home';
+      this.ui.setMode('home');
+    }
+    this.ui.closeSheet(true);
+    this.sfx.on = S.settings.sound !== false;
+    this.handleStateEvents(St.tick(S, this.now()));
+    this.dirty();
+    this.ui.toast('Loaded your saved island');
   }
 
   resetGame() {
@@ -926,9 +944,10 @@ class Game {
 
 const game = new Game();
 game.start();
+connectCloud(game, St).then((link) => { game.cloud = link; });
 
 // Offline support, only on a real https host (the dev server must never be cached).
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+if ('serviceWorker' in navigator && location.protocol === 'https:' && window.self === window.top) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
 

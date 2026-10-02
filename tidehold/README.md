@@ -22,6 +22,7 @@ npm run tidehold:build    # tidehold/dist, static files
 npm run tidehold:test     # logic tests: economy, saves, generator, battle balance (pure node)
 npm run tidehold:e2e      # plays the game on an emulated phone (needs the dev server and Playwright browsers)
 npm run tidehold:icons    # redraw the app icons from the game's own art
+npm run tidehold:single -- out.html   # one self-contained page (add --fragment for claude.ai artifacts)
 ```
 
 URL options: `?seed=N` picks the starting island layout (handy for tests).
@@ -39,12 +40,13 @@ URL options: `?seed=N` picks the starting island layout (handy for tests).
 | `js/input.js` | Tap, hold, pan, pinch and drag-the-ghost gestures |
 | `js/ui.js`, `css/style.css` | DOM interface for phones (safe areas, 44px+ touch targets) |
 | `js/main.js` | Game controller and loop |
+| `js/cloud.js` | Optional cloud copy of the save, active only when the page runs as a claude.ai artifact |
 | `public/` | Manifest, service worker, icons |
 | `tests/` | `run.mjs` (logic) and `e2e.mjs` (phone playthrough) |
 
 ## Decisions and limits
 
-- **Saves live in the browser (`localStorage`) on one device.** There is no server, so there are no real player-versus-player raids: rivals are generated islands scaled to your Keep and trophies.
+- **Saves live in the browser (`localStorage`) on one device.** When the page runs as a claude.ai artifact it also keeps a copy in the viewer's private database, so progress survives a cleared browser or a new phone. There is no server, so there are no real player-versus-player raids: rivals are generated islands scaled to your Keep and trophies.
 - **Timers trust the device clock.** Changing the clock can skip waits. That is fine for a solo game, and it is the first thing a server would own if this ever goes online: timers, loot and battle validation. The battle sim is deterministic on purpose so a server can replay and verify a raid.
 - **Balance is measured, not guessed.** `tests/run.mjs` plays a typical army against all 30 outposts with a simple auto-attacker and fails if a stage is unwinnable, if costs do not fit the storage the player has at that Keep level, or if progression curves go backwards.
 - **Original everything.** Names, art and sounds are invented for this game.

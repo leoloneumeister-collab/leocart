@@ -18,7 +18,8 @@
     "tidehold:build": "vite build --config tidehold/vite.config.js",
     "tidehold:test": "node tidehold/tests/run.mjs",
     "tidehold:e2e": "node tidehold/tests/e2e.mjs",
-    "tidehold:icons": "node tidehold/tools/make-icons.mjs"
+    "tidehold:icons": "node tidehold/tools/make-icons.mjs",
+    "tidehold:single": "node tidehold/tools/build-single-file.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"
