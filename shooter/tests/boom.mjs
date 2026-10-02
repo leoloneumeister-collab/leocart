@@ -1,0 +1,17 @@
+import { startServer, launch } from './lib.mjs';
+const stop = await startServer();
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message + '\n' + e.stack));
+await page.goto(`http://localhost:4173/?debug=1&mission=1&god=1&q=medium`);
+await page.waitForTimeout(5000);
+await page.evaluate(() => { const g = window.__game; const r = g.relays[0]; g.player.pos.set(r.pos.x + 14, 0, r.pos.z + 14); g.player.yaw = 0.78; g.player.pitch = 0.35; r.damage(9999, g); });
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'tests/shots/boom-1.png' });
+await page.waitForTimeout(900);
+await page.screenshot({ path: 'tests/shots/boom-2.png' });
+await page.waitForTimeout(2500);
+await page.screenshot({ path: 'tests/shots/boom-3.png' });
+console.log(errs.join('\n'));
+await browser.close(); stop();
