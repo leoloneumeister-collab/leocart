@@ -38,6 +38,10 @@ jobs:
       - run: npm run build
         working-directory: shooter
       - run: mkdir -p dist/shooter && cp -r shooter/dist/. dist/shooter/
+      # Tidehold base-builder (published under /tidehold/)
+      - run: npm run tidehold:test
+      - run: npm run tidehold:build
+      - run: mkdir -p dist/tidehold && cp -r tidehold/dist/. dist/tidehold/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

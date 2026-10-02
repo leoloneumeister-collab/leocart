@@ -15,6 +15,11 @@
 
 Everything here is original: the characters, track layouts, item names, music and sounds. Nothing comes from any existing racing franchise.
 
+## More in this repo
+
+- **[Tidehold](tidehold/README.md)**: a base-building and raiding game for phones. Build an island, train troops, raid rivals. [Play it](https://leoloneumeister-collab.github.io/leocart/tidehold/).
+- **[Shadow Protocol](shooter/README.md)**: a 3D browser shooter, published under `/shooter/`.
+
 ## Features
 
 - **Arcade driving with drifting.** Hold drift in a corner and sparks turn blue, orange, then purple. Release for a mini-turbo. Off-road slows you down, karts bump each other, and heavier racers shove lighter ones.

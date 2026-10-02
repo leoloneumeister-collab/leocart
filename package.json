@@ -8,12 +8,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src scripts tests",
+    "lint": "eslint src scripts tests tidehold",
     "validate": "node scripts/validate-tracks.mjs",
     "sim": "node scripts/sim.mjs",
     "test": "node tests/run-all.mjs",
     "test:e2e": "node tests/e2e.mjs",
-    "media": "node scripts/capture-media.mjs"
+    "media": "node scripts/capture-media.mjs",
+    "tidehold:dev": "vite --config tidehold/vite.config.js",
+    "tidehold:build": "vite build --config tidehold/vite.config.js",
+    "tidehold:test": "node tidehold/tests/run.mjs",
+    "tidehold:e2e": "node tidehold/tests/e2e.mjs",
+    "tidehold:icons": "node tidehold/tools/make-icons.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"

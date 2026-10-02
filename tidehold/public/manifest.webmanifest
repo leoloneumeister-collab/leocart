@@ -1,0 +1,17 @@
+{
+  "name": "Tidehold",
+  "short_name": "Tidehold",
+  "description": "Build an island, train troops, raid rivals. A base-building game for your phone browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#2a86c4",
+  "theme_color": "#2a86c4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
