@@ -2,7 +2,7 @@
 
 import { ITEM_ICONS, EMPTY_ITEM } from './icons.js';
 import { ITEMS } from '../game/items.js';
-import { settings } from '../game/settings.js';
+import { settings, prettyKey } from '../game/settings.js';
 import { formatTime, ordinal } from '../util/math.js';
 
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
@@ -28,6 +28,7 @@ export class Hud {
       <div class="hud-flash" id="hud-flash"></div>
       <div class="speed-lines" id="speed-lines"></div>
       <div class="hud-wrong" id="hud-wrong">WRONG WAY</div>
+      <div class="hud-hint" id="hud-hint"></div>
     `;
     const q = (s) => root.querySelector(s);
     this.el = {
@@ -36,7 +37,7 @@ export class Hud {
       map: q('#hud-map'), pos: q('#hud-pos'), board: q('#hud-board'),
       speed: q('#hud-speed b'), speedBar: q('#hud-speed .speed-bar i'), speedBox: q('#hud-speed'), unit: q('#hud-speed span'),
       drift: q('#hud-drift'), driftBar: q('#hud-drift i'),
-      msg: q('#hud-msg'), sub: q('#hud-sub'), flash: q('#hud-flash'), lines: q('#speed-lines'), wrong: q('#hud-wrong'),
+      msg: q('#hud-msg'), sub: q('#hud-sub'), flash: q('#hud-flash'), lines: q('#speed-lines'), wrong: q('#hud-wrong'), hint: q('#hud-hint'),
     };
     this.ctx = this.el.map.getContext('2d');
     this.race = null;
@@ -262,6 +263,17 @@ export class Hud {
     // wrong way
     e.wrong.classList.toggle('on', p.wrongWayT > 1.1 && r.state === 'racing');
 
+    // after finishing: tell the player they can skip the wait
+    const waiting = r.state === 'finished';
+    if (waiting !== this.last.waiting) {
+      this.last.waiting = waiting;
+      e.hint.classList.toggle('on', waiting);
+      if (waiting) {
+        const key = (settings.bindings.item || []).find(Boolean) || 'Enter';
+        e.hint.innerHTML = `Waiting for the others… press <kbd>${prettyKey(key)}</kbd> for results`;
+      }
+    }
+
     // item slot
     this._item(dt, p);
 
@@ -299,6 +311,7 @@ export class Hud {
         this.roll.t = 0;
         const ids = Object.keys(ITEM_ICONS);
         this.roll.idx = (this.roll.idx + 1) % ids.length;
+        this.onTick?.();
         e.itemIcon.innerHTML = ITEM_ICONS[ids[this.roll.idx]];
         this.last.itemKey = 'roll';
       }

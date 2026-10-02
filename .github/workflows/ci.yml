@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run validate
+      - run: npm run build
+      - run: npm ci
+        working-directory: shooter
+      - run: npm run build
+        working-directory: shooter

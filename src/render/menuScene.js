@@ -7,7 +7,7 @@ import { skyTexture, groundTexture, blobShadowTexture } from './textures.js';
 import { KartModel } from './kartModel.js';
 import { CHARACTERS } from '../game/characters.js';
 import { Particles } from './particles.js';
-import { damp, lerp, clamp } from '../util/math.js';
+import { damp } from '../util/math.js';
 
 export class MenuScene {
   constructor(renderer) {
@@ -41,7 +41,7 @@ export class MenuScene {
 
     const gTex = groundTexture('grass', 21);
     gTex.repeat.set(120, 120);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshLambertMaterial({ map: gTex }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400, 32, 32), new THREE.MeshLambertMaterial({ map: gTex }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.4;
     ground.receiveShadow = true;

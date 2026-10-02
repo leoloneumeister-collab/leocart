@@ -7,7 +7,8 @@ import {
   bannerTexture, makeCanvas,
 } from './textures.js';
 
-const Y_ROAD = 0.02;
+const Y_ROAD = 0.04;
+const OFFSET = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
 
 function ribbonGeometry(track, latA, latB, opts = {}) {
   const { N } = track;
@@ -126,9 +127,9 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
   gTex.repeat.set(220, 220);
   gTex.anisotropy = maxAniso;
   const groundMat = new THREE.MeshLambertMaterial({ map: gTex, color: theme.groundTint });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(5280, 5280), groundMat);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(5280, 5280, 64, 64), groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.03;
+  ground.position.y = -0.06;
   ground.receiveShadow = true;
   ground.name = 'ground';
   group.add(ground);
@@ -137,7 +138,7 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
   // road
   const rTex = roadTexture(theme.road);
   rTex.anisotropy = maxAniso;
-  const roadMat = new THREE.MeshLambertMaterial({ map: rTex });
+  const roadMat = new THREE.MeshLambertMaterial({ map: rTex, ...OFFSET });
   const roadGeo = ribbonGeometry(track, (i) => -track.w[i] / 2, (i) => track.w[i] / 2, { uvScale: 16 });
   const road = new THREE.Mesh(roadGeo, roadMat);
   road.receiveShadow = true;
@@ -148,7 +149,7 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
   // kerbs on the corners
   const kTex = kerbTexture(theme.kerb[0], theme.kerb[1]);
   kTex.anisotropy = maxAniso;
-  const kerbMat = new THREE.MeshLambertMaterial({ map: kTex });
+  const kerbMat = new THREE.MeshLambertMaterial({ map: kTex, ...OFFSET, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
   const curvy = new Uint8Array(track.N);
   for (let i = 0; i < track.N; i++) {
     let k = 0;
@@ -191,7 +192,7 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
     const w = track.w[0];
     const g = new THREE.PlaneGeometry(w, 4);
     g.rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: cTex }));
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: cTex, ...OFFSET, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
     m.position.set(track.x[0], Y_ROAD + 0.02, track.z[0]);
     m.rotation.y = track.hd[0];
     m.receiveShadow = true;
@@ -233,7 +234,7 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
   {
     const bt = boostTexture();
     bt.anisotropy = maxAniso;
-    const mat = new THREE.MeshBasicMaterial({ map: bt });
+    const mat = new THREE.MeshBasicMaterial({ map: bt, ...OFFSET, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
     for (const pad of track.boostPads) {
       const g = new THREE.PlaneGeometry(pad.width, pad.len);
       g.rotateX(-Math.PI / 2);
@@ -265,7 +266,7 @@ export function buildTrackMeshes(track, theme, { maxAniso = 8 } = {}) {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    const mat = new THREE.MeshLambertMaterial({ map: tex });
+    const mat = new THREE.MeshLambertMaterial({ map: tex, ...OFFSET });
     for (const sc of track.shortcuts) {
       const g = polylineRibbon(sc.pts, sc.width, Y_ROAD - 0.005, 8);
       const m = new THREE.Mesh(g, mat);

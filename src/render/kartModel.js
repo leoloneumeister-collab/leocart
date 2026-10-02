@@ -208,10 +208,22 @@ export class KartModel {
 
     // effects
     if (!glowTex.v) glowTex.v = glowTexture('rgba(255,255,255,1)');
-    this.shieldMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(2.3, 20, 14),
-      new THREE.MeshBasicMaterial({ color: 0x66e6ff, transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }),
-    );
+    this.shieldMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uAlpha: { value: 1 } },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: `varying vec3 vN; varying vec3 vV;
+        void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform float uTime; uniform float uAlpha; varying vec3 vN; varying vec3 vV;
+        void main() {
+          float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
+          float bands = 0.5 + 0.5 * sin(vN.y * 16.0 + uTime * 3.0);
+          float a = (0.07 + f * 0.9 + bands * 0.07) * uAlpha;
+          gl_FragColor = vec4(vec3(0.3, 0.85, 1.0) + f * 0.45, a);
+        }`,
+    });
+    this.shieldMesh = new THREE.Mesh(new THREE.SphereGeometry(2.3, 24, 16), this.shieldMat);
     this.shieldMesh.position.y = 1.1;
     this.shieldMesh.visible = false;
     this.tilt.add(this.shieldMesh);
@@ -288,8 +300,8 @@ export class KartModel {
 
     this.shieldMesh.visible = kart.shield > 0;
     if (kart.shield > 0) {
-      const flicker = kart.shield < 2 ? (Math.sin(time * 30) > 0 ? 1 : 0.4) : 1;
-      this.shieldMesh.material.opacity = 0.22 * flicker + Math.sin(time * 6) * 0.04;
+      this.shieldMat.uniforms.uTime.value = time;
+      this.shieldMat.uniforms.uAlpha.value = kart.shield < 2 ? (Math.sin(time * 30) > 0 ? 1 : 0.3) : 1;
       this.shieldMesh.scale.setScalar(1 + Math.sin(time * 5) * 0.03);
     }
     const boosting = kart.boostTimer > 0 || kart.comet > 0;

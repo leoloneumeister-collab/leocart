@@ -127,6 +127,70 @@ async function newPage() {
   await page.close();
 }
 
+// ---------------------------------------------------------------- 2b. gamepad and lap rules
+{
+  const page = await newPage();
+  await page.addInitScript(() => {
+    window.__pad = { connected: true, id: 'test pad', index: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    navigator.getGamepads = () => [window.__pad];
+  });
+  await page.goto(`${BASE}?race=meadow&char=zip&seed=5`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.leocart.race && !window.leocart.busy, null, { timeout: 30000 });
+  const r = await page.evaluate(() => {
+    const g = window.leocart;
+    const race = g.race;
+    const p = race.player;
+    const pad = window.__pad;
+    g.advance(7);
+    pad.buttons[0].pressed = true; // A = accelerate
+    g.advance(3);
+    const out = { speed: p.speed };
+    const h0 = p.h;
+    pad.axes[0] = 0.9; // stick right
+    g.advance(0.6);
+    out.turned = h0 - p.h;
+    pad.axes[0] = 0;
+    pad.buttons[0].pressed = false;
+
+    // Lap rules. 1) Sliding the probe far down the road does not jump the progress counter (no teleport cheats).
+    const L = race.track.length;
+    const before = p.probe.distance;
+    p.x = race.track.x[Math.floor(race.track.N * 0.8)];
+    p.z = race.track.z[Math.floor(race.track.N * 0.8)];
+    p.probe.update(p.x, p.z);
+    out.jump = p.probe.distance - before;
+    out.lapsAfterTeleport = p.lap;
+    // 2) Driving backwards over the line never produces a lap.
+    p.lastSafe.s = 20;
+    p.respawn(race);
+    p.h += Math.PI;
+    g.advance(0.2);
+    out.lapAtStart = p.lap;
+    out.cpAtStart = p.cp;
+    out.L = L;
+    return out;
+  });
+  check('gamepad: A accelerates', r.speed > 10, `${r.speed.toFixed(1)} m/s`);
+  check('gamepad: stick steers', r.turned > 0.2, `${r.turned.toFixed(2)} rad`);
+  check('rules: teleporting cannot skip progress forward', r.jump < 100 && r.lapsAfterTeleport === 0, `jump ${r.jump.toFixed(0)} m`);
+  check('rules: no lap without passing every checkpoint', r.lapAtStart === 0 && r.cpAtStart === 0);
+  // gamepad menu navigation
+  await page.goto(BASE, { waitUntil: 'load' });
+  await page.waitForSelector('.screen.title');
+  await page.waitForTimeout(600);
+  const nav = await page.evaluate(async () => {
+    const pad = window.__pad;
+    const first = document.activeElement?.dataset?.a;
+    pad.buttons[13].pressed = true; // d-pad down
+    await new Promise((r) => setTimeout(r, 900));
+    pad.buttons[13].pressed = false;
+    const second = document.activeElement?.dataset?.a;
+    return { first, second };
+  });
+  check('gamepad: d-pad moves menu focus', nav.first !== nav.second, `${nav.first} -> ${nav.second}`);
+  await page.close();
+}
+
 // ---------------------------------------------------------------- 3. full race on every track
 for (const trackId of ['meadow', 'dunes', 'neon']) {
   const page = await newPage();

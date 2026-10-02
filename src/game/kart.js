@@ -167,7 +167,6 @@ export class Kart {
   update(dt, world) {
     const st = this.stats;
     const c = this.controls;
-    const track = this.track;
 
     this.invuln = Math.max(0, this.invuln - dt);
     this.boostTimer = Math.max(0, this.boostTimer - dt);
@@ -422,23 +421,51 @@ export class Kart {
   }
 }
 
+// Karts are longer than they are wide, so each one is two overlapping circles (nose and tail).
+const BODY_R = 1.05;
+const BODY_OFF = 0.95;
+
 /** Resolve kart-vs-kart overlap with mass-weighted impulses. Returns true on contact. */
 export function collideKarts(a, b, world) {
-  const dx = b.x - a.x;
-  const dz = b.z - a.z;
-  const min = KART_RADIUS * 2;
-  const d2 = dx * dx + dz * dz;
-  if (d2 >= min * min || d2 < 1e-6) return false;
-  const d = Math.sqrt(d2);
-  const nx = dx / d;
-  const nz = dz / d;
+  const gx = a.x - b.x;
+  const gz = a.z - b.z;
+  const far = 2 * (BODY_R + BODY_OFF) + 0.5;
+  if (gx * gx + gz * gz > far * far) return false;
+  const afx = Math.sin(a.h);
+  const afz = Math.cos(a.h);
+  const bfx = Math.sin(b.h);
+  const bfz = Math.cos(b.h);
+  let best = 0;
+  let bnx = 0;
+  let bnz = 0;
+  const min = BODY_R * 2;
+  for (const sa of [BODY_OFF, -BODY_OFF]) {
+    const ax = a.x + afx * sa;
+    const az = a.z + afz * sa;
+    for (const sb of [BODY_OFF, -BODY_OFF]) {
+      const dx = b.x + bfx * sb - ax;
+      const dz = b.z + bfz * sb - az;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < min * min && d2 > 1e-8) {
+        const d = Math.sqrt(d2);
+        const overlap = min - d;
+        if (overlap > best) {
+          best = overlap;
+          bnx = dx / d;
+          bnz = dz / d;
+        }
+      }
+    }
+  }
+  if (best <= 0) return false;
+  const nx = bnx;
+  const nz = bnz;
   const ma = a.stats.mass * (a.comet > 0 ? 3 : 1);
   const mb = b.stats.mass * (b.comet > 0 ? 3 : 1);
-  const overlap = min - d;
-  a.x -= nx * overlap * (mb / (ma + mb));
-  a.z -= nz * overlap * (mb / (ma + mb));
-  b.x += nx * overlap * (ma / (ma + mb));
-  b.z += nz * overlap * (ma / (ma + mb));
+  a.x -= nx * best * (mb / (ma + mb));
+  a.z -= nz * best * (mb / (ma + mb));
+  b.x += nx * best * (ma / (ma + mb));
+  b.z += nz * best * (ma / (ma + mb));
   const rvn = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
   if (rvn > 0) {
     const e = 0.55;
