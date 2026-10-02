@@ -1,0 +1,22 @@
+{
+  "name": "shadow-protocol",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node tests/smoke.mjs",
+    "test:full": "node tests/smoke.mjs && node tests/ui.mjs && node tests/flow1.mjs && node tests/flow2.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright": "^1.63.0",
+    "typescript": "5.9",
+    "vite": "^8.3.2"
+  }
+}
