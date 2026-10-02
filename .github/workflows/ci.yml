@@ -24,3 +24,10 @@ jobs:
         working-directory: shooter
       - run: npm run build
         working-directory: shooter
+      - run: npm ci
+        working-directory: moba
+      - run: npm run build
+        working-directory: moba
+      # Headless bot matches, ability checks and the lane-push gate (no browser needed)
+      - run: npm run test:sim
+        working-directory: moba

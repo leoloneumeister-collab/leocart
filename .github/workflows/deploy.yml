@@ -38,6 +38,12 @@ jobs:
       - run: npm run build
         working-directory: shooter
       - run: mkdir -p dist/shooter && cp -r shooter/dist/. dist/shooter/
+      # LANEFALL MOBA (published under /moba/)
+      - run: npm ci
+        working-directory: moba
+      - run: npm run build
+        working-directory: moba
+      - run: mkdir -p dist/moba && cp -r moba/dist/. dist/moba/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
