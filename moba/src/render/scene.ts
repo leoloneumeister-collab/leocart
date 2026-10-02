@@ -87,6 +87,7 @@ export class GameRenderer {
   private minionBatches = new Map<string, THREE.InstancedMesh>();
   private minionAnim = new Map<number, { atk: number; phase: number }>();
   private projViews = new Map<number, ProjView>();
+  private towerRings = new Map<number, THREE.Mesh>();
   private projSphere = new THREE.SphereGeometry(0.5, 10, 8);
   private projBolt = new THREE.CylinderGeometry(0.22, 0.22, 3.2, 6).rotateX(Math.PI / 2);
   private raycaster = new THREE.Raycaster();
@@ -336,7 +337,22 @@ export class GameRenderer {
       const alive = new Set(w.units.filter((u) => u.kind === 'minion').map((u) => u.id));
       for (const id of this.minionAnim.keys()) if (!alive.has(id)) this.minionAnim.delete(id);
     }
-    void viewer;
+    // Enemy tower range rings appear when the player gets close, so dives are a choice
+    for (const s of w.structures) {
+      if (s.kind !== 'tower' || s.team === this.viewerTeam) continue;
+      const show = !!viewer && viewer.alive && s.alive && Math.hypot(viewer.x - s.x, viewer.z - s.z) < s.s.range + 24;
+      let ring = this.towerRings.get(s.id);
+      if (show && !ring) {
+        ring = this.decals.persistent(0xff4a3a, 'ring');
+        ring.position.set(s.x, 0.13, s.z);
+        ring.scale.set((s.s.range + 0.5) * 2, (s.s.range + 0.5) * 2, 1);
+        this.towerRings.set(s.id, ring);
+      } else if (!show && ring) {
+        this.decals.drop(ring);
+        this.towerRings.delete(s.id);
+      }
+      if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = 0.32 + Math.sin(t * 3) * 0.08;
+    }
     // Statuses
     for (const u of w.champions) {
       if (!u.alive || !this.isVisible(w, u)) continue;

@@ -22,9 +22,9 @@ export interface MinionDef {
 }
 
 export const MINIONS: Record<MinionType, MinionDef> = {
-  melee: { type: 'melee', name: 'Vanguard', hp: 480, ad: 14, armor: 0, mr: 0, as: 1.0, ms: 6, range: 1.4, radius: 0.95, height: 2.5, projectileSpeed: 0, dmgType: 'physical', gold: 21, xp: 62, aggro: 8 },
-  caster: { type: 'caster', name: 'Spellbinder', hp: 300, ad: 22, armor: 0, mr: 0, as: 0.9, ms: 6, range: 8, radius: 0.85, height: 2.4, projectileSpeed: 24, dmgType: 'magic', gold: 14, xp: 32, aggro: 9 },
-  cannon: { type: 'cannon', name: 'Siege Golem', hp: 900, ad: 38, armor: 8, mr: 8, as: 0.8, ms: 5.6, range: 9, radius: 1.35, height: 3.2, projectileSpeed: 20, dmgType: 'physical', gold: 42, xp: 92, aggro: 9 },
+  melee: { type: 'melee', name: 'Vanguard', hp: 560, ad: 11, armor: 0, mr: 0, as: 1.0, ms: 6, range: 1.4, radius: 0.95, height: 2.5, projectileSpeed: 0, dmgType: 'physical', gold: 21, xp: 62, aggro: 8 },
+  caster: { type: 'caster', name: 'Spellbinder', hp: 350, ad: 16, armor: 0, mr: 0, as: 0.9, ms: 6, range: 8, radius: 0.85, height: 2.4, projectileSpeed: 24, dmgType: 'magic', gold: 14, xp: 32, aggro: 9 },
+  cannon: { type: 'cannon', name: 'Siege Golem', hp: 1000, ad: 30, armor: 8, mr: 8, as: 0.8, ms: 5.6, range: 9, radius: 1.35, height: 3.2, projectileSpeed: 20, dmgType: 'physical', gold: 42, xp: 92, aggro: 9 },
   super: { type: 'super', name: 'Colossus', hp: 1700, ad: 52, armor: 25, mr: 12, as: 0.85, ms: 6.2, range: 1.8, radius: 1.7, height: 4.4, projectileSpeed: 0, dmgType: 'physical', gold: 55, xp: 110, aggro: 9 },
 };
 

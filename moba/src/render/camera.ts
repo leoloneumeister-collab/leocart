@@ -9,7 +9,8 @@ export class CameraRig {
   readonly minDist = 36;
   readonly maxDist = 110;
   pitch = THREE.MathUtils.degToRad(62);
-  locked = false;
+  /** Follow the player's champion. Toggle with Y to pan freely with the screen edges. */
+  locked = true;
   private shakeT = 0;
   private shakeAmp = 0;
 

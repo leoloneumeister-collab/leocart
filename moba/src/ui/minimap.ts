@@ -15,6 +15,8 @@ export class Minimap {
   private base: HTMLCanvasElement;
   private p: Painter;
   private dpr = 1;
+  /** Remove window listeners. */
+  dispose: () => void = () => undefined;
 
   constructor(parent: HTMLElement, onCamera: (x: number, z: number) => void, onMove: (x: number, z: number) => void) {
     this.root = document.createElement('div');
@@ -49,13 +51,19 @@ export class Minimap {
         onCamera(w.x, w.z);
       }
     });
-    window.addEventListener('mousemove', (e) => {
+    const winMove = (e: MouseEvent) => {
       if (dragging) {
         const w = toWorld(e);
         onCamera(w.x, w.z);
       }
-    });
-    window.addEventListener('mouseup', () => (dragging = false));
+    };
+    const onUp = () => (dragging = false);
+    window.addEventListener('mousemove', winMove);
+    window.addEventListener('mouseup', onUp);
+    this.dispose = () => {
+      window.removeEventListener('mousemove', winMove);
+      window.removeEventListener('mouseup', onUp);
+    };
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 

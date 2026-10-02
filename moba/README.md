@@ -55,14 +55,14 @@ Bots use exactly the same commands as the player and only react to what their te
 |---|---|
 | Right click | Move, or attack the enemy under the cursor |
 | `Q` `W` `E` `R` | Cast at the cursor. Hold to preview range and area |
-| `Ctrl` + `Q/W/E/R` | Spend a skill point (or click the `+` above an ability) |
+| `Shift` + `Q/W/E/R` | Spend a skill point (or click the `+` above an ability). Not `Ctrl`: browsers reserve `Ctrl+W` and `Ctrl+Q` |
 | `A`, then left click | Attack-move |
 | `S` | Stop |
 | `B` | Recall (8 seconds, interrupted by damage or moving) |
 | `P` | Shop (only in your base) |
 | `Tab` (hold) | Scoreboard |
 | `Space` (hold) | Center camera on your champion |
-| `Y` | Lock or unlock the camera |
+| `Y` | Lock or unlock the camera (locked by default; unlock to pan with the screen edges) |
 | Screen edge or arrow keys | Pan the camera |
 | Mouse wheel or `+` `-` | Zoom |
 | Minimap | Left click moves the camera, right click moves your champion |

@@ -78,7 +78,7 @@ export class Input {
     window.addEventListener('mousemove', mm);
     document.addEventListener('mouseleave', ml);
     target.addEventListener('wheel', wh, { passive: true });
-    target.addEventListener('contextmenu', cm);
+    window.addEventListener('contextmenu', cm);
     window.addEventListener('blur', blur);
     this.unsub.push(
       () => window.removeEventListener('keydown', kd),
@@ -88,7 +88,7 @@ export class Input {
       () => window.removeEventListener('mousemove', mm),
       () => document.removeEventListener('mouseleave', ml),
       () => target.removeEventListener('wheel', wh),
-      () => target.removeEventListener('contextmenu', cm),
+      () => window.removeEventListener('contextmenu', cm),
       () => window.removeEventListener('blur', blur),
     );
   }

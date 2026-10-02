@@ -123,7 +123,7 @@ export class Game {
     this.cmd({ type: 'levelUp', slot: 0 });
     this.audio.init();
     this.audio.startMusic();
-    this.hud.showMessage('Right click to move. Q W E R cast abilities. You have 500 gold: press P to shop in your base.', 9);
+    this.hud.showMessage('Right click to move. Q W E R cast abilities. You have 500 gold: press P to shop in your base. Y unlocks the camera.', 9);
     window.addEventListener('resize', this.onResize);
     this.lastT = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -242,7 +242,7 @@ export class Game {
     if (this.paused || this.ended) return;
     const slotIdx = ['q', 'w', 'e', 'r'].indexOf(key);
     if (slotIdx >= 0) {
-      if (e.ctrlKey || e.metaKey) {
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
         e.preventDefault();
         this.cmd({ type: 'levelUp', slot: slotIdx });
         this.audio.click();
@@ -562,6 +562,7 @@ export class Game {
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
     this.input.dispose();
+    this.minimap.dispose();
     this.audio.stopMusic();
     this.renderer.dispose();
     this.parent.querySelectorAll('.hud, .shop, .minimap, .pause, .endscreen, #overlay, #game').forEach((n) => n.remove());

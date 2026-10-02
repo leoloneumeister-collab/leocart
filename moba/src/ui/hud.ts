@@ -37,7 +37,7 @@ function abilityTip(u: Unit, def: AbilityDef, slot: number): string {
     if (dmg.ownMaxHpPct) parts.push(`+${Math.round(dmg.ownMaxHpPct * 100)}% max HP`);
     dmgLine = `<div class="tip-dmg">${dmg.dmgType === 'magic' ? 'Magic' : dmg.dmgType === 'true' ? 'True' : 'Physical'} damage: ${parts.join(' ')}</div>`;
   }
-  const next = rank < (slot === 3 ? 3 : 5) ? `<div class="tip-sub">Rank ${rank}/${slot === 3 ? 3 : 5}. Ctrl+${KEYS[slot]} to level up</div>` : `<div class="tip-sub">Max rank</div>`;
+  const next = rank < (slot === 3 ? 3 : 5) ? `<div class="tip-sub">Rank ${rank}/${slot === 3 ? 3 : 5}. Shift+${KEYS[slot]} to level up</div>` : `<div class="tip-sub">Max rank</div>`;
   return `<div class="tip-title">${def.name} <span class="tip-key">${KEYS[slot]}</span></div><div class="tip-body">${def.desc}</div>${dmgLine}<div class="tip-sub">Cooldown ${cd}s &middot; Mana ${mana}${def.range ? ` &middot; Range ${def.range}` : ''}</div>${next}`;
 }
 
@@ -218,7 +218,7 @@ export class Hud {
     } else if (ev.t === 'msg') {
       if (ev.unit === this.builtFor) this.showMessage(ev.text);
     } else if (ev.t === 'levelUp') {
-      if (ev.id === this.builtFor) this.showMessage(`Level ${ev.level}! Spend your skill point (Ctrl + Q/W/E/R or click +)`);
+      if (ev.id === this.builtFor) this.showMessage(`Level ${ev.level}! Spend your skill point (Shift + Q/W/E/R or click +)`);
     }
   }
 

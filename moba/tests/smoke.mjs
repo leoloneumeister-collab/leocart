@@ -73,7 +73,7 @@ try {
 
   // movement
   const start = await ev(() => ({ x: window.__game.player.x, z: window.__game.player.z }));
-  await page.mouse.click(760, 330, { button: 'right' });
+  await page.mouse.click(1050, 260, { button: 'right' });
   check('right click issues a move order', await until(() => window.__game.player.order.t === 'move'));
   const walked = await until((s) => Math.hypot(window.__game.player.x - s.x, window.__game.player.z - s.z) > 4, start);
   check('champion walks to the clicked point', walked);
@@ -83,10 +83,10 @@ try {
   await page.keyboard.press('q');
   check('Q casts and starts its cooldown', await until(() => window.__game.player.champ.cooldowns[0] > 0));
   await ev(() => window.__api.grantXp(window.__game.world, window.__game.player, 600));
-  await page.keyboard.down('Control');
+  await page.keyboard.down('Shift');
   await page.keyboard.press('w');
-  await page.keyboard.up('Control');
-  check('Ctrl+W spends a skill point', await until(() => window.__game.player.champ.ranks[1] === 1));
+  await page.keyboard.up('Shift');
+  check('Shift+W spends a skill point', await until(() => window.__game.player.champ.ranks[1] === 1));
 
   // order keys
   await page.keyboard.press('s');

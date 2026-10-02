@@ -101,7 +101,7 @@ export function paintMap(ctx: CanvasRenderingContext2D, size: number, detail: bo
       const x = pts[seg].x + (pts[seg + 1].x - pts[seg].x) * t + rng.range(-8, 8);
       const z = pts[seg].z + (pts[seg + 1].z - pts[seg].z) * t + rng.range(-8, 8);
       ctx.fillStyle = rng.next() < 0.5 ? 'rgba(90,70,45,0.25)' : 'rgba(220,200,150,0.18)';
-      ctx.fillRect(p.tx(x), p.tz(z), rng.range(1, 4) * p.scale, rng.range(1, 4) * p.scale);
+      ctx.fillRect(p.tx(x), p.tz(z), rng.range(0.5, 2) * p.scale, rng.range(0.5, 2) * p.scale);
     }
   }
   // Bases

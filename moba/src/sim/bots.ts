@@ -64,7 +64,7 @@ interface TeamBB {
   enemiesAll: Unit[];
   /** Front positions per lane (path distance from the blue end) and counts. */
   front: Record<Lane, { own: number; enemy: number; ownN: number; enemyN: number }>;
-  plan: { mode: 'lane' | 'push' | 'defend'; lane: Lane; until: number };
+  plan: { mode: 'lane' | 'push' | 'defend'; lane: Lane; until: number; spotX: number; spotZ: number };
   towers: Unit[];
   enemyTowers: Unit[];
 }
@@ -80,7 +80,7 @@ function newBB(team: Team): TeamBB {
     enemies: [],
     enemiesAll: [],
     front: { top: { own: NaN, enemy: NaN, ownN: 0, enemyN: 0 }, mid: { own: NaN, enemy: NaN, ownN: 0, enemyN: 0 }, bot: { own: NaN, enemy: NaN, ownN: 0, enemyN: 0 } },
-    plan: { mode: 'lane', lane: 'mid', until: 0 },
+    plan: { mode: 'lane', lane: 'mid', until: 0, spotX: 0, spotZ: 0 },
     towers: [],
     enemyTowers: [],
   };
@@ -139,7 +139,7 @@ export function stepBots(w: World, _dt: number) {
     }
     if (w.time < b.nextThink) continue;
     const sk = skillFor(w, u);
-    b.nextThink = w.time + sk.reaction * (0.8 + w.rng.next() * 0.4);
+    b.nextThink = w.time + sk.reaction * (b.mode === 'lane' ? 0.6 : 1) * (0.8 + w.rng.next() * 0.4);
     const bb = refreshBoard(w, u.team as Team);
     think(w, u, b, bb, sk);
   }
@@ -219,7 +219,7 @@ function updatePlan(w: World, bb: TeamBB) {
   const allyAlive = bb.allies.length;
   const enemyAlive = aliveCount(bb.enemiesAll);
   // Defend: enemy champions or a pile of minions near our structures
-  let threat: { lane: Lane; amount: number } | null = null;
+  let threat: { lane: Lane; amount: number; x: number; z: number } | null = null;
   for (const s of w.structures) {
     if (s.team !== team || !s.alive) continue;
     let champs = 0;
@@ -230,13 +230,13 @@ function updatePlan(w: World, bb: TeamBB) {
       else if (v.kind === 'minion') minions++;
     });
     const amount = champs * 3 + minions * 0.7;
-    if (amount >= 3.5 && (!threat || amount > threat.amount)) {
+    if (amount >= 6 && (!threat || amount > threat.amount)) {
       const lane = s.struct!.lane === 'base' ? nearestLaneOf(s) : (s.struct!.lane as Lane);
-      threat = { lane, amount };
+      threat = { lane, amount, x: s.x, z: s.z };
     }
   }
   if (threat && w.rng.next() < 0.01 + sk.macro) {
-    bb.plan = { mode: 'defend', lane: threat.lane, until: w.time + 6 };
+    bb.plan = { mode: 'defend', lane: threat.lane, until: w.time + 6, spotX: threat.x, spotZ: threat.z };
     return;
   }
   const late = w.time > sk.pushTime;
@@ -264,10 +264,10 @@ function updatePlan(w: World, bb: TeamBB) {
         bestLane = lane;
       }
     }
-    bb.plan = { mode: 'push', lane: bestLane, until: w.time + 8 };
+    bb.plan = { mode: 'push', lane: bestLane, until: w.time + 8, spotX: 0, spotZ: 0 };
     return;
   }
-  bb.plan = { mode: 'lane', lane: 'mid', until: w.time + 4 };
+  bb.plan = { mode: 'lane', lane: 'mid', until: w.time + 4, spotX: 0, spotZ: 0 };
 }
 
 function nearestLaneOf(s: Unit): Lane {
@@ -698,8 +698,8 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
   if (near.length > 0) {
     const target = chooseTarget(u, near);
     const underTower = target ? threatenedByTower(w, bb, target.x, target.z, 1.5) : null;
-    let ratio = enemyPow > 0 ? allyPow / enemyPow : 9;
-    if (underTower) ratio *= 0.45;
+    const ratioRaw = enemyPow > 0 ? allyPow / enemyPow : 9;
+    const ratio = underTower ? ratioRaw * 0.45 : ratioRaw;
     const engage = 1.15 / sk.aggr;
     const killable = target ? target.hp < estimateBurst(u) : false;
     const stayAway = tower !== null && !allyMinionsNear(w, tower) && hpFrac(u) < 0.8;
@@ -716,22 +716,40 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
       attackUnit(w, u, b, target);
       return;
     }
-    if (ratio < 0.7 / sk.aggr && nearestE && ned < 20) {
+    if (ratioRaw < 0.7 / sk.aggr && nearestE && (ned < 13 || recentHit)) {
       b.mode = 'retreat';
       useSkills(w, u, b, sk, 'retreat', nearestE, near);
       const rp = retreatPoint(w, bb, u, lane);
       moveTo(w, u, b, rp.x, rp.z);
       return;
     }
-    // Poke for ranged champions when it is safe
-    if (target && tdist(u, target) <= reach(u, target) + 1 && !underTower) {
-      b.mode = 'lane';
-      useSkills(w, u, b, sk, 'lane', target, near);
-      attackUnit(w, u, b, target);
+    // Fight back when an enemy champion is hitting us and the odds are not terrible
+    const attacker = near.find((e) => w.time - e.champ!.lastAttackedChampAt < 2.5 && e.champ!.lastAttackedChampId === u.id);
+    if (attacker && ratio >= 0.75 / sk.aggr && hpFrac(u) > 0.3 && !underTower) {
+      b.mode = 'fight';
+      c.holdFire = false;
+      useSkills(w, u, b, sk, 'fight', attacker, near);
+      attackUnit(w, u, b, attacker);
       return;
     }
-    if (target && !underTower && CHAMPIONS[c.defId].melee === false && tdist(u, target) < u.s.range + 5) {
-      useSkills(w, u, b, sk, 'lane', target, near);
+    // Poke: ranged champions trade from behind their minions, melee champions only with a health lead
+    const melee = CHAMPIONS[c.defId].melee;
+    const myMinionsNear = allyMinionCount(w, u, 10);
+    if (target && !underTower) {
+      const td = tdist(u, target);
+      if (!melee && td <= u.s.range + target.radius + u.radius && myMinionsNear >= 1 && hpFrac(u) > 0.55) {
+        b.mode = 'lane';
+        useSkills(w, u, b, sk, 'lane', target, near);
+        attackUnit(w, u, b, target);
+        return;
+      }
+      if (melee && td <= reach(u, target) + 1.5 && hpFrac(u) > 0.6 && hpFrac(u) > hpFrac(target) + 0.2) {
+        b.mode = 'lane';
+        useSkills(w, u, b, sk, 'lane', target, near);
+        attackUnit(w, u, b, target);
+        return;
+      }
+      if (!melee && td < u.s.range + 5) useSkills(w, u, b, sk, 'lane', target, near);
     }
   }
 
@@ -742,7 +760,7 @@ function think(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill) {
   const plan = bb.plan;
   let goalLane: Lane = lane;
   let mode: Mode = 'lane';
-  if (plan.mode === 'defend' && sk.macro > 0.2) {
+  if (plan.mode === 'defend' && sk.macro > 0.2 && dist(u.x, u.z, plan.spotX, plan.spotZ) < 80 && hpFrac(u) > 0.35) {
     goalLane = plan.lane;
     mode = 'defend';
   } else if (plan.mode === 'push' && sk.macro > 0.2) {
@@ -796,6 +814,28 @@ function jungleBehaviour(w: World, u: Unit, b: Bot): boolean {
   if (big && u.mana > u.s.maxMana * 0.4) useSkills(w, u, b, SKILL.normal, 'lane', big, []);
   attackMoveTo(w, u, b, best.x, best.z);
   return true;
+}
+
+/** Damage already on its way to a minion: allied projectiles plus melee hits about to land. */
+function pendingDamage(w: World, v: Unit, myTeam: number): number {
+  let pending = 0;
+  for (const p of w.projectiles) {
+    if (p.homing === v.id && p.team === myTeam) pending += p.dmg * mitigation(p.dmgType === 'magic' ? v.s.mr : v.s.armor);
+  }
+  w.query(v.x, v.z, 4.5, (m) => {
+    if (m.kind !== 'minion' || m.team !== myTeam || m.target !== v.id || m.attackCd > 0.35) return;
+    if (m.projectileSpeed > 0) return;
+    pending += attackDamage(m, v) * mitigation(v.s.armor);
+  });
+  return pending;
+}
+
+function allyMinionCount(w: World, u: Unit, radius: number): number {
+  let n = 0;
+  w.query(u.x, u.z, radius, (v) => {
+    if (v.kind === 'minion' && v.team === u.team) n++;
+  });
+  return n;
 }
 
 function tdist(u: Unit, t: Unit): number {
@@ -941,69 +981,71 @@ function laneBehaviour(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill, lane: L
   const total = laneLength(lane);
   const f = bb.front[lane];
   const melee = def.melee;
-  const backoff = melee ? 4 : 8.5;
   const dir = team === 0 ? 1 : -1;
+  const fwd = (s: number) => (team === 0 ? s : total - s);
+  const backoff = melee ? 2.4 : 7;
+  const searchR = u.s.range + u.radius + (melee ? 10 : 6);
+  const myDmg = attackDamage(u, u);
 
-  // Enemy minions within reach for last hitting
-  const myDmg = attackDamage(u, u) * 1;
+  // Look at the enemy wave: what can I kill now, what is about to become killable?
   let lastHit: Unit | null = null;
-  let lhScore = Infinity;
-  let anyEnemyMinion: Unit | null = null;
-  let aemD = Infinity;
-  let weakSoon: Unit | null = null;
-  w.query(u.x, u.z, u.s.range + u.radius + 4, (v) => {
+  let lhEdge = Infinity;
+  let anyInReach: Unit | null = null;
+  let airD = Infinity;
+  let weakSoon = false;
+  w.query(u.x, u.z, searchR + 3, (v) => {
     if (v.team === u.team || !v.alive) return;
-    if (v.kind !== 'minion' && v.kind !== 'monster') return;
-    if (v.team !== 2 && !w.visible[team].has(v.id)) return;
+    if (v.kind !== 'minion') return;
+    if (!w.visible[team].has(v.id)) return;
     const d = dist(u.x, u.z, v.x, v.z);
-    const inR = d <= reach(u, v) + 0.2;
-    // damage incoming from allied projectiles
-    let pending = 0;
-    for (const p of w.projectiles) if (p.homing === v.id && p.team === u.team) pending += p.dmg * mitigation(p.dmgType === 'magic' ? v.s.mr : v.s.armor);
-    const eff = v.hp - pending;
+    const edge = d - reach(u, v);
+    if (edge > searchR - u.s.range) return;
+    // do not chase minions into enemy tower fire unless our own minions are tanking it
+    const tw = threatenedByTower(w, bb, v.x, v.z, 0);
+    if (tw && !allyMinionsNear(w, tw)) return;
+    const eff = v.hp - pendingDamage(w, v, u.team);
     const dmg = myDmg * mitigation(v.s.armor);
-    if (inR && eff <= dmg * 1.02 && eff > 0) {
-      if (eff < lhScore) {
-        lhScore = eff;
+    if (eff > 0 && eff <= dmg * 1.02) {
+      if (edge < lhEdge) {
+        lhEdge = edge;
         lastHit = v;
       }
+    } else if (eff > 0 && eff < dmg * 2.3 && edge < 6) weakSoon = true;
+    if (edge <= (melee ? 5 : 1.5) && d < airD) {
+      airD = d;
+      anyInReach = v;
     }
-    if (inR && d < aemD) {
-      aemD = d;
-      anyEnemyMinion = v;
-    }
-    if (eff < dmg * 2.2 && eff > dmg * 1.02) weakSoon = v;
   });
 
-  // Last hit
+  // 1. Last hit (walk up to it if needed)
   if (lastHit && w.rng.chance(sk.lastHit)) {
     c.holdFire = false;
     attackUnit(w, u, b, lastHit);
     return;
   }
-  // Wave is low on allies or we are clearing it: free attack
-  const enemyNear = near.length > 0;
-  if (anyEnemyMinion && !weakSoon && !enemyNear) {
-    const pushOK = f.ownN >= f.enemyN || w.rng.chance(1 - sk.lastHit);
-    if (pushOK && w.rng.chance(0.4 + (1 - sk.lastHit))) {
+  // 2. Free hits on the wave when nothing is about to die and we are not outnumbered
+  const threatClose = near.some((e) => dist(u.x, u.z, e.x, e.z) < 15);
+  if (anyInReach && !weakSoon && !(threatClose && hpFrac(u) < 0.5)) {
+    if ((f.ownN >= f.enemyN || w.rng.chance(1 - sk.lastHit)) && w.rng.chance(0.7)) {
       c.holdFire = false;
-      attackUnit(w, u, b, anyEnemyMinion);
+      attackUnit(w, u, b, anyInReach);
       return;
     }
   }
-  // AoE clear when mana allows
-  if (near.length === 0 && anyEnemyMinion) {
+  // 3. Area abilities on clumps
+  if (near.length === 0 && anyInReach) {
     if (useSkills(w, u, b, sk, 'lane', null, near)) return;
   }
-  // Positioning: behind our minion front, never deep into the enemy tower unless it is safe
-  let s: number;
+  // 4. Positioning: just behind the fight, never behind our outermost tower, never into tower fire
   const clash = Number.isFinite(f.own) && Number.isFinite(f.enemy) ? (f.own + f.enemy) / 2 : Number.isFinite(f.own) ? f.own : NaN;
-  if (Number.isFinite(clash)) s = clash - dir * backoff;
-  else {
-    // no wave: stand by our outer tower
-    const own = bb.towers.filter((t) => projectOnLane(lane, t.x, t.z).d < 10).map((t) => projectOnLane(lane, t.x, t.z).s);
-    s = own.length ? (team === 0 ? Math.max(...own) : Math.min(...own)) + dir * 4 : team === 0 ? 40 : total - 40;
+  let towerF = 10;
+  for (const t of bb.towers) {
+    if (t.struct!.lane !== lane) continue;
+    towerF = Math.max(towerF, fwd(projectOnLane(lane, t.x, t.z).s));
   }
+  let fDes = Number.isFinite(clash) ? fwd(clash) - backoff : towerF + 2;
+  fDes = Math.max(fDes, towerF - 3);
+  let s = team === 0 ? fDes : total - fDes;
   let p = laneStand(team, lane, s);
   const tw = threatenedByTower(w, bb, p.x, p.z, 1);
   if (tw && !allyMinionsNear(w, tw)) {
@@ -1017,5 +1059,9 @@ function laneBehaviour(w: World, u: Unit, b: Bot, bb: TeamBB, sk: Skill, lane: L
   else stopUnit(w, u, b);
 }
 
+/** Current high-level mode of a bot (for diagnostics and the debug overlay). */
+export function botMode(w: World, id: number): string {
+  return bots.get(w)?.get(id)?.mode ?? '-';
+}
 export { SKILL };
 void SKILL;
