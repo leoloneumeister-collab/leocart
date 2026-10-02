@@ -124,6 +124,10 @@ export function buildMap(): MapData {
   carve(g, 20, 14, 22, 15, '#');
   carve(g, 25, 14, 27, 15, '#');
 
+  // ---- Lower mid S bend: two overlapping blocks so there is no straight sightline from the door to Breacher spawn
+  carve(g, 24, 22, 27, 23, '#');   // east block, forces traffic to the west side
+  carve(g, 20, 26, 25, 27, '#');   // west block, forces traffic to the east side
+
   // ---- Short routes
   carve(g, 28, 17, 35, 19);     // A short from mid
   carve(g, 34, 13, 38, 19);     // up into A site
@@ -158,8 +162,8 @@ export function buildMap(): MapData {
   put(g, 5, 10, 'c'); put(g, 2, 9, 'C'); put(g, 2, 10, 'c');
   // ---- Cover: hall and mid
   put(g, 21, 8, 'c'); put(g, 22, 8, 'c'); put(g, 26, 9, 'C'); put(g, 18, 9, '%'); put(g, 29, 9, '%');
-  put(g, 22, 18, 'c'); put(g, 25, 18, 'C'); put(g, 23, 22, 'C'); put(g, 24, 22, 'c');
-  put(g, 21, 26, 'c'); put(g, 26, 25, 'c'); put(g, 24, 12, '%'); put(g, 23, 12, '%');
+  put(g, 22, 18, 'c'); put(g, 25, 18, 'C'); put(g, 22, 24, 'c'); put(g, 26, 29, 'C');
+  put(g, 24, 12, '%'); put(g, 23, 12, '%'); put(g, 22, 21, 'c');
   // ---- Cover: long, yards
   put(g, 43, 18, 'c'); put(g, 44, 18, 'c'); put(g, 41, 21, 'C'); put(g, 45, 23, 'C'); put(g, 43, 25, 'c');
   put(g, 36, 32, 'c'); put(g, 40, 34, 'C'); put(g, 44, 31, 'c'); put(g, 38, 30, 'c'); put(g, 35, 35, 'C');
