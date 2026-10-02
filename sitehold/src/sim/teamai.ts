@@ -98,7 +98,8 @@ export class TeamAI {
     if (a.armor < 100) { if (a.money >= 1000) buy('armor'); else if (a.money >= 650) buy('kevlar'); }
     else if (!a.helmet && a.money >= 350) buy('armor');
     if (t === TEAM_SENTINEL && a.money >= 400) buy('kit');
-    const order = r < 0.5 ? ['smoke', 'flash', 'he', 'flash'] : ['flash', 'smoke', 'flash', 'he'];
+    // two players per team always carry a smoke, the rest favour flashes and damage grenades
+    const order = a.id % 5 < 2 ? ['smoke', 'flash', 'he', 'fire'] : r < 0.5 ? ['flash', 'he', 'flash', 'fire'] : ['he', 'flash', 'smoke', 'fire'];
     for (const g of order) if (a.money >= (g === 'flash' ? 200 : 300) + 100) buy(g);
   }
 
@@ -180,6 +181,8 @@ export class TeamAI {
     const sim = this.sim, rng = sim.rng;
     const bots = this.bots.filter((a) => a.alive);
     const plan = rng.pick(PLAN_NAMES_B);
+    const rush = plan === 'Long A rush' || plan === 'Tunnels B rush';
+    const execAt = rush ? sim.time + rng.range(0, 3) : sim.time + rng.range(10, 30);
     this.planName = plan;
     const R = {
       long: this.routeByName('Long A'), short: this.routeByName('Short A'),
@@ -204,6 +207,7 @@ export class TeamAI {
       const b = this.brain(a);
       let route = assign[i];
       b.jobs = [];
+      b.execAt = execAt;
       if (delayLater && i >= n - delayLater.count) {
         route = delayLater.route;
         const hold: Intent = { k: 'hold', pos: cellPosGround(sim, delayLater.hold), look: cellPos(delayLater.look[0], delayLater.look[1]), crouch: false, label: 'Mid' };
@@ -411,12 +415,12 @@ export class TeamAI {
     const count = (name: RegExp) => recent.filter((i) => name.test(i.place)).length;
     const threatA = count(/Long|^A |Roost|A Ramp|A Short/), threatB = count(/Tunnel|^B |B Hall|B Alley|West/);
     const rotate = (to: 'A' | 'B') => {
-      if (now - this.lastRotate[to] < 10) return;
+      if (now - this.lastRotate[to] < 6) return;
       const from = to === 'A' ? 'B' : 'A';
       const cands = bots.filter((a) => { const it = this.brain(a).intent; return it.k === 'hold' && (it.label.startsWith(from) || it.label.startsWith('Mid') || it.label.startsWith('Hall')); });
       if (!cands.length) return;
       this.lastRotate[to] = now;
-      const send = cands.slice(0, 2);
+      const send = cands.slice(0, Math.min(3, Math.max(1, cands.length - (cands.length > 2 ? 0 : 0))));
       for (const a of send) {
         const pool = sim.map.holds.filter((h) => h.site === to);
         const h = pool[a.id % pool.length];

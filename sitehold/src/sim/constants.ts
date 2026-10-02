@@ -88,8 +88,8 @@ export const GRENADE = {
 } as const;
 
 export const BOT_LEVELS = [
-  { name: 'Easy', reaction: 0.42, aimErr: 4.2, turn: 260, sprayControl: 0.15, headBias: 0.2, stopDisc: 0.55, util: 0.25, hearing: 0.6, blindFire: 0.5 },
-  { name: 'Normal', reaction: 0.3, aimErr: 2.6, turn: 420, sprayControl: 0.5, headBias: 0.45, stopDisc: 0.8, util: 0.6, hearing: 0.85, blindFire: 0.4 },
-  { name: 'Hard', reaction: 0.23, aimErr: 1.5, turn: 650, sprayControl: 0.8, headBias: 0.65, stopDisc: 0.95, util: 0.9, hearing: 1, blindFire: 0.3 },
-  { name: 'Expert', reaction: 0.18, aimErr: 0.8, turn: 900, sprayControl: 0.95, headBias: 0.85, stopDisc: 1, util: 1, hearing: 1.1, blindFire: 0.2 },
+  { name: 'Easy', reaction: 0.42, aimErr: 4.2, turn: 260, sprayControl: 0.15, headBias: 0.1, stopDisc: 0.55, util: 0.25, hearing: 0.6, blindFire: 0.5 },
+  { name: 'Normal', reaction: 0.3, aimErr: 2.6, turn: 420, sprayControl: 0.5, headBias: 0.25, stopDisc: 0.8, util: 0.6, hearing: 0.85, blindFire: 0.4 },
+  { name: 'Hard', reaction: 0.23, aimErr: 1.5, turn: 650, sprayControl: 0.8, headBias: 0.4, stopDisc: 0.95, util: 0.9, hearing: 1, blindFire: 0.3 },
+  { name: 'Expert', reaction: 0.18, aimErr: 0.8, turn: 900, sprayControl: 0.95, headBias: 0.6, stopDisc: 1, util: 1, hearing: 1.1, blindFire: 0.2 },
 ] as const;

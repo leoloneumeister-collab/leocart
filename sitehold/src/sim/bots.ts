@@ -83,6 +83,9 @@ export class Brain {
   waitUntil = 0;
   radioAt = 0;
   carrierDelay = 0;
+  /** sim time before which a bot waits at its staging point instead of entering the site */
+  execAt = 0;
+  reactAt = 0;
   engagedSince = 0;
   lookAt: Vec3 | null = null;
 
@@ -99,7 +102,8 @@ export class Brain {
     this.noiseSeen = this.sim.time; this.waitUntil = 0; this.unstickUntil = 0;
     this.aimYaw = this.a.cmd.yaw; this.aimPitch = 0;
     this.lastPos = { ...this.a.pos }; this.holdSweep = 0;
-    this.lookAt = null;
+    this.lookAt = null; this.execAt = 0; this.reactAt = this.sim.time + 6;
+    this.nextPerceive = this.sim.time + (this.a.id % 10) * 0.012;
   }
 
   setIntent(i: Intent) { this.intent = i; this.path = []; this.pathI = 0; this.waitUntil = 0; }
@@ -113,7 +117,7 @@ export class Brain {
     if (ph === 'freeze') { this.freezeThink(); this.applyAim(); return; }
     if (ph === 'over' || ph === 'halftime') return;
 
-    if (now >= this.nextPerceive) { this.perceive(); this.nextPerceive = now + 0.085 + ((a.id * 7) % 5) * 0.004; }
+    if (now >= this.nextPerceive) { this.perceive(); this.nextPerceive = now + 0.1 + ((a.id * 7) % 5) * 0.003; }
     const blind = a.flashFull > now;
     const flashed = a.flashEnd > now;
 
@@ -133,7 +137,11 @@ export class Brain {
     const tgt = flashed ? null : this.pickTarget();
     const defusingNearlyDone = a.defusing > 0 && a.defusing / (a.kit ? 5 : 10) > 0.6;
     const plantingNearlyDone = a.planting > 1.6;
-    if (tgt && !defusingNearlyDone && !plantingNearlyDone) {
+    // a carrier at the spot plants unless the enemy is close, a defuser keeps going if the threat is far
+    const far = tgt ? dist2(tgt.pos, a.pos) > 15 : true;
+    const commitPlant = this.intent.k === 'plant' && a.hasBomb && dist2(a.pos, this.intent.pos) < 2.2 && far;
+    const commitDefuse = this.intent.k === 'defuse' && sim.bomb.state === 'planted' && dist2(a.pos, sim.bomb.pos) < 2.0 && far;
+    if (tgt && !defusingNearlyDone && !plantingNearlyDone && !commitPlant && !commitDefuse) {
       this.fight(tgt);
       this.applyAim();
       this.manageWeapon(true);
@@ -142,6 +150,7 @@ export class Brain {
     this.target = -1;
 
     // ---- objectives and movement
+    this.reactiveThrow();
     this.runIntent();
     this.manageWeapon(false);
     this.applyAim();
@@ -339,6 +348,22 @@ export class Brain {
     }
   }
 
+  private cmdCrouchMaybe() { if (this.a.id % 3 === 0) this.a.cmd.crouch = true; }
+
+  /** Throw a grenade at where an enemy was last known, a hold-the-angle habit of decent players. */
+  private reactiveThrow() {
+    const sim = this.sim, a = this.a, now = sim.time;
+    if (now < this.reactAt || this.throwJob) return;
+    this.reactAt = now + 2 + sim.rng.next() * 3;
+    if (!this.lastKnown || now - this.lostAt > 4 || now - this.lostAt < 0.4) return;
+    if (sim.rng.next() > this.skill.util * 0.55) return;
+    const d = dist2(a.pos, this.lastKnown);
+    if (d < 9 || d > 34) return;
+    const pick: GrenadeKind | null = a.grenades.he > 0 ? 'he' : a.grenades.fire > 0 ? 'fire' : a.grenades.flash > 0 && a.team === TEAM_BREACHER ? 'flash' : null;
+    if (!pick) return;
+    this.startThrow(pick, cellPosGround(sim, v3(this.lastKnown.x, 0, this.lastKnown.z)));
+  }
+
   /** Stop commanding movement entirely, used when a bot has arrived. */
   private cmdStop() { const c = this.a.cmd; c.fwd = 0; c.side = 0; }
 
@@ -453,14 +478,24 @@ export class Brain {
         const pt = cellPos(r.points[it.i][0], r.points[it.i][1]);
         // utility jobs fire on arrival at their point
         const job = this.jobs.find((j) => !j.done && j.atIdx <= it.i);
-        if (job && it.i > 0 && a.grenades[job.kind] > 0) {
-          if (this.waitUntil === 0) this.waitUntil = now + 0.8 + (a.id % 3) * 0.5;
+        const jp = job ? cellPos(r.points[Math.min(job.atIdx, r.points.length - 1)][0], r.points[Math.min(job.atIdx, r.points.length - 1)][1]) : null;
+        if (job && jp && it.i > 0 && a.grenades[job.kind] > 0 && now >= this.execAt - 1 && dist2(a.pos, jp) < 3.8) {
+          if (this.waitUntil === 0) this.waitUntil = now + 0.6 + (a.id % 3) * 0.5;
           if (now >= this.waitUntil) { job.done = true; this.waitUntil = 0; this.startThrow(job.kind, cellPosGround(sim, job.target)); break; }
           this.brake(); this.faceToward(pt);
           break;
-        } else if (job) job.done = true;
-        const walkNear = it.i >= r.points.length - 3 && this.sim.rng.next() < 0.002 ? true : false;
-        void walkNear;
+        } else if (job && (a.grenades[job.kind] <= 0 || it.i > job.atIdx + 1)) job.done = true;
+        // slow plays: wait at the staging point until the team is ready to execute
+        const stage = r.stage;
+        if (it.i >= stage && now < this.execAt) {
+          const holdAt = cellPos(r.points[stage][0], r.points[stage][1]);
+          if (it.i === stage) {
+            const dd = this.follow(holdAt, false);
+            if (dd < 1.3) { this.cmdStop(); this.brake(); this.faceToward(cellPos(r.points[Math.min(stage + 1, r.points.length - 1)][0], r.points[Math.min(stage + 1, r.points.length - 1)][1])); this.cmdCrouchMaybe(); }
+            else if (dd < 4) cmd.walk = true;
+            break;
+          }
+        }
         const d = this.follow(pt, false);
         if (d < 2.0) {
           if (it.i + 1 >= r.points.length) this.arriveAtSite(it.route.site);
@@ -470,7 +505,7 @@ export class Brain {
       }
       case 'plant': {
         const d = this.follow(it.pos, false);
-        const enemyNear = this.target >= 0;
+        const enemyNear = this.target >= 0 && dist2(sim.actors[this.target].pos, a.pos) < 15;
         if (d < 1.4 && !enemyNear && a.hasBomb && a.onGround) {
           this.brake();
           cmd.use = true;
@@ -553,6 +588,8 @@ export class Brain {
       return dGoal;
     }
     if (this.path.length === 0 || dist2(this.pathGoal, goal) > 1.5 || now > this.repathAt) {
+      if (dGoal >= 1.8 && sim.pathBudget <= 0) return dGoal; // plan next tick
+      if (dGoal >= 1.8) sim.pathBudget--;
       const p = dGoal < 1.8 ? [goal] : sim.nav.path(a.pos, goal);
       this.path = p ?? [goal];
       this.pathI = 0;

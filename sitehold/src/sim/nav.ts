@@ -189,7 +189,7 @@ export class NavGrid {
         const cost = this.g[cur] + Math.hypot(nx[nb] - nx[cur], nz[nb] - nz[cur], (nh[nb] - nh[cur]) * 2) + this.penalty[nb];
         if (this.seen[nb] !== st || cost < this.g[nb]) {
           this.seen[nb] = st; this.g[nb] = cost; this.parent[nb] = cur;
-          this.fs[nb] = cost + this.hDist(nb, to);
+          this.fs[nb] = cost + 1.12 * this.hDist(nb, to);
           this.push(nb);
         }
       }
@@ -212,7 +212,7 @@ export class NavGrid {
     const w = this.world;
     const dx = bx - ax, dz = bz - az;
     const len = Math.hypot(dx, dz);
-    const n = Math.max(1, Math.ceil(len / 0.3));
+    const n = Math.max(1, Math.ceil(len / 0.42));
     let y = ay;
     for (let i = 1; i <= n; i++) {
       const x = ax + (dx * i) / n, z = az + (dz * i) / n;

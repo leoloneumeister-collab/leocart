@@ -9,9 +9,12 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "sim": "node scripts/sim.ts",
+    "validate": "node scripts/validate-map.ts",
+    "sim": "node scripts/sim.ts --matches 20",
+    "sim:full": "node scripts/sim.ts --matches 100",
     "test": "node tests/run-all.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:all": "node tests/run-all.mjs --browser"
   },
   "dependencies": {
     "three": "^0.186.1"

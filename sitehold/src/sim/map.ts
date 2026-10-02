@@ -41,7 +41,7 @@ export interface Place { name: string; rect: Rect }
 export interface Hold { name: string; at: [number, number]; look: [number, number]; site: 'A' | 'B' | 'M'; crouch?: boolean }
 
 /** A route for attackers is a chain of cell waypoints. The last point is inside the site. */
-export interface Route { name: string; site: 'A' | 'B'; points: Array<[number, number]>; /** smoke or flash thrown while staging: target cell */ util: Array<{ kind: 'smoke' | 'flash' | 'he'; target: [number, number]; from?: [number, number] }> }
+export interface Route { name: string; site: 'A' | 'B'; points: Array<[number, number]>; /** index of the safe staging point where slow plays wait before committing */ stage: number; /** smoke or flash thrown while staging: target cell */ util: Array<{ kind: 'smoke' | 'flash' | 'he'; target: [number, number]; from?: [number, number] }> }
 
 export interface MapData {
   name: string;
@@ -253,13 +253,13 @@ export function buildMap(): MapData {
   ];
 
   const routes: Route[] = [
-    { name: 'Long A', site: 'A', points: [[26, 32], [33, 32], [38, 31], [43, 28], [43, 22], [43, 15], [41, 10]],
+    { name: 'Long A', site: 'A', stage: 2, points: [[26, 32], [33, 32], [38, 31], [43, 28], [43, 22], [43, 15], [41, 10]],
       util: [{ kind: 'smoke', target: [43, 13] }, { kind: 'flash', target: [43, 12] }] },
-    { name: 'Short A', site: 'A', points: [[24, 30], [24, 22], [23, 17], [29, 18], [35, 17], [37, 14], [40, 9]],
+    { name: 'Short A', site: 'A', stage: 0, points: [[24, 30], [24, 22], [23, 17], [29, 18], [35, 17], [37, 14], [40, 9]],
       util: [{ kind: 'smoke', target: [38, 11] }, { kind: 'flash', target: [37, 9] }] },
-    { name: 'Mid to B', site: 'B', points: [[24, 30], [24, 22], [20, 22], [14, 22], [11, 20], [10, 14], [8, 9]],
+    { name: 'Mid to B', site: 'B', stage: 0, points: [[24, 30], [24, 22], [20, 22], [14, 22], [11, 20], [10, 14], [8, 9]],
       util: [{ kind: 'smoke', target: [10, 11] }, { kind: 'flash', target: [9, 9] }] },
-    { name: 'Tunnels B', site: 'B', points: [[22, 33], [16, 33], [8, 32], [4, 29], [4, 20], [3, 14], [6, 9]],
+    { name: 'Tunnels B', site: 'B', stage: 2, points: [[22, 33], [16, 33], [8, 32], [4, 29], [4, 20], [3, 14], [6, 9]],
       util: [{ kind: 'smoke', target: [4, 12] }, { kind: 'flash', target: [5, 10] }] },
   ];
 

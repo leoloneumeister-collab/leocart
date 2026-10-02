@@ -94,6 +94,7 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.autoClear = false;
+    this.renderer.info.autoReset = false;
 
     this.map = buildMap();
     this.world = new World(this.map.boxes, this.map.bounds);
@@ -125,6 +126,9 @@ export class Game {
     this.input.onKey = (code) => this.onKeyDown(code);
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('mousedown', (e) => this.onMouseDown(e));
+    const gesture = () => { audio.init(); if (this.state === 'menu') audio.startMusic(); };
+    window.addEventListener('pointerdown', gesture);
+    window.addEventListener('keydown', gesture);
     this.applySettings();
     this.resize();
     this.menus.hideLoading();
@@ -197,16 +201,17 @@ export class Game {
     this.menuTimer = 0; this.menuSubject = -1;
     this.menus.showMain();
     this.statsCounted = false;
+    audio.startMusic();
   }
 
   startMatch() {
     audio.init();
-    audio.startMusic();
+    audio.stopMusic();
     const s = this.settings;
     const f = this.flags;
     const cfg: SimConfig = {
       mode: f.mode ?? s.mode, humanSide: f.side ?? s.side, difficulty: f.difficulty ?? s.difficulty,
-      seed: f.seed ?? ((Math.random() * 1e9) | 0), humanName: 'You',
+      seed: f.seed ?? ((Math.random() * 1e9) | 0), humanName: 'You', passive: f.bots === 0,
     };
     this.menuSim = null;
     this.clearRigs();
@@ -226,7 +231,6 @@ export class Game {
     this.spectateId = -1;
     this.acc = 0;
     if (!f.auto) this.input.requestLock();
-    audio.stopMusic();
     if (sim.cfg.mode === 'comp') this.hud.center('Warmup done', `Round 1 · ${sim.human ? (sim.human.team === 0 ? 'You are a Sentinel, defend A and B' : 'You are a Breacher, plant the bomb') : ''}`, '#ffb347', 4);
   }
 
@@ -245,6 +249,7 @@ export class Game {
   pause() {
     if (this.state !== 'playing') return;
     this.state = 'paused';
+    this.input.exitLock();
     this.menus.showPause();
   }
 
@@ -257,7 +262,7 @@ export class Game {
   }
 
   private onLockChange(locked: boolean) {
-    if (locked) { if (this.state === 'paused') { this.state = 'playing'; this.menus.hideAll(); } return; }
+    if (locked) { this.menus.resume.classList.add('hidden'); if (this.state === 'paused') { this.state = 'playing'; this.menus.hideAll(); } return; }
     if (this.state === 'playing' && !this.buyOpen && !this.flags.auto) this.pause();
   }
 
@@ -299,7 +304,14 @@ export class Game {
     if (!sim || !h) return;
     this.buyOpen = !this.buyOpen;
     if (this.buyOpen) { this.buy.show(sim, h); this.input.exitLock(); }
-    else { this.buy.hide(); this.input.requestLock(); }
+    else { this.buy.hide(); this.relock(); }
+  }
+
+  /** Ask for the mouse back. If the browser refuses (no user gesture), show a click to continue prompt. */
+  private relock() {
+    if (this.flags.auto) return;
+    this.input.requestLock();
+    setTimeout(() => { if (this.state === 'playing' && !this.input.locked && !this.buyOpen) this.menus.showResume(); }, 450);
   }
 
   private cycleSpectate(dir: number) {
@@ -431,7 +443,7 @@ export class Game {
     this.renderScene(dt, sim, subject, h, false);
     if (h) this.updateHud(dt, sim, h, subject);
     if (this.board.visible) this.board.render(sim, h);
-    if (this.buyOpen) { this.buy.refresh(); if (!h || !h.alive || (sim.cfg.mode === 'comp' && sim.m.phase !== 'freeze')) { this.buyOpen = false; this.buy.hide(); if (this.state === 'playing') this.input.requestLock(); } }
+    if (this.buyOpen) { this.buy.refresh(); if (!h || !h.alive || (sim.cfg.mode === 'comp' && sim.m.phase !== 'freeze')) { this.buyOpen = false; this.buy.hide(); if (this.state === 'playing') this.relock(); } }
   }
 
   private updateSpotted(sim: Sim, h: Actor | null) {
@@ -700,6 +712,7 @@ export class Game {
     this.tmpV.set(0, 0, 0);
 
     // ---- draw
+    this.renderer.info.reset();
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
     if (first && subject.scope === 0) {

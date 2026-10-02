@@ -26,6 +26,7 @@ const stats = {
   reasons: {} as Record<string, number>, matchTicks: 0, wallMs: 0,
 };
 const problems: string[] = [];
+const tickTimes: number[] = [];
 const t0 = performance.now();
 
 for (let mi = 0; mi < matches; mi++) {
@@ -36,7 +37,10 @@ for (let mi = 0; mi < matches; mi++) {
   let planted = false;
   try {
     while (sim.m.phase !== 'over' && guard++ < 64 * 60 * 60) {
+      const ts = performance.now();
       sim.step();
+      const te = performance.now() - ts;
+      tickTimes.push(te);
       for (const e of sim.drainEvents()) {
         if (e.t === 'kill') { stats.kills++; if (e.head) stats.headshots++; }
         else if (e.t === 'planted') { stats.plants++; stats.sites[e.site]++; planted = true; stats.plantTimes.push(sim.time - sim.m.liveStart); }
@@ -67,10 +71,13 @@ for (let mi = 0; mi < matches; mi++) {
 }
 stats.wallMs = performance.now() - t0;
 
+tickTimes.sort((a, b) => a - b);
+const p99 = tickTimes[Math.floor(tickTimes.length * 0.99)] ?? 0, tmax = tickTimes[tickTimes.length - 1] ?? 0, tavg = tickTimes.reduce((a, b) => a + b, 0) / Math.max(1, tickTimes.length);
 const avgPlant = stats.plantTimes.length ? stats.plantTimes.reduce((a, b) => a + b, 0) / stats.plantTimes.length : 0;
 console.log(`matches ${stats.matches}  rounds ${stats.rounds}  wall ${(stats.wallMs / 1000).toFixed(1)}s  (${(stats.matchTicks / (stats.wallMs / 1000) / 64).toFixed(0)}x realtime)`);
 console.log(`breacher wins ${stats.breacherWins} (${((stats.breacherWins / Math.max(1, stats.rounds)) * 100).toFixed(0)}%)  sentinel wins ${stats.sentinelWins}`);
 console.log(`reasons`, stats.reasons);
+console.log(`tick time  avg ${(tavg * 1000).toFixed(0)}us  p99 ${p99.toFixed(2)}ms  max ${tmax.toFixed(2)}ms  (budget 2ms)`);
 console.log(`plants ${stats.plants} (A ${stats.sites.A} / B ${stats.sites.B}, avg ${avgPlant.toFixed(0)}s after live)  defuses ${stats.defuses}  explosions ${stats.explosions}`);
 console.log(`kills ${stats.kills}  hs ${((stats.headshots / Math.max(1, stats.kills)) * 100).toFixed(0)}%  kills/round ${(stats.kills / Math.max(1, stats.rounds)).toFixed(1)}  flashes ${stats.flashes} smokes ${stats.smokes} he ${stats.hes} fire ${stats.fires}`);
 console.log(`avg round ${(stats.sumRoundSecs / Math.max(1, stats.rounds)).toFixed(0)}s, longest ${stats.maxRoundSecs.toFixed(0)}s, stuck events ${stats.stuckBots}, longest single stuck ${stats.longestStuck.toFixed(1)}s`);
@@ -78,6 +85,7 @@ console.log(`avg round ${(stats.sumRoundSecs / Math.max(1, stats.rounds)).toFixe
 const fail: string[] = [...problems.slice(0, 8)];
 const rate = stats.breacherWins / Math.max(1, stats.rounds);
 if (stats.crashes) fail.push('crashes');
+if (p99 > 2) fail.push(`p99 tick time ${p99.toFixed(2)}ms is over the 2ms budget`);
 if (stats.longestStuck > 8) fail.push(`a bot was stuck for ${stats.longestStuck.toFixed(1)}s`);
 if (stats.plants === 0) fail.push('no bomb was ever planted');
 if (stats.defuses === 0 && stats.rounds > 30) fail.push('no bomb was ever defused');

@@ -42,14 +42,21 @@ export class BuyMenu {
   }
 
   show(sim: Sim, human: Actor) {
-    this.sim = sim; this.human = human; this.bought = [];
+    this.sim = sim; this.human = human; this.bought = []; this.sig = '';
     this.visible = true;
     this.root.classList.remove('hidden');
     this.render();
   }
   hide() { this.visible = false; this.root.classList.add('hidden'); }
 
-  refresh() { if (this.visible) this.render(); }
+  private sig = '';
+  /** Called every frame, only rebuilds the DOM when something it shows has changed. */
+  refresh() {
+    if (!this.visible || !this.human) return;
+    const h = this.human;
+    const sig = `${h.money}|${h.primary?.def.id}|${h.secondary?.def.id}|${h.armor}|${h.helmet}|${h.kit}|${h.grenades.flash}${h.grenades.smoke}${h.grenades.he}${h.grenades.fire}`;
+    if (sig !== this.sig) { this.sig = sig; this.render(); }
+  }
 
   private buy(item: string) {
     if (!this.onBuy) return;
@@ -266,7 +273,7 @@ export class Menus {
     this.resume.style.cursor = 'pointer';
     this.resume.innerHTML = '<div class="panel" style="text-align:center"><h2>Click to continue</h2><div style="color:#9aa6b2">The mouse is released. Click anywhere to capture it again, or press Esc for the menu.</div></div>';
     this.resume.classList.remove('hidden');
-    this.resume.onclick = () => this.h.resume();
+    this.resume.onclick = () => { this.resume.classList.add('hidden'); this.h.resume(); };
   }
 
   // ---------------------------------------------------------------- how to play

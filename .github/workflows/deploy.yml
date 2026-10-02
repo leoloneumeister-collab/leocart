@@ -38,6 +38,14 @@ jobs:
       - run: npm run build
         working-directory: shooter
       - run: mkdir -p dist/shooter && cp -r shooter/dist/. dist/shooter/
+      # SITEHOLD CS style shooter (published under /sitehold/)
+      - run: npm ci
+        working-directory: sitehold
+      - run: npm test
+        working-directory: sitehold
+      - run: npm run build
+        working-directory: sitehold
+      - run: mkdir -p dist/sitehold && cp -r sitehold/dist/. dist/sitehold/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

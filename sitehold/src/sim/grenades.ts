@@ -1,5 +1,5 @@
 import { GRENADE } from './constants.ts';
-import { DEG, clamp, forwardOf, v3, type Vec3 } from './math.ts';
+import { clamp, forwardOf, v3, type Vec3 } from './math.ts';
 import { eyePos, type Actor } from './actor.ts';
 import type { GrenadeKind } from './weapons.ts';
 import { computeDamage, applyDamage } from './combat.ts';
@@ -184,21 +184,36 @@ export function smokeBlocks(sim: Sim, ax: number, ay: number, az: number, bx: nu
   return false;
 }
 
-/** Finds a throw that lands near the target. Returns view angles and power, or null if nothing gets close. */
+/** Finds a throw that lands near the target. Returns view angles and power, or null if nothing gets close.
+ *  Candidate angles come from the closed form ballistic solution and are then checked against the real bouncing physics. */
 export function solveThrow(sim: Sim, from: Vec3, vel: Vec3, kind: GrenadeKind, target: Vec3, maxMiss = 3): { yaw: number; pitch: number; power: number; miss: number } | null {
   const baseYaw = Math.atan2(-(target.x - from.x), -(target.z - from.z));
+  const d = Math.hypot(target.x - from.x, target.z - from.z);
+  const h = target.y - from.y;
+  const g = GRENADE.gravity;
   let best: { yaw: number; pitch: number; power: number; miss: number } | null = null;
   const tmp = { pos: v3(), vel: v3(), rest: 0, bounces: 0 };
+  const limit = DETONATE[kind];
   for (const power of [1, 0.7, 0.32]) {
-    for (let pd = -8; pd <= 62; pd += 3) {
-      const pitch = pd * DEG;
-      const f = forwardOf(baseYaw, pitch + (power > 0.9 ? 0.1 : 0.05));
-      const sp = GRENADE.throwSpeed * power;
+    const v = GRENADE.throwSpeed * power;
+    const bias = power > 0.9 ? 0.1 : 0.05;
+    const disc = v * v * v * v - g * (g * d * d + 2 * h * v * v);
+    const cands: number[] = [];
+    if (disc >= 0 && d > 0.5) {
+      const sq = Math.sqrt(disc);
+      for (const sg of [-1, 1]) {
+        const p = Math.atan((v * v + sg * sq) / (g * d)) - bias;
+        if (p > -0.4 && p < 1.2) cands.push(p - 0.06, p, p + 0.06);
+      }
+    }
+    // long throws rely on bouncing and rolling, so also try a coarse sweep at full power
+    if (power === 1) for (const p of [-0.05, 0.15, 0.35, 0.55, 0.75, 0.95]) cands.push(p);
+    for (const pitch of cands) {
+      const f = forwardOf(baseYaw, pitch + bias);
       tmp.pos.x = from.x + f.x * 0.35; tmp.pos.y = from.y - 0.1 + f.y * 0.35; tmp.pos.z = from.z + f.z * 0.35;
-      tmp.vel.x = f.x * sp + vel.x * 0.45; tmp.vel.y = f.y * sp + vel.y * 0.3; tmp.vel.z = f.z * sp + vel.z * 0.45;
+      tmp.vel.x = f.x * v + vel.x * 0.45; tmp.vel.y = f.y * v + vel.y * 0.3; tmp.vel.z = f.z * v + vel.z * 0.45;
       tmp.rest = 0; tmp.bounces = 0;
       let landed: Vec3 | null = null;
-      const limit = kind === 'flash' || kind === 'he' ? DETONATE[kind] : DETONATE[kind];
       for (let t = 0; t < limit; t += 1 / 32) {
         const r = stepBody(sim.world, tmp, 1 / 32);
         if (kind === 'fire' && r.floor && r.bounced) { landed = { ...tmp.pos }; break; }

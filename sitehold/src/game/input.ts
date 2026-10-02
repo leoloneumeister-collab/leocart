@@ -39,7 +39,6 @@ export class Input {
       if (!this.locked) this.buttons.clear();
       this.onLock?.(this.locked);
     });
-    document.addEventListener('pointerlockerror', () => { this.rawOk = false; });
   }
 
   private typing(e: KeyboardEvent) {
@@ -51,7 +50,8 @@ export class Input {
     try {
       const opts = this.rawOk ? ({ unadjustedMovement: true } as unknown as PointerLockOptions) : undefined;
       const p = (this.canvas.requestPointerLock(opts) as unknown) as Promise<void> | undefined;
-      p?.catch?.(() => { this.rawOk = false; });
+      // only give up on raw input when the browser says it cannot do it, other failures are timing (lock was just released)
+      p?.catch?.((e: { name?: string }) => { if (e && e.name === 'NotSupportedError') this.rawOk = false; });
     } catch { this.rawOk = false; try { this.canvas.requestPointerLock(); } catch { /* ignore */ } }
   }
 

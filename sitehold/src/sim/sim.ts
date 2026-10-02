@@ -28,6 +28,8 @@ export interface SimConfig {
   /** shortened rules for tests */
   winsNeeded?: number;
   dmMinutes?: number;
+  /** bots stand still, handy for target practice and tests */
+  passive?: boolean;
 }
 
 export interface Drop {
@@ -98,6 +100,8 @@ export class Sim {
   brains = new Map<number, Brain>();
   /** set while the human is in the buy menu or spectating, purely informational for the UI */
   frozenInput = false;
+  /** path searches left this tick, keeps one tick from doing all the bots' planning at once */
+  pathBudget = 1;
 
   constructor(cfg: SimConfig, shared?: { map: MapData; world: World; nav: NavGrid }) {
     this.cfg = cfg;
@@ -424,6 +428,7 @@ export class Sim {
   step() {
     this.tick++;
     this.time = this.tick * DT;
+    this.pathBudget = 1;
     const m = this.m;
     const now = this.time;
 
@@ -442,7 +447,7 @@ export class Sim {
         continue;
       }
       a.prev.x = a.pos.x; a.prev.y = a.pos.y; a.prev.z = a.pos.z; a.prevYaw = a.yaw;
-      if (a.isBot && m.phase !== 'over') thinkBot(this, a, this.brains.get(a.id)!);
+      if (a.isBot && m.phase !== 'over' && !this.cfg.passive) thinkBot(this, a, this.brains.get(a.id)!);
       this.stepActor(a, a.cmd);
     }
     this.separate();

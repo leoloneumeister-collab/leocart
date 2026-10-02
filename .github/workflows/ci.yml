@@ -24,3 +24,10 @@ jobs:
         working-directory: shooter
       - run: npm run build
         working-directory: shooter
+      # SITEHOLD: type check, map validation, movement and gun tests, bot matches, build
+      - run: npm ci
+        working-directory: sitehold
+      - run: npm test
+        working-directory: sitehold
+      - run: npm run build
+        working-directory: sitehold
