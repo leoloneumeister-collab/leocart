@@ -112,7 +112,7 @@ export class Hud {
     this.spec.id = 'spectate';
     this.fps.id = 'fps';
     this.bombInfo.id = 'bombinfo';
-    root.append(this.top, this.health, this.money, this.ammo, this.kf, this.radarWrap, this.place, this.cross, this.hit, this.dmg, this.hurtEl, this.flashEl, this.scope, this.msg, this.subs, this.prog, this.prompt, this.spec, this.fps, this.bombInfo);
+    root.append(this.scope, this.top, this.health, this.money, this.ammo, this.kf, this.radarWrap, this.place, this.cross, this.hit, this.dmg, this.hurtEl, this.msg, this.subs, this.prog, this.prompt, this.spec, this.fps, this.bombInfo, this.flashEl);
     for (let i = 0; i < 6; i++) { const a = el('div', 'arc'); a.append(el('i')); this.dmg.append(a); this.arcs.push({ el: a, t: 0 }); }
   }
 
@@ -183,6 +183,17 @@ export class Hud {
     this.moneyGain.textContent = (n > 0 ? '+$' : '-$') + Math.abs(n);
     this.moneyGain.style.color = n > 0 ? '#7aff9a' : '#ff7a6a';
     this.gainT = 2;
+  }
+
+  /** Controls reminder for a player's very first match. */
+  firstRunHint(s: Settings) {
+    const k = s.keys;
+    const kb = (a: keyof typeof k) => `<span class="kbd">${keyName(k[a][0])}</span>`;
+    const box = el('div', 'l');
+    box.style.cssText = 'position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(0,0,0,0.6);padding:8px 16px;border-radius:6px;font-size:15px;border:1px solid rgba(255,255,255,0.15);animation:fade 14s forwards;white-space:nowrap';
+    box.innerHTML = `${kb('forward')}${kb('left')}${kb('back')}${kb('right')} move · Mouse aim · Click shoot · ${kb('reload')} reload · ${kb('buy')} buy (now) · ${kb('use')} plant or defuse · ${kb('scoreboard')} scoreboard · Esc pause`;
+    this.root.append(box);
+    setTimeout(() => box.remove(), 14000);
   }
 
   reset() {

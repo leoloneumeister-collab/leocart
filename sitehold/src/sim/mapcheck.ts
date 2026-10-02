@@ -14,6 +14,13 @@ export function validateMap(map: MapData, world: World, nav: NavGrid): string[] 
       if (spawnNode(t, i) < 0) problems.push(`spawn ${t}/${i} has no nav node`);
     });
   }
+  // props must not sit inside walls or other props
+  for (const pr of map.props) {
+    for (const b of map.boxes) {
+      if (b.hide && Math.abs((b.minX + b.maxX) / 2 - pr.x) < 1e-6 && Math.abs((b.minZ + b.maxZ) / 2 - pr.z) < 1e-6) continue;
+      if (pr.x + 0.34 > b.minX + 0.01 && pr.x - 0.34 < b.maxX - 0.01 && pr.z + 0.34 > b.minZ + 0.01 && pr.z - 0.34 < b.maxZ - 0.01 && b.maxY > 0.2 && b.minY < pr.h) problems.push(`barrel at ${pr.x},${pr.z} overlaps a box`);
+    }
+  }
   const seen = nav.reachableFrom(spawnNode(1, 0));
   const seenS = nav.reachableFrom(spawnNode(0, 0));
   const check = (label: string, c: number, r: number) => {

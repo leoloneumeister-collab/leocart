@@ -14,10 +14,28 @@ const matches = arg('--matches', 6);
 const difficulty = arg('--difficulty', 2) as 0 | 1 | 2 | 3;
 const seed0 = arg('--seed', 1);
 const verbose = process.argv.includes('--verbose');
+const dmMode = process.argv.includes('--dm');
 
 const map = buildMap();
 const world = new World(map.boxes, map.bounds);
 const nav = new NavGrid(world);
+
+if (dmMode) {
+  // headless deathmatch: kills happen, everyone respawns, nothing crashes
+  let kills = 0, spawns = 0, bad = 0;
+  for (let i = 0; i < Math.max(1, Math.floor(matches / 2)); i++) {
+    const sim = new Sim({ mode: 'dm', humanSide: null, difficulty, seed: seed0 + i, dmMinutes: 4 }, { map, world, nav });
+    while (sim.m.phase !== 'over') {
+      sim.step();
+      for (const e of sim.drainEvents()) { if (e.t === 'kill') kills++; if (e.t === 'spawn') spawns++; }
+      if (sim.tick % 640 === 0 && sim.actors.filter((a) => a.alive).length < 2 && sim.time > 60 && sim.actors.every((a) => !a.alive || a.spawn === 0) && sim.actors.filter((a) => !a.alive).length > 6) bad++;
+    }
+  }
+  console.log(`deathmatch: kills ${kills}, respawns ${spawns}`);
+  if (kills < 50 || spawns < kills * 0.8 || bad) { console.log('FAILED deathmatch'); process.exit(1); }
+  console.log('sim ok');
+  process.exit(0);
+}
 
 const stats = {
   matches: 0, rounds: 0, breacherWins: 0, sentinelWins: 0, plants: 0, defuses: 0, explosions: 0, elim: 0, time: 0,

@@ -260,8 +260,8 @@ export class Sim {
   onDeath(v: Actor) {
     v.planting = 0; v.defusing = 0; v.pinPulled = 0; v.scope = 0;
     if (this.bomb.defuser === v.id) this.bomb.defuser = -1;
-    // drop weapons and bomb where they fell
-    if (v.primary) this.dropWeapon(v, 'primary');
+    // drop weapons and bomb where they fell, there is nothing to pick up in deathmatch
+    if (this.cfg.mode === 'comp' && v.primary) this.dropWeapon(v, 'primary');
     if (v.hasBomb) {
       v.hasBomb = false;
       const p = v3(v.pos.x, this.world.groundHeight(v.pos.x, v.pos.z, 0.1, v.pos.y + 0.3), v.pos.z);
@@ -417,6 +417,15 @@ export class Sim {
       if (nearest > bestD) { bestD = nearest; best = p; }
     }
     this.placeActor(a, { pos: best ?? this.map.spawns[0][0].pos, yaw: this.rng.range(-3, 3) });
+    // fresh gear every life: bots roll a new loadout, the human keeps their pick with full ammo
+    if (a.isBot) {
+      a.primary = mkWeapon(this.rng.pick(['vk47', 'carbine', 'hornet', 'reaper', 'ranger', 'mantis', 'pump12', 'scout', 'wasp']));
+      a.secondary = mkWeapon(this.rng.pick(['marshal', 'viper', 'cobra']));
+    } else {
+      if (a.primary) a.primary = mkWeapon(a.primary.def.id);
+      if (a.secondary) a.secondary = mkWeapon(a.secondary.def.id);
+    }
+    a.armor = 100; a.helmet = true;
     this.reviveActor(a);
     a.spawnProtect = this.time + 1.5;
     this.emit({ t: 'spawn', id: a.id });

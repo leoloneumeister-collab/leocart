@@ -197,6 +197,50 @@ const dm = await page.evaluate(() => { const sim = window.__game.sim; return { k
 check('deathmatch runs with kills and respawns', dm.phase === 'dm' && dm.kills > 3, JSON.stringify(dm));
 await shot('t11-deathmatch');
 
+// ------------------------------------------------------------------ halftime swap and match end
+await page.goto('http://localhost:4173/?debug=1&auto=1&side=0&diff=2&seed=4&round=8');
+await page.waitForTimeout(2500);
+const half = await page.evaluate(() => { const sim = window.__game.sim; const h = sim.human; return { round: sim.m.round, swapped: sim.m.swapped, team: h.team, money: h.money, hist: sim.m.history.length, phase: sim.m.phase, grp: h.grp }; });
+check('sides swap after round 7 and the economy resets', half.swapped && half.team === 1 && half.money <= 800 + 100 && half.hist === 7 && half.round === 8, JSON.stringify(half));
+await shot('t12-after-halftime');
+await page.goto('http://localhost:4173/?debug=1&auto=1&side=1&diff=1&seed=6&god=1');
+await page.waitForTimeout(1500);
+await advance(16);
+await page.evaluate(() => {
+  const g = window.__game, sim = g.sim, h = sim.human;
+  sim.m.score[h.grp] = 7;
+  for (const a of sim.actors) if (a.team !== h.team) sim.killForTest(a, h);
+});
+await advance(10);
+check('winning the 8th round ends the match', await page.evaluate(() => window.__game.sim.m.phase === 'over' && window.__game.sim.m.winnerGrp === window.__game.sim.human.grp));
+await page.waitForSelector('#results .panel', { timeout: 5000 });
+check('results screen shows', await page.isVisible('#results .panel') && (await page.textContent('#results')).includes('Victory'));
+await shot('t13-results');
+await page.click('#r-again');
+await page.waitForTimeout(500);
+check('play again starts a fresh match', await page.evaluate(() => window.__game.sim.m.round === 1 && window.__game.state === 'playing'));
+
+// ------------------------------------------------------------------ every sound function runs without throwing
+await page.goto('http://localhost:4173/?debug=1&auto=1&side=0&diff=0&seed=2');
+await page.waitForTimeout(1200);
+const audioReport = await page.evaluate(() => {
+  const a = window.__audio; a.init();
+  const pos = { x: 10, y: 1, z: 10 };
+  const calls = [
+    () => a.gun('rifle', pos, 20, 1, 1), () => a.gun('pistol', null, 0), () => a.gun('sniper', pos, 60), () => a.gun('shotgun', pos, 5), () => a.gun('smg', pos, 5),
+    () => a.click(1000, 0.05, 0.3, pos, 3, 0.01), () => a.reload('rifle', pos, 3), () => a.reload('shotgun', null, 0), () => a.dryfire(null, 0), () => a.draw(pos, 3),
+    () => a.tone(440, 0.1), () => a.hitMarker(), () => a.headshot(), () => a.kill(), () => a.uiClick(), () => a.uiHover(), () => a.buy(), () => a.deny(), () => a.pickup(),
+    () => a.roundStart(), () => a.win(), () => a.lose(), () => a.tick(), () => a.hurt(), () => a.step('sand', pos, 5), () => a.step('metal', null, 0), () => a.land(pos, 4, 8),
+    () => a.whoosh(), () => a.stab(pos, 2, true), () => a.stab(null, 0, false), () => a.explosion(pos, 20, true), () => a.flashBang(pos, 8), () => a.smokePop(pos, 8),
+    () => a.flashRing(1.5), () => a.bombBeep(pos, 8, true), () => a.plantTone(pos, 8), () => a.defuseTick(pos, 4), () => a.defused(), () => a.radio('Enemy spotted at A site'),
+    () => a.setListener({ x: 0, y: 1.6, z: 0 }, 1.2), () => a.setVolumes(0.5, 0.2), () => { a.startMusic(); a.stopMusic(); }, () => a.toggleMute(), () => a.toggleMute(),
+  ];
+  const failures = [];
+  calls.forEach((c, i) => { try { c(); } catch (e) { failures.push(`${i}: ${e.message}`); } });
+  return { total: calls.length, failures, state: a.ctx ? a.ctx.state : 'no context' };
+});
+check('every sound function runs without throwing', audioReport.failures.length === 0, JSON.stringify(audioReport));
+
 // ------------------------------------------------------------------ renderer stats and errors
 const info = await page.evaluate(() => { const i = window.__game.renderer.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures }; });
 console.log('  renderer', JSON.stringify(info));

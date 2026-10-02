@@ -37,6 +37,8 @@ export interface SpawnPoint { pos: Vec3; yaw: number }
 
 export interface Place { name: string; rect: Rect }
 
+export interface Prop { kind: 'barrel'; x: number; z: number; h: number }
+
 /** A hold position for a defender: stand here and watch `look`. */
 export interface Hold { name: string; at: [number, number]; look: [number, number]; site: 'A' | 'B' | 'M'; crouch?: boolean }
 
@@ -51,6 +53,7 @@ export interface MapData {
   sites: Site[];
   spawns: Record<Team, SpawnPoint[]>;
   places: Place[];
+  props: Prop[];
   holds: Hold[];
   routes: Route[];
   /** where defenders stage before a retake, per site */
@@ -198,6 +201,32 @@ export function buildMap(): MapData {
   // ---- Doorway lintel over mid door
   boxes.push({ minX: 46, maxX: 50, minZ: 28, maxZ: 32, minY: 3.4, maxY: 5, mat: 'plaster', id: 0 });
 
+  // ---- barrels: small solid props that hug walls and crates, drawn as cylinders by the renderer
+  const props: Prop[] = [];
+  const clearAt = (x: number, z: number) => {
+    for (const b of boxes) {
+      if (b.maxY < 0.2) continue;
+      if (x + 0.5 > b.minX && x - 0.5 < b.maxX && z + 0.5 > b.minZ && z - 0.5 < b.maxZ) return false;
+    }
+    return true;
+  };
+  const barrel = (x0: number, z0: number, h = 1.05) => {
+    // nudge to the nearest free spot so props never sit inside crates or walls and never block a doorway
+    let best: [number, number] | null = null, bd = 1e9;
+    for (let dx = -2.5; dx <= 2.5; dx += 0.5) for (let dz = -2.5; dz <= 2.5; dz += 0.5) {
+      const x = x0 + dx, z = z0 + dz;
+      const d = Math.hypot(dx, dz);
+      if (d < bd && clearAt(x, z)) { bd = d; best = [x, z]; }
+    }
+    if (!best) return;
+    const [x, z] = best;
+    props.push({ kind: 'barrel', x, z, h });
+    boxes.push({ minX: x - 0.34, maxX: x + 0.34, minZ: z - 0.34, maxZ: z + 0.34, minY: 0, maxY: h, mat: 'metal', id: 0, hide: true });
+  };
+  [[73.1, 3.1], [74.1, 3.0], [73.2, 4.1], [92.7, 3.2], [92.8, 4.3], [73.2, 24.8], [23.0, 3.2], [23.1, 4.3], [3.2, 24.8], [3.1, 23.6],
+    [40.8, 24.2], [55.2, 24.0], [40.9, 56.6], [55.1, 52.5], [34.8, 59.9], [92.6, 60.4], [3.3, 61.1], [3.2, 70.4], [93, 70.4], [36.9, 70.5],
+    [60.4, 44.5], [38.6, 14.9], [66.0, 4.0], [66.9, 4.2], [31.2, 3.2], [30.9, 4.1]].forEach(([x, z]) => barrel(x, z));
+
   // sentinel and breacher spawn pads
   const spawns: Record<Team, SpawnPoint[]> = { 0: [], 1: [] };
   const xs = [40, 44, 48, 52, 56];
@@ -277,7 +306,7 @@ export function buildMap(): MapData {
   };
 
   return {
-    name: 'Sandstone Yard', boxes, deco, grid: g.map((r) => r.join('')), sites, spawns, places, holds, routes, retake, postPlant, saveSpots,
+    name: 'Sandstone Yard', boxes, deco, grid: g.map((r) => r.join('')), sites, spawns, places, props, holds, routes, retake, postPlant, saveSpots,
     bounds: { minX: 0, minZ: 0, maxX: MAP_W, maxZ: MAP_H },
   };
 }

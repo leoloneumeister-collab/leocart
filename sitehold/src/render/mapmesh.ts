@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { MapData, Deco } from '../sim/map.ts';
 import type { Box, Mat } from '../sim/world.ts';
 import { getTextures } from './textures.ts';
+import { buildDecor } from './decor.ts';
 
 class Builder {
   pos: number[] = []; nor: number[] = []; uv: number[] = []; col: number[] = []; idx: number[] = [];
@@ -194,6 +195,8 @@ export function buildMapMesh(map: MapData): MapMesh {
     m.rotation.y = hash(i + 1) * 3;
     group.add(m);
   }
+
+  group.add(buildDecor(map));
 
   // lights
   const hemi = new THREE.HemisphereLight(0xcfe3ff, 0xd9b88a, 1.15);

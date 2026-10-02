@@ -81,6 +81,9 @@ export class Game {
   private tmpV = new THREE.Vector3();
   private landDip = 0;
   private loadoutBought: string[] = [];
+  private renderScale = 1;
+  private slowT = 0;
+  private fastT = 0;
 
   constructor(canvas: HTMLCanvasElement, hudRoot: HTMLElement, uiRoot: HTMLElement, flags: DebugFlags) {
     this.flags = flags;
@@ -134,7 +137,7 @@ export class Game {
     this.menus.hideLoading();
     this.toMenu();
     requestAnimationFrame((t) => { this.last = t; this.loop(t); });
-    if (flags.debug) (window as unknown as { __game: Game }).__game = this;
+    if (flags.debug) { (window as unknown as { __game: Game }).__game = this; (window as unknown as { __audio: typeof audio }).__audio = audio; }
     if (flags.auto) this.input.locked = true;
   }
 
@@ -145,6 +148,7 @@ export class Game {
     saveSettings(s);
     const q = s.quality;
     const dpr = window.devicePixelRatio || 1;
+    this.renderScale = 1;
     this.renderer.setPixelRatio(q === 'low' ? Math.min(dpr, 1) * 0.75 : q === 'medium' ? Math.min(dpr, 1.25) : Math.min(dpr, 2));
     this.renderer.shadowMap.enabled = q !== 'low';
     this.mapMesh.setShadowQuality(q === 'low' ? 0 : q === 'medium' ? 1024 : 2048);
@@ -231,7 +235,9 @@ export class Game {
     this.spectateId = -1;
     this.acc = 0;
     if (!f.auto) this.input.requestLock();
-    if (sim.cfg.mode === 'comp') this.hud.center('Warmup done', `Round 1 · ${sim.human ? (sim.human.team === 0 ? 'You are a Sentinel, defend A and B' : 'You are a Breacher, plant the bomb') : ''}`, '#ffb347', 4);
+    if (sim.cfg.mode === 'comp') this.hud.center('Round 1', sim.human ? (sim.human.team === 0 ? 'You are a Sentinel: stop the plant at A or B' : 'You are a Breacher: plant the bomb at A or B') : '', '#ffb347', 4.5);
+    else this.hud.center('Deathmatch', 'Free for all. B picks your weapon.', '#ffb347', 4);
+    if (this.settings.stats.matches === 0 && !f.auto) this.hud.firstRunHint(this.settings);
   }
 
   /** Debug helper: fast forward bot only rounds. */
@@ -323,6 +329,22 @@ export class Game {
     this.spectateId = list[(i + dir + list.length) % list.length].id;
   }
 
+  /** Lower the render resolution if the frame rate stays low, raise it again when there is headroom. */
+  private adaptResolution(dt: number) {
+    if (this.flags.debug && this.flags.auto) return;
+    if (dt > 0.034) { this.slowT += dt; this.fastT = 0; } else if (dt < 0.019) { this.fastT += dt; this.slowT = Math.max(0, this.slowT - dt); }
+    if (this.slowT > 2.5 && this.renderScale > 0.55) { this.renderScale = Math.max(0.55, this.renderScale - 0.12); this.slowT = 0; this.applyPixelRatio(); }
+    else if (this.fastT > 12 && this.renderScale < 1) { this.renderScale = Math.min(1, this.renderScale + 0.08); this.fastT = 0; this.applyPixelRatio(); }
+  }
+
+  private applyPixelRatio() {
+    const q = this.settings.quality;
+    const dpr = window.devicePixelRatio || 1;
+    const base = q === 'low' ? Math.min(dpr, 1) * 0.75 : q === 'medium' ? Math.min(dpr, 1.25) : Math.min(dpr, 2);
+    this.renderer.setPixelRatio(Math.max(0.5, base * this.renderScale));
+    this.resize();
+  }
+
   // ======================================================================= main loop
 
   private loop(t: number) {
@@ -330,6 +352,7 @@ export class Game {
     const dt = Math.min(0.05, Math.max(0.0001, (t - this.last) / 1000));
     this.last = t;
     this.fpsT += dt; this.fpsN++;
+    this.adaptResolution(dt);
     if (this.fpsT >= 0.5) { this.fps = this.fpsN / this.fpsT; this.fpsT = 0; this.fpsN = 0; }
     try {
       if (this.state === 'menu') this.updateMenu(dt);
@@ -474,7 +497,7 @@ export class Game {
     const hid = h ? h.id : -999;
     const hudCtx = this.hud;
     for (const e of events) {
-      this.fx.onEvent(e, sim, (id) => { const r = this.rigs.get(id); return r ? r.muzzleWorld : null; }, (id) => id === hid && h!.alive, () => { const v = this.vm.muzzleWorld(this.muzzleVec); return v.lengthSq() > 0 ? v : null; });
+      this.fx.onEvent(e, sim, (id) => { const r = this.rigs.get(id); return r ? r.muzzleWorld : null; }, (id) => id === hid && h!.alive, () => { const v = this.vm.muzzleWorld(this.muzzleVec); if (v.lengthSq() === 0 || this.vm.hidden) return null; this.camera.updateMatrixWorld(); return v.applyMatrix4(this.camera.matrixWorld); });
       switch (e.t) {
         case 'shot': {
           const def = WEAPONS[e.weapon];

@@ -7,6 +7,7 @@ const steps = [
   ['movement', ['node', 'tests/movement.mjs']],
   ['guns', ['node', 'tests/guns.mjs']],
   ['bot matches', ['node', 'scripts/sim.ts', '--matches', '10']],
+  ['deathmatch', ['node', 'scripts/sim.ts', '--dm', '--matches', '4']],
 ];
 if (process.argv.includes('--browser')) steps.push(['browser', ['node', 'tests/browser.mjs']]);
 
