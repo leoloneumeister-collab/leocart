@@ -4,7 +4,7 @@ A CS:GO style 5v5 bomb defusal shooter that runs in your browser. You and four b
 
 It borrows the **feel** of CS:GO and none of Valve's content: original name, original map ("Sandstone Yard"), original teams (Sentinels defend, Breachers attack) and original weapon names with the same roles.
 
-**Play it:** `npm install && npm run dev`, open the URL Vite prints, click **Play**, click the game to capture the mouse. When this repo is deployed with GitHub Pages it is published at `/sitehold/`.
+**Play it:** `npm install && npm run dev`, open the URL Vite prints, click **Play**, click the game to capture the mouse. When this repo is deployed with GitHub Pages it is published at `/sitehold/`. For Vercel, import the repo and set **Root Directory** to `sitehold` (`vercel.json` does the rest).
 
 | | |
 |---|---|
