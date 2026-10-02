@@ -217,7 +217,7 @@ export class AudioEngine {
         for (const [i, f] of [660, 880, 1320].entries()) this._tone('square', f, t, 0.6, { gain: G(0.12), release: 0.4, detune: i * 4 });
         break;
       case 'driftStart':
-        this._noise(t, 0.22, { gain: G(0.45), f0: 2400, f1: 1500, q: 2.5, pan });
+        this._noise(t, 0.3, { gain: G(0.9), f0: 2400, f1: 1500, q: 2.5, pan });
         break;
       case 'driftLevel':
         this._tone('sine', 880 * rate, t, 0.1, { gain: G(0.14) });

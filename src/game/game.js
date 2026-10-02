@@ -410,7 +410,9 @@ export class Game {
 
     if (this.mode === 'race' && this.race) {
       if (input.pause && this.race.state !== 'done' && !this.busy) this.pause(!this.paused);
-      if (!this.paused) {
+      if (this.manual) {
+        // media capture: the script steps the simulation itself, we only draw
+      } else if (!this.paused) {
         if (this.race.state === 'finished' && input.item) this.race.forceDone();
         this.race.update(dt, input);
         this.hud.update(dt);
