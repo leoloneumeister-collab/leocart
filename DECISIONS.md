@@ -7,7 +7,7 @@ Notes on the calls I made while building, mostly where the brief left something 
 - **Plain JavaScript, not TypeScript.** The brief allowed either. The code is small enough and changes shape often enough that types would have cost more than they saved. ESLint catches undefined and unused names.
 - **Three.js r186 and Vite 8.** Current versions at the time. `THREE.Clock` is deprecated, so timing uses `performance.now()`.
 - **Pushed straight to `main`.** The task named a feature branch, but the owner asked for `main` directly, so history is on `main`.
-- **Deployment.** The `gh` CLI had an invalid token in this environment, so I could not create the repo or enable Pages from the command line. The repo already existed, so I pushed with git and added a GitHub Actions workflow that builds and deploys. The README lists the one setting to check.
+- **Deployment.** The `gh` CLI token was invalid in this environment and the egress proxy blocks the GitHub Pages API, so I could not switch Pages on myself. The repo already existed, so I pushed with git and added a GitHub Actions workflow that lints, validates the tracks, builds and deploys. Once Pages is set to "GitHub Actions" in the repo settings, a re-run publishes the site. The workflow first used `configure-pages` with `enablement: true`; GitHub refuses that for the Actions token, so I removed it.
 
 ## Game design
 

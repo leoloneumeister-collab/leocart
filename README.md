@@ -68,7 +68,7 @@ More of the reasoning is in [DECISIONS.md](DECISIONS.md).
 
 ## Tech stack
 
-Vite 8, Three.js r186, plain JavaScript (ES modules), Web Audio API, DOM/CSS for the UI. No runtime dependencies other than Three.js and no backend. Tests use Playwright. About 7,000 lines of source.
+Vite 8, Three.js r186, plain JavaScript (ES modules), Web Audio API, DOM/CSS for the UI. No runtime dependencies other than Three.js and no backend. Tests use Playwright. About 7,600 lines of source.
 
 ## Run locally
 
@@ -100,7 +100,7 @@ npm test
 
 The repo deploys itself: `.github/workflows/deploy.yml` builds with Vite and publishes `dist/` to GitHub Pages on every push to `main`. Vite is configured with a relative base, so the build works under any sub-path.
 
-One-time setup if Pages is not enabled yet: **Settings → Pages → Build and deployment → Source: GitHub Actions**, then re-run the workflow from the **Actions** tab.
+One-time setup, because a workflow cannot switch Pages on by itself: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Then open the **Actions** tab, pick **Deploy to GitHub Pages**, and press **Re-run all jobs** (or push any commit). The site appears at `https://<your-username>.github.io/leocart/`.
 
 To host it anywhere else, run `npm run build` and upload the `dist/` folder to any static host.
 
