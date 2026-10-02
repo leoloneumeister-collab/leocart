@@ -50,20 +50,20 @@ function speckle(ctx, w, h, count, colors, rng, size = 1.5) {
 }
 
 export function groundTexture(kind, seed = 5) {
-  const S = 256;
+  const S = 512;
   const c = makeCanvas(S, S);
   const ctx = c.getContext('2d');
   const rng = mulberry32(seed);
   if (kind === 'grass') {
     ctx.fillStyle = '#4fa84a';
     ctx.fillRect(0, 0, S, S);
-    blobs(ctx, S, 40, ['#5dbb54', '#44993f', '#68c45a', '#3d8c3c'], 14, 40, rng, 0.5);
-    speckle(ctx, S, S, 700, ['#7fd36c', '#2f7a34', '#8fe07a'], rng, 2);
+    blobs(ctx, S, 120, ['#5dbb54', '#44993f', '#68c45a', '#3d8c3c'], 14, 40, rng, 0.5);
+    speckle(ctx, S, S, 3200, ['#7fd36c', '#2f7a34', '#8fe07a'], rng, 2);
   } else if (kind === 'sand') {
     ctx.fillStyle = '#d9a566';
     ctx.fillRect(0, 0, S, S);
-    blobs(ctx, S, 36, ['#e5b878', '#c98f52', '#eec58b', '#bf8548'], 16, 46, rng, 0.45);
-    speckle(ctx, S, S, 800, ['#f3d29b', '#a8733d', '#ffe3b0'], rng, 1.5);
+    blobs(ctx, S, 110, ['#e5b878', '#c98f52', '#eec58b', '#bf8548'], 16, 46, rng, 0.45);
+    speckle(ctx, S, S, 3200, ['#f3d29b', '#a8733d', '#ffe3b0'], rng, 1.5);
     // wind ripples
     ctx.strokeStyle = 'rgba(160,100,50,0.18)';
     ctx.lineWidth = 2;

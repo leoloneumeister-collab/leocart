@@ -13,6 +13,7 @@ import { buildScenery } from '../render/scenery.js';
 import { skyTexture, blobShadowTexture } from '../render/textures.js';
 import { Particles } from '../render/particles.js';
 import { ChaseCamera } from '../render/camera.js';
+import { Post } from '../render/post.js';
 import { mulberry32, clamp } from '../util/math.js';
 import { settings } from './settings.js';
 
@@ -84,7 +85,7 @@ export class Race {
     sh.camera.bottom = -size;
     sh.camera.near = 20;
     sh.camera.far = 320;
-    sh.mapSize.set(this.quality === 'high' ? 2048 : 1024, this.quality === 'high' ? 2048 : 1024);
+    sh.mapSize.set(this.quality === 'high' ? 3072 : 1024, this.quality === 'high' ? 3072 : 1024);
     sh.bias = -0.0006;
     sh.normalBias = 0.04;
     scene.add(sun, sun.target);
@@ -101,6 +102,11 @@ export class Race {
     sky.frustumCulled = false;
     scene.add(sky);
     this.sky = sky;
+    const pm = new THREE.PMREMGenerator(this.renderer);
+    skyTex.mapping = THREE.EquirectangularReflectionMapping;
+    this.envRT = pm.fromEquirectangular(skyTex);
+    pm.dispose();
+    this.post = this.quality === 'high' ? new Post(this.renderer, scene, this.camera, { strength: th.id === 'neon' ? 0.55 : th.id === 'dunes' ? 0.25 : 0.14, threshold: th.id === 'neon' ? 0.75 : th.id === 'dunes' ? 0.95 : 1.05 }) : null;
 
     this.trackGroup = buildTrackMeshes(this.track, th, { maxAniso: Math.min(8, this.renderer.capabilities.getMaxAnisotropy()) });
     scene.add(this.trackGroup);
@@ -131,10 +137,11 @@ export class Race {
       const kart = new Kart(t, e.char, { isPlayer: e.isPlayer, index: slot });
       kart.placeAt(p.x, p.z, p.h, s);
       kart.gridSlot = slot;
+      kart.assist = e.isPlayer && settings.assist !== false ? 0.7 : 0;
       kart.lapStart = 0;
       kart.rank = 0;
       this.karts.push(kart);
-      const model = new KartModel(e.char, { shadowTexture: this.shadowTex });
+      const model = new KartModel(e.char, { shadowTexture: this.shadowTex, envMap: this.envRT.texture });
       model.addTo(this.scene);
       this.models.push(model);
       if (e.isPlayer) this.player = kart;
@@ -612,15 +619,19 @@ export class Race {
   render() {
     const r = this.renderer;
     this.particles.setScale(r, this.camera);
-    r.render(this.scene, this.camera);
+    if (this.post) this.post.render();
+    else r.render(this.scene, this.camera);
   }
 
   resize(w, h) {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.post?.resize();
   }
 
   dispose() {
+    this.post?.dispose();
+    this.envRT.dispose();
     this.items.dispose();
     for (const m of this.models) {
       m.removeFrom(this.scene);

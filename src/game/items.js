@@ -51,7 +51,7 @@ export function rollItem(place, rng = Math.random) {
 }
 
 const BOX_RESPAWN = 4;
-const BOX_RADIUS = 2.3;
+const BOX_RADIUS = 3.9;
 
 export class ItemSystem {
   constructor(race) {
@@ -68,7 +68,7 @@ export class ItemSystem {
   _build() {
     const t = this.track;
     for (const row of t.itemRows) {
-      const spacing = Math.min(4.6, (t.w[row.i] * 0.78) / Math.max(1, row.count - 1 || 1));
+      const spacing = Math.min(6.4, (t.w[row.i] * 0.8) / Math.max(1, row.count - 1 || 1));
       for (let k = 0; k < row.count; k++) {
         const lat = (k - (row.count - 1) / 2) * spacing;
         const p = posAt(t, row.s, lat);
@@ -78,13 +78,13 @@ export class ItemSystem {
     const n = this.boxes.length;
     const tex = itemBoxTexture();
     this.shells = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1.9, 1.9, 1.9),
+      new THREE.BoxGeometry(3.3, 3.3, 3.3),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.85, depthWrite: false }),
       Math.max(1, n),
     );
     this.shells.renderOrder = 5;
     this.cores = new THREE.InstancedMesh(
-      new THREE.OctahedronGeometry(0.55),
+      new THREE.OctahedronGeometry(0.95),
       new THREE.MeshBasicMaterial({ color: 0xffffff }),
       Math.max(1, n),
     );
@@ -99,7 +99,7 @@ export class ItemSystem {
     this.glowTex = glowTexture('rgba(255,255,255,1)');
     this.glow = new THREE.Points(
       this.glowGeo,
-      new THREE.PointsMaterial({ map: this.glowTex, size: 7, vertexColors: true, transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending }),
+      new THREE.PointsMaterial({ map: this.glowTex, size: 13, vertexColors: true, transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending }),
     );
     this.glow.frustumCulled = false;
     this.scene.add(this.shells, this.cores, this.glow);
@@ -182,7 +182,7 @@ export class ItemSystem {
       }
       b.scale += ((b.active ? 1 : 0) - b.scale) * Math.min(1, dt * 10);
       const s = b.scale;
-      d.position.set(b.x, 1.6 + Math.sin(this.time * 2.2 + b.phase) * 0.22, b.z);
+      d.position.set(b.x, 2.4 + Math.sin(this.time * 2.2 + b.phase) * 0.22, b.z);
       d.rotation.set(0, this.time * 1.1 + b.phase, 0);
       d.scale.setScalar(Math.max(0.0001, s));
       d.updateMatrix();
@@ -195,7 +195,7 @@ export class ItemSystem {
       this.cores.setMatrixAt(i, d.matrix);
       // glow halo so boxes read from far away, especially at night
       this.glowPos[i * 3] = b.x;
-      this.glowPos[i * 3 + 1] = s > 0.2 ? 1.6 + Math.sin(this.time * 2.2 + b.phase) * 0.22 : -50;
+      this.glowPos[i * 3 + 1] = s > 0.2 ? 2.4 + Math.sin(this.time * 2.2 + b.phase) * 0.22 : -50;
       this.glowPos[i * 3 + 2] = b.z;
       this.glowCol[i * 3] = c.r;
       this.glowCol[i * 3 + 1] = c.g;

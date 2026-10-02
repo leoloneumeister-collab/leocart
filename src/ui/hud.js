@@ -2,6 +2,7 @@
 
 import { ITEM_ICONS, EMPTY_ITEM } from './icons.js';
 import { ITEMS } from '../game/items.js';
+import { DRIFT_LEVELS } from '../game/kart.js';
 import { settings, prettyKey } from '../game/settings.js';
 import { formatTime, ordinal } from '../util/math.js';
 
@@ -248,8 +249,9 @@ export class Hud {
       const lvl = p.driftLevel;
       const colors = ['#9fb4cc', '#4aa8ff', '#ffa21f', '#d24dff'];
       e.driftBar.style.background = colors[lvl];
-      const next = [0.85, 1.8, 2.9, 2.9][lvl];
-      const prev = [0, 0.85, 1.8, 2.9][lvl];
+      const T = DRIFT_LEVELS.map((d) => d.t);
+      const next = [T[0], T[1], T[2], T[2]][lvl];
+      const prev = [0, T[0], T[1], T[2]][lvl];
       const f = lvl >= 3 ? 1 : (p.driftTime - prev) / (next - prev);
       e.driftBar.style.transform = `scaleX(${Math.max(0.05, f).toFixed(3)})`;
     } else {

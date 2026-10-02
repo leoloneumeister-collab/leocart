@@ -105,7 +105,7 @@ export class Input {
       this.steerSmooth = steer;
     } else {
       const target = clamp(steer, -1, 1);
-      const rate = Math.abs(target) > Math.abs(this.steerSmooth) || Math.sign(target) !== Math.sign(this.steerSmooth) ? 6.5 : 10;
+      const rate = Math.abs(target) > Math.abs(this.steerSmooth) || Math.sign(target) !== Math.sign(this.steerSmooth) ? 9 : 12;
       const dv = target - this.steerSmooth;
       this.steerSmooth += Math.sign(dv) * Math.min(Math.abs(dv), rate * dt);
     }

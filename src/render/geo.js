@@ -11,13 +11,13 @@ const _p = new THREE.Vector3();
 const _c = new THREE.Color();
 
 export const BOX = new THREE.BoxGeometry(1, 1, 1);
-export const SPH = new THREE.SphereGeometry(1, 12, 9);
+export const SPH = new THREE.SphereGeometry(1, 22, 16);
 export const SPH_LOW = new THREE.SphereGeometry(1, 8, 6);
 export const ICO = new THREE.IcosahedronGeometry(1, 1);
 export const DODECA = new THREE.DodecahedronGeometry(1, 0);
 export const CONE = new THREE.ConeGeometry(1, 1, 10);
 export const CONE_LOW = new THREE.ConeGeometry(1, 1, 6);
-export const CYL = new THREE.CylinderGeometry(1, 1, 1, 14);
+export const CYL = new THREE.CylinderGeometry(1, 1, 1, 26);
 export const CYL_LOW = new THREE.CylinderGeometry(1, 1, 1, 7);
 export const TORUS = new THREE.TorusGeometry(1, 0.2, 6, 14);
 
