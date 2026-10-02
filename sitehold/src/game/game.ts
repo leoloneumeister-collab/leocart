@@ -60,7 +60,7 @@ export class Game {
   private fpsT = 0;
   private fpsN = 0;
   private fps = 60;
-  private edge = { reload: false, select: null as null | 'primary' | 'secondary' | 'knife' | 'grenade' | 'bomb', drop: false, last: false, jump: false, nextG: false };
+  private edge = { reload: false, select: null as null | 'primary' | 'secondary' | 'knife' | 'grenade' | 'bomb', drop: false, last: false, jump: false, nextG: false, use: false };
   private spotted = new Map<number, number>();
   private spotAt = 0;
   private roll = 0;
@@ -295,6 +295,7 @@ export class Game {
     else if (this.buyOpen && code === 'Escape') this.toggleBuy();
     if (is('scoreboard')) this.board.show();
     if (is('reload')) this.edge.reload = true;
+    if (is('use')) this.edge.use = true;
     if (is('primary')) this.edge.select = 'primary';
     if (is('secondary')) this.edge.select = 'secondary';
     if (is('knife')) this.edge.select = 'knife';
@@ -400,12 +401,12 @@ export class Game {
     cmd.jump = i.down('jump') || this.edge.jump;
     cmd.crouch = i.down('crouch');
     cmd.walk = i.down('walk');
-    cmd.use = i.down('use');
+    cmd.use = i.down('use') || this.edge.use;
     if (this.edge.reload) cmd.reload = true;
     if (this.edge.select) cmd.select = this.edge.select;
     if (this.edge.drop) cmd.drop = true;
     if (this.edge.last) cmd.lastWeapon = true;
-    this.edge.reload = false; this.edge.select = null; this.edge.drop = false; this.edge.last = false; this.edge.jump = false;
+    this.edge.reload = false; this.edge.select = null; this.edge.drop = false; this.edge.last = false; this.edge.jump = false; this.edge.use = false;
     void s;
   }
 
