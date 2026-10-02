@@ -310,9 +310,14 @@ await advance(1);
 check('deathmatch gives the player one of each grenade', await page.evaluate(() => { const g = window.__game.sim.human.grenades; return g.flash + g.smoke + g.he + g.fire === 4; }));
 await page.waitForTimeout(800);
 await shot('t15-trajectory');
+await page.evaluate(() => { const p = window.__game.perf; for (const k of Object.keys(p)) p[k] = 0; });
 const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else res(n / 3); }; requestAnimationFrame(f); }));
 console.log(`  frame rate in software rendering: ${fps.toFixed(1)} fps (a real GPU is far faster)`);
 check('the game keeps rendering frames', fps >= 1.5, `${fps.toFixed(1)} fps`);
+const perf = await page.evaluate(() => window.__game.perf);
+const per = (v) => (v / Math.max(1, perf.frames)).toFixed(2);
+console.log(`  cpu per frame (ms): sim ${per(perf.sim)}  hud ${per(perf.hud)}  rigs ${per(perf.rigs)}  fx ${per(perf.fx)}  gpu submit and software raster ${per(perf.render)}`);
+check('game side CPU work per frame is small (sim, HUD, rigs, fx under 8 ms)', (perf.sim + perf.hud + perf.rigs + perf.fx) / Math.max(1, perf.frames) < 8, per(perf.sim + perf.hud + perf.rigs + perf.fx));
 
 // ------------------------------------------------------------------ renderer stats and errors
 const info = await page.evaluate(() => { const i = window.__game.renderer.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures }; });

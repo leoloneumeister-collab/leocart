@@ -311,9 +311,9 @@ export class Sim {
       this.placeActor(a, sp);
       this.reviveActor(a);
     }
-    // bomb goes to a random living Breacher, human only if they are the only candidate or by chance
+    // the bomb goes to a random Breacher, which can be the human
     const bs = this.actors.filter((a) => a.team === TEAM_BREACHER);
-    if (bs.length) { const c = this.rng.pick(bs.filter((a) => !a.isHuman).length ? bs.filter((a) => !a.isHuman) : bs); c.hasBomb = true; }
+    if (bs.length) this.rng.pick(bs).hasBomb = true;
     for (const a of this.actors) { if (a.isBot) this.brains.get(a.id)!.reset(); }
     this.ai[0].onRoundStart(); this.ai[1].onRoundStart();
     this.emit({ t: 'freezeStart', round: m.round });

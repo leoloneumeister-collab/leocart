@@ -84,6 +84,8 @@ export class Game {
   private loadoutBought: string[] = [];
   private renderScale = 1;
   private impactBudget = 0;
+  /** milliseconds spent per part of the frame, summed since the last reset, for the debug overlay and tests */
+  perf = { sim: 0, hud: 0, rigs: 0, fx: 0, render: 0, frames: 0 };
   private slowT = 0;
   private fastT = 0;
 
@@ -97,7 +99,7 @@ export class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.autoClear = false;
     this.renderer.info.autoReset = false;
 
@@ -457,6 +459,7 @@ export class Game {
       if (!this.input.down('scoreboard') && this.board.visible) this.board.hide();
       this.acc += dt;
       let steps = 0;
+      const ts = performance.now();
       while (this.acc >= DT && steps < 6) {
         if (h) this.prepareHumanCmd(sim, h);
         if (this.flags.god && h) { h.health = 100; }
@@ -464,6 +467,7 @@ export class Game {
         this.acc -= DT; steps++;
         this.handleEvents(sim.drainEvents());
       }
+      this.perf.sim += performance.now() - ts;
       if (steps === 6) this.acc = 0;
       if (h && !h.alive && this.lastHumanAlive) { this.lastHumanAlive = false; this.spectateId = -1; if (sim.cfg.mode === 'comp') this.cycleSpectate(1); }
       if (h && h.alive) this.lastHumanAlive = true;
@@ -475,7 +479,9 @@ export class Game {
     if (h && !h.alive && sim.cfg.mode === 'comp' && sim.actors[this.spectateId]?.alive) subject = sim.actors[this.spectateId];
     this.updateSpotted(sim, h);
     this.renderScene(dt, sim, subject, h, false);
+    const th = performance.now();
     if (h) this.updateHud(dt, sim, h, subject);
+    this.perf.hud += performance.now() - th; this.perf.frames++;
     if (this.board.visible) this.board.render(sim, h);
     if (this.buyOpen) { this.buy.refresh(); if (!h || !h.alive || (sim.cfg.mode === 'comp' && sim.m.phase !== 'freeze')) { this.buyOpen = false; this.buy.hide(); if (this.state === 'playing') this.relock(); } }
   }
@@ -712,7 +718,10 @@ export class Game {
     // ---- world
     this.mapMesh.follow(this.camera.position);
     this.fx.setScale(window.innerHeight * this.renderer.getPixelRatio(), this.camera.fov);
+    const tf = performance.now();
     this.fx.update(dt, sim, this.camera.position);
+    this.perf.fx += performance.now() - tf;
+    const tr = performance.now();
     for (const a of sim.actors) {
       const rig = this.rigFor(a);
       const hide = a === subject && first;
@@ -724,6 +733,7 @@ export class Game {
       const showTag = sim.cfg.mode === 'comp' && !!human && a.team === human.team && a !== subject;
       rig.update(dt, a, { x: ax, y: ay, z: az }, a.alive ? (a.isHuman ? a.yaw : ay2) : a.yaw, now, showTag);
     }
+    this.perf.rigs += performance.now() - tr;
     audio.setListener(this.camera.position, yaw);
     // practice mode only: preview where the grenade in hand would go
     if (sim.cfg.mode === 'dm' && isHumanView && first && subject.cur === 'grenade' && subject.grenadeSel) {
@@ -757,12 +767,14 @@ export class Game {
 
     // ---- draw
     this.renderer.info.reset();
+    const tg = performance.now();
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
     if (first && subject.scope === 0) {
       this.renderer.clearDepth();
       this.renderer.render(this.vm.scene, this.vm.camera);
     }
+    this.perf.render += performance.now() - tg;
 
     // ---- flash overlay
     if (human) {

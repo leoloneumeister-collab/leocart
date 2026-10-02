@@ -375,7 +375,11 @@ export class TeamAI {
         bots.forEach((a, i) => {
           const s = stage[i % stage.length];
           const look = cellPos(sim.map.postPlant[site][0][0], sim.map.postPlant[site][0][1]);
-          this.brain(a).setIntent({ k: 'retake', site, stage: cellPosGround(sim, cellPos(s[0], s[1])), exec: false, defuser: a === defuser, look });
+          // spread bots sharing a staging point on a small circle so they do not jam each other
+          const dup = Math.floor(i / stage.length);
+          const base = cellPos(s[0], s[1]);
+          const off = dup === 0 ? v3(0, 0, 0) : v3(Math.cos(dup * 2.4) * 1.7, 0, Math.sin(dup * 2.4) * 1.7);
+          this.brain(a).setIntent({ k: 'retake', site, stage: cellPosGround(sim, v3(base.x + off.x, 0, base.z + off.z)), exec: false, defuser: a === defuser, look });
         });
         if (bots.length) this.say(bots[0], `Bomb planted ${site}, retake`);
       }

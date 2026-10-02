@@ -515,9 +515,9 @@ export class Brain {
         const d = this.follow(it.pos, false);
         const enemyNear = this.target >= 0 && dist2(sim.actors[this.target].pos, a.pos) < 15;
         if (d < 1.4 && !enemyNear && a.hasBomb && a.onGround) {
-          this.brake();
+          this.cmdStop(); this.brake();
           cmd.use = true;
-        } else if (d < 1.4) this.brake();
+        } else if (d < 1.4) { this.cmdStop(); this.brake(); }
         if (!a.hasBomb && sim.bomb.state === 'planted') this.setIntent({ k: 'idle' });
         break;
       }
@@ -534,13 +534,13 @@ export class Brain {
       case 'retake': {
         if (!it.exec) {
           const d = this.follow(it.stage, false);
-          if (d < 1.5) { this.brake(); this.faceToward(it.look); cmd.crouch = false; }
+          if (d < 1.2) { this.cmdStop(); this.brake(); this.faceToward(it.look); cmd.crouch = false; }
           else if (d < 6) cmd.walk = true;
         } else if (it.defuser) {
           this.setIntent({ k: 'defuse' });
         } else {
           const d = this.follow(sim.bomb.pos, false);
-          if (d < 5) { this.brake(); this.faceToward(sim.bomb.pos); }
+          if (d < 4) { this.cmdStop(); this.brake(); this.faceToward(sim.bomb.pos); }
         }
         break;
       }
@@ -548,15 +548,14 @@ export class Brain {
         if (sim.bomb.state !== 'planted') { this.setIntent({ k: 'idle' }); break; }
         const d = this.follow(sim.bomb.pos, false);
         if (d < 1.3) {
-          this.brake();
-          // do not sit on a defuse that cannot finish in time unless it is the last hope
+          this.cmdStop(); this.brake();
           cmd.use = true;
         }
         break;
       }
       case 'save': {
         const d = this.follow(it.pos, false);
-        if (d < 1.5) { this.brake(); this.faceAround(); }
+        if (d < 1.2) { this.cmdStop(); this.brake(); this.faceAround(); }
         break;
       }
       case 'pickBomb': {
@@ -596,7 +595,13 @@ export class Brain {
       return dGoal;
     }
     if (this.path.length === 0 || dist2(this.pathGoal, goal) > 1.5 || now > this.repathAt) {
-      if (dGoal >= 1.8 && sim.pathBudget <= 0) return dGoal; // plan next tick
+      if (dGoal >= 1.8 && sim.pathBudget <= 0) {
+        // out of planning budget this tick: head straight for the goal and plan next tick
+        if (this.path.length === 0) { this.path = [goal]; this.pathI = 0; this.pathGoal = { ...goal }; }
+        this.repathAt = now;
+        this.steer(this.path[Math.min(this.pathI, this.path.length - 1)], 1, walk);
+        return dGoal;
+      }
       if (dGoal >= 1.8) sim.pathBudget--;
       const p = dGoal < 1.8 ? [goal] : sim.nav.path(a.pos, goal);
       this.path = p ?? [goal];
