@@ -21,8 +21,8 @@ export function stepWorld(w: World) {
     u.px = u.x;
     u.pz = u.z;
   }
-  processCommands(w);
   w.buildSpatial();
+  processCommands(w);
   stepStatuses(w, dt);
   stepEconomy(w, dt);
   stepVision(w);
