@@ -8,48 +8,18 @@ import { angleLerp, TAU } from '../sim/math.ts';
 import { CameraRig } from './camera.ts';
 import { Decals, Particles } from './fx.ts';
 import { G, lambert, teamColor } from './geo.ts';
-import { buildChampion, buildInhibitor, buildMinionGeometry, buildMonster, buildNexus, buildTower } from './models.ts';
-import type { Rig, StructureRig } from './models.ts';
+import { buildInhibitor, buildMinionGeometry, buildMonster, buildNexus, buildTower } from './models.ts';
+import { ChampionView } from './championView.ts';
+import type { StructureRig } from './models.ts';
 import { buildTerrain } from './terrain.ts';
+import { RenderPipeline, setupLighting } from './pipeline.ts';
+import type { Quality } from './pipeline.ts';
+import { tickMaterials } from './materials.ts';
 import { FogOfWar } from './fog.ts';
 
-export type Quality = 'low' | 'medium' | 'high';
+export type { Quality } from './pipeline.ts';
 
 const FIXED_DT = 1 / 30;
-
-class ChampionView {
-  group = new THREE.Group();
-  rig: Rig;
-  ring: THREE.Mesh;
-  yaw = 0;
-  phase = Math.random() * 6;
-  speed = 0;
-  attackT = 0;
-  castT = 0;
-  hurtT = 0;
-  baseGlow: number[];
-
-  constructor(u: Unit, isPlayer: boolean) {
-    const def = CHAMPIONS[u.defId];
-    this.rig = buildChampion(def);
-    this.group.add(this.rig.root);
-    const col = teamColor(u.team);
-    const ringMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(u.radius * 1.15, u.radius * 1.5, 28), ringMat);
-    this.ring.rotation.x = -Math.PI / 2;
-    this.ring.position.y = 0.08;
-    this.ring.renderOrder = 1;
-    this.group.add(this.ring);
-    if (isPlayer) {
-      const sel = new THREE.Mesh(new THREE.RingGeometry(u.radius * 1.7, u.radius * 1.85, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
-      sel.rotation.x = -Math.PI / 2;
-      sel.position.y = 0.09;
-      this.group.add(sel);
-    }
-    this.baseGlow = this.rig.glow.map((m) => m.emissiveIntensity);
-    this.yaw = u.facing;
-  }
-}
 
 class StructureView {
   rig: StructureRig;
@@ -81,6 +51,7 @@ export class GameRenderer {
   readonly fog = new FogOfWar();
   readonly canvas: HTMLCanvasElement;
   private sun: THREE.DirectionalLight;
+  private pipeline!: RenderPipeline;
   private champViews = new Map<number, ChampionView>();
   private structViews = new Map<number, StructureView>();
   private monsterViews = new Map<number, THREE.Group>();
@@ -103,7 +74,7 @@ export class GameRenderer {
 
   constructor(container: HTMLElement, quality: Quality) {
     this.quality = quality;
-    const renderer = new THREE.WebGLRenderer({ antialias: quality !== 'low', powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: quality === 'low', powerPreference: 'high-performance' });
     this.renderer = renderer;
     this.canvas = renderer.domElement;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.5));
@@ -111,34 +82,21 @@ export class GameRenderer {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 0.95;
     container.appendChild(this.canvas);
     this.camera = new THREE.PerspectiveCamera(38, 1, 1, 600);
     this.scene.background = new THREE.Color(0x0d100e);
     this.scene.fog = new THREE.Fog(0x0d100e, 140, 330);
 
-    const hemi = new THREE.HemisphereLight(0xcfe0ff, 0x35432e, 1.05);
-    this.scene.add(hemi);
-    this.sun = new THREE.DirectionalLight(0xfff0d8, 2.3);
-    this.sun.position.set(-40, 80, 35);
-    this.sun.castShadow = quality !== 'low';
-    const sc = this.sun.shadow.camera;
-    sc.left = -60;
-    sc.right = 60;
-    sc.top = 60;
-    sc.bottom = -60;
-    sc.near = 10;
-    sc.far = 220;
-    this.sun.shadow.mapSize.set(quality === 'high' ? 2048 : 1024, quality === 'high' ? 2048 : 1024);
-    this.sun.shadow.bias = -0.0004;
-    this.sun.shadow.normalBias = 0.05;
-    this.scene.add(this.sun, this.sun.target);
+    const lights = setupLighting(this.scene, renderer, quality);
+    this.sun = lights.sun;
 
-    this.scene.add(buildTerrain((m) => this.fog.patch(m)));
+    this.scene.add(buildTerrain((m) => this.fog.patch(m), quality));
     this.scene.add(this.decals.group);
     this.particles = new Particles(this.camera);
     this.scene.add(this.particles.mesh);
     this.resize();
+    this.pipeline = new RenderPipeline(renderer, this.scene, this.camera, quality, this.width, this.height);
   }
 
   resize() {
@@ -151,6 +109,7 @@ export class GameRenderer {
     this.canvas.style.height = '100%';
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.pipeline?.setSize(w, h);
   }
 
   setViewer(team: Team, playerId: number) {
@@ -410,53 +369,7 @@ export class GameRenderer {
   }
 
   private updateChampion(v: ChampionView, u: Unit, w: World, alpha: number, dt: number, t: number) {
-    const show = u.alive && this.isVisible(w, u);
-    v.group.visible = show;
-    if (!show) return;
-    let x = u.px + (u.x - u.px) * alpha;
-    let z = u.pz + (u.z - u.pz) * alpha;
-    if (Math.hypot(u.x - u.px, u.z - u.pz) > 7) {
-      x = u.x;
-      z = u.z;
-    }
-    let y = 0;
-    const airborne = u.statuses.some((s) => s.type === 'stun' && s.tag === 'airborne' && s.until > w.time);
-    if (airborne) y = 2.4 * Math.sin(Math.min(1, (w.time % 1) * 1.6) * Math.PI * 0.5 + 0.3);
-    if (u.dash) y = 1.2;
-    v.group.position.set(x, y, z);
-    v.yaw = angleLerp(v.yaw, u.facing, Math.min(1, dt * 14));
-    v.group.rotation.y = v.yaw;
-    const sp = u.moved / FIXED_DT;
-    v.speed += (sp - v.speed) * Math.min(1, dt * 12);
-    const k = Math.min(1, v.speed / 5);
-    v.phase += v.speed * dt * 1.5;
-    const rig = v.rig;
-    const swing = Math.sin(v.phase) * 0.85 * k;
-    rig.legL.rotation.x = swing;
-    rig.legR.rotation.x = -swing;
-    v.attackT = Math.max(0, v.attackT - dt);
-    v.castT = Math.max(0, v.castT - dt);
-    v.hurtT = Math.max(0, v.hurtT - dt);
-    const melee = CHAMPIONS[u.defId].melee;
-    if (v.attackT > 0) {
-      const s = 1 - v.attackT / 0.3;
-      rig.armR.rotation.x = melee ? -2.6 + 3.3 * Math.min(1, s * 1.6) : -1.5 + Math.sin(s * Math.PI) * 0.4;
-      rig.armL.rotation.x = melee ? -0.3 : -1.4;
-    } else if (v.castT > 0) {
-      const s = v.castT / 0.45;
-      rig.armR.rotation.x = -2.4 * s;
-      rig.armL.rotation.x = -2.0 * s;
-    } else {
-      rig.armR.rotation.x = swing * 0.7;
-      rig.armL.rotation.x = -swing * 0.7;
-    }
-    rig.body.position.y = Math.abs(Math.sin(v.phase)) * 0.14 * k;
-    rig.body.rotation.x = u.dash ? 0.45 : 0;
-    const breathe = 1 + Math.sin(t * 2 + u.id) * 0.012;
-    rig.body.scale.set(1, breathe, 1);
-    for (let i = 0; i < rig.glow.length; i++) rig.glow[i].emissiveIntensity = v.baseGlow[i] * (1 + v.castT * 3 + Math.sin(t * 3) * 0.1);
-    // Selection ring pulse for stunned
-    (v.ring.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 4) * 0.12;
+    v.update(u, w, alpha, dt, t, this.isVisible(w, u));
   }
 
   private updateStructure(v: StructureView, s: Unit, dt: number, t: number) {
@@ -501,7 +414,7 @@ export class GameRenderer {
           const a = w.get(ev.id);
           if (!a) break;
           const cv = this.champViews.get(ev.id);
-          if (cv) cv.attackT = 0.3;
+          cv?.onAttack();
           const ma = this.minionAnim.get(ev.id);
           if (ma) ma.atk = 0.25;
           if (a.kind === 'tower') {
@@ -512,7 +425,7 @@ export class GameRenderer {
         }
         case 'cast': {
           const cv = this.champViews.get(ev.id);
-          if (cv) cv.castT = 0.45;
+          cv?.onCast(ev.slot);
           const def = CHAMPIONS[ev.champ];
           if (def) {
             this.decals.flash(ev.x, ev.z, 3.2, def.abilities[ev.slot].color, 0.4);
@@ -523,6 +436,7 @@ export class GameRenderer {
         case 'damage': {
           const color = ev.dmgType === 'magic' ? 0xb090ff : ev.dmgType === 'true' ? 0xffffff : 0xffe0a0;
           const u = w.get(ev.id);
+          this.champViews.get(ev.id)?.onHurt();
           const h = u ? u.height * 0.6 : 2;
           this.particles.burst(ev.x, h, ev.z, color, ev.amount > 150 ? 12 : 5, ev.amount > 150 ? 9 : 5, 0.35, 0.55);
           break;
@@ -620,7 +534,8 @@ export class GameRenderer {
     this.rig.apply(this.camera, dt);
     this.sun.target.position.set(followX, 0, followZ);
     this.sun.position.set(followX - 40, 80, followZ + 35);
-    this.renderer.render(this.scene, this.camera);
+    tickMaterials(this.time);
+    this.pipeline.render(dt);
   }
 
   dispose() {

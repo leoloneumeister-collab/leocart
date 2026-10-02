@@ -5,6 +5,7 @@ import type { Team } from '../sim/types.ts';
 import type { World } from '../sim/world.ts';
 import { GROUND_SIZE } from './terrain.ts';
 import { MAP_HALF } from '../data/map.ts';
+import { chainPatch } from './materials.ts';
 
 const RES = 256;
 const PAD = (GROUND_SIZE - MAP_HALF * 2) / 2;
@@ -38,7 +39,7 @@ export class FogOfWar {
   /** Patch a lit material so it darkens where the viewer's team has no vision. */
   patch(mat: THREE.Material, instanced = false) {
     const u = this.uniforms;
-    mat.onBeforeCompile = (shader) => {
+    chainPatch(mat, 'fog', (shader) => {
       shader.uniforms.fogMap = u.fogMap;
       shader.uniforms.fogOn = u.fogOn;
       shader.uniforms.fogSize = u.fogSize;
@@ -54,8 +55,7 @@ export class FogOfWar {
           '#include <dithering_fragment>',
           `#include <dithering_fragment>\n float fogV = texture2D(fogMap, vFogXZ / fogSize + 0.5).r;\n gl_FragColor.rgb *= mix(1.0, mix(0.34, 1.0, fogV), fogOn);`,
         );
-    };
-    mat.needsUpdate = true;
+    });
     void instanced;
   }
 
