@@ -133,13 +133,12 @@ export function bucketMaterial(bucket: Bucket, o: { rimColor?: number } = {}): T
 /** Inverted-hull outline: draw the same geometry again, pushed out along its normals, back faces only. */
 export function outlineMaterial(color = 0x140f1e, thickness = 0.045): THREE.MeshBasicMaterial {
   const m = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
-  m.onBeforeCompile = (shader) => {
+  chainPatch(m, `outline:${thickness}`, (shader) => {
     shader.uniforms.uThick = { value: thickness };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nuniform float uThick;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(normal) * uThick;');
-  };
-  m.customProgramCacheKey = () => `outline:${thickness}`;
+  });
   return m;
 }
 

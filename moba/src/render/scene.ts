@@ -8,9 +8,11 @@ import { angleLerp, TAU } from '../sim/math.ts';
 import { CameraRig } from './camera.ts';
 import { Decals, Particles } from './fx.ts';
 import { G, lambert, teamColor } from './geo.ts';
-import { buildInhibitor, buildMinionGeometry, buildMonster, buildNexus, buildTower } from './models.ts';
+import { buildStructure } from './structures.ts';
+import { Crowd } from './crowd.ts';
+import { buildMinionModel, buildMonsterModel } from './minions.ts';
 import { ChampionView } from './championView.ts';
-import type { StructureRig } from './models.ts';
+import type { StructureRig } from './structures.ts';
 import { buildTerrain } from './terrain.ts';
 import { RenderPipeline, setupLighting } from './pipeline.ts';
 import type { Quality } from './pipeline.ts';
@@ -21,16 +23,27 @@ export type { Quality } from './pipeline.ts';
 
 const FIXED_DT = 1 / 30;
 
+interface CrowdAnim {
+  atk: number;
+  phase: number;
+  key: string;
+  x: number;
+  z: number;
+  yaw: number;
+  move: number;
+}
+
+const ATK_DUR = 0.5;
+const DEATH_DUR = 0.9;
+
 class StructureView {
   rig: StructureRig;
-  lastAlive = true;
-  smoke = 0;
-  constructor(u: Unit) {
-    if (u.kind === 'tower') this.rig = buildTower(u.team, u.radius, u.height);
-    else if (u.kind === 'inhibitor') this.rig = buildInhibitor(u.team, u.radius);
-    else this.rig = buildNexus(u.team, u.radius);
+  deadT = 0;
+  constructor(u: Unit, hook: (m: THREE.Material) => void) {
+    const kind = u.kind === 'tower' ? 'tower' : u.kind === 'inhibitor' ? 'inhibitor' : 'nexus';
+    this.rig = buildStructure(kind, u.team, u.radius, u.height, hook);
     this.rig.root.position.set(u.x, 0, u.z);
-    this.lastAlive = u.alive;
+    this.deadT = u.alive ? 0 : 5;
   }
 }
 
@@ -54,9 +67,9 @@ export class GameRenderer {
   private pipeline!: RenderPipeline;
   private champViews = new Map<number, ChampionView>();
   private structViews = new Map<number, StructureView>();
-  private monsterViews = new Map<number, THREE.Group>();
-  private minionBatches = new Map<string, THREE.InstancedMesh>();
-  private minionAnim = new Map<number, { atk: number; phase: number }>();
+  private crowd!: Crowd;
+  private minionAnim = new Map<number, CrowdAnim>();
+  private dying: { key: string; x: number; z: number; yaw: number; phase: number; t: number }[] = [];
   private projViews = new Map<number, ProjView>();
   private towerRings = new Map<number, THREE.Mesh>();
   private projSphere = new THREE.SphereGeometry(0.5, 10, 8);
@@ -82,7 +95,7 @@ export class GameRenderer {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.95;
+    renderer.toneMappingExposure = 0.88;
     container.appendChild(this.canvas);
     this.camera = new THREE.PerspectiveCamera(38, 1, 1, 600);
     this.scene.background = new THREE.Color(0x0d100e);
@@ -92,6 +105,7 @@ export class GameRenderer {
     this.sun = lights.sun;
 
     this.scene.add(buildTerrain((m) => this.fog.patch(m), quality));
+    this.crowd = new Crowd(this.scene, (m) => this.fog.patch(m), quality);
     this.scene.add(this.decals.group);
     this.particles = new Particles(this.camera);
     this.scene.add(this.particles.mesh);
@@ -168,18 +182,14 @@ export class GameRenderer {
 
   // ------------------------------------------------------------------ views
 
-  private minionBatch(type: MinionType, team: number): THREE.InstancedMesh {
-    const key = `${type}:${team}`;
-    let b = this.minionBatches.get(key);
-    if (!b) {
-      b = new THREE.InstancedMesh(buildMinionGeometry(type, team), lambert(0xffffff, { vertexColors: true }), 260);
-      b.castShadow = this.quality !== 'low';
-      b.frustumCulled = false;
-      b.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      this.scene.add(b);
-      this.minionBatches.set(key, b);
-    }
-    return b;
+  private crowdKey(u: Unit): string {
+    return u.kind === 'minion' ? `minion:${u.minion!.type}:${u.team}` : `monster:${u.name}`;
+  }
+
+  private ensureModel(key: string, u: Unit) {
+    if (this.crowd.has(key)) return;
+    if (u.kind === 'minion') this.crowd.register(key, buildMinionModel(u.minion!.type, u.team), 260);
+    else this.crowd.register(key, buildMonsterModel(u.name), 40);
   }
 
   sync(w: World, alpha: number, dt: number) {
@@ -200,70 +210,46 @@ export class GameRenderer {
     for (const s of w.structures) {
       let v = this.structViews.get(s.id);
       if (!v) {
-        v = new StructureView(s);
+        v = new StructureView(s, (m) => this.fog.patch(m));
         this.structViews.set(s.id, v);
         this.scene.add(v.rig.root);
       }
       this.updateStructure(v, s, dt, t);
     }
-    // Minions and monsters
-    const counts = new Map<string, number>();
-    const seenMonsters = new Set<number>();
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const e = new THREE.Euler();
-    const pos = new THREE.Vector3();
-    const scl = new THREE.Vector3(1, 1, 1);
+    // Minions and monsters: one animated instance each
+    this.crowd.begin();
     for (const u of w.units) {
-      if (!u.alive) continue;
-      if (u.kind === 'minion') {
-        if (!this.isVisible(w, u)) continue;
-        const type = u.minion!.type;
-        const key = `${type}:${u.team}`;
-        const batch = this.minionBatch(type, u.team);
-        const n = counts.get(key) ?? 0;
-        if (n >= 260) continue;
-        counts.set(key, n + 1);
-        let anim = this.minionAnim.get(u.id);
-        if (!anim) {
-          anim = { atk: 0, phase: u.id * 0.7 };
-          this.minionAnim.set(u.id, anim);
-        }
-        anim.atk = Math.max(0, anim.atk - dt);
-        const moving = u.moved > 0.001;
-        if (moving) anim.phase += dt * 11;
-        const x = u.px + (u.x - u.px) * alpha;
-        const z = u.pz + (u.z - u.pz) * alpha;
-        const bob = moving ? Math.abs(Math.sin(anim.phase)) * 0.18 : 0;
-        const lunge = anim.atk > 0 ? Math.sin((anim.atk / 0.25) * Math.PI) * 0.35 : 0;
-        pos.set(x, bob, z);
-        e.set(lunge * 0.5, u.facing, moving ? Math.sin(anim.phase) * 0.06 : 0, 'YXZ');
-        q.setFromEuler(e);
-        m.compose(pos, q, scl);
-        batch.setMatrixAt(n, m);
-      } else if (u.kind === 'monster') {
-        seenMonsters.add(u.id);
-        let g = this.monsterViews.get(u.id);
-        if (!g) {
-          g = buildMonster(u.name, (u.monster?.gold ?? 0) > 60, u.radius, u.height);
-          this.monsterViews.set(u.id, g);
-          this.scene.add(g);
-        }
-        g.visible = this.isVisible(w, u);
-        g.position.set(u.px + (u.x - u.px) * alpha, Math.abs(Math.sin(t * 6 + u.id)) * (u.moved > 0.001 ? 0.2 : 0), u.pz + (u.z - u.pz) * alpha);
-        g.rotation.y = u.facing;
+      if (!u.alive || (u.kind !== 'minion' && u.kind !== 'monster')) continue;
+      if (!this.isVisible(w, u)) continue;
+      const key = this.crowdKey(u);
+      this.ensureModel(key, u);
+      let anim = this.minionAnim.get(u.id);
+      if (!anim) {
+        anim = { atk: 0, phase: u.id * 0.7, key, x: u.x, z: u.z, yaw: u.facing, move: 0 };
+        this.minionAnim.set(u.id, anim);
       }
+      anim.atk = Math.max(0, anim.atk - dt);
+      const moving = u.moved > 0.001;
+      anim.move += ((moving ? 1 : 0) - anim.move) * Math.min(1, dt * 10);
+      if (moving) anim.phase += dt * (u.kind === 'monster' ? 8 : 11);
+      const x = u.px + (u.x - u.px) * alpha;
+      const z = u.pz + (u.z - u.pz) * alpha;
+      anim.x = x;
+      anim.z = z;
+      anim.yaw = u.facing;
+      const at = anim.atk > 0 ? 1 - anim.atk / ATK_DUR : 0;
+      this.crowd.push(key, x, 0, z, u.facing, anim.phase, anim.move, at, 0);
     }
-    for (const [key, batch] of this.minionBatches) {
-      batch.count = counts.get(key) ?? 0;
-      batch.instanceMatrix.needsUpdate = true;
-    }
-    for (const [id, g] of this.monsterViews) {
-      if (!seenMonsters.has(id)) {
-        this.scene.remove(g);
-        this.monsterViews.delete(id);
+    for (let i = this.dying.length - 1; i >= 0; i--) {
+      const d = this.dying[i];
+      d.t += dt;
+      if (d.t > DEATH_DUR) {
+        this.dying.splice(i, 1);
+        continue;
       }
+      this.crowd.push(d.key, d.x, 0, d.z, d.yaw, d.phase, 0, 0, d.t);
     }
+    this.crowd.end();
     // Projectiles
     const live = new Set<number>();
     for (const p of w.projectiles) {
@@ -373,26 +359,22 @@ export class GameRenderer {
   }
 
   private updateStructure(v: StructureView, s: Unit, dt: number, t: number) {
-    const rig = v.rig;
-    if (s.alive !== v.lastAlive) {
-      v.lastAlive = s.alive;
-      rig.alive.visible = s.alive;
-      rig.rubble.visible = !s.alive;
-      if (!s.alive) {
+    const wasAlive = v.deadT <= 0;
+    if (s.alive && !wasAlive) {
+      v.deadT = 0;
+      this.particles.burst(s.x, 3, s.z, teamColor(s.team), 60, 14, 1.2, 1.4);
+    } else if (!s.alive) {
+      if (wasAlive) {
         const big = s.kind === 'nexus' ? 3 : 1.4;
         this.particles.burst(s.x, 3, s.z, 0xffa860, Math.floor(60 * big), 16 * big, 1.2, 1.8);
         this.particles.burst(s.x, 2, s.z, 0x9a9a9a, Math.floor(40 * big), 8 * big, 1.8, 2.6, -1);
         this.rig.shake(s.kind === 'nexus' ? 2.6 : 1.1, 0.5);
-      } else {
-        this.particles.burst(s.x, 3, s.z, teamColor(s.team), 60, 14, 1.2, 1.4);
       }
+      v.deadT += dt;
     }
-    if (!s.alive) return;
-    for (const sp of rig.spin) sp.rotation.y += dt * (sp === rig.orb ? 0.8 : 0.4);
-    const pulse = 1.2 + Math.sin(t * 2.2 + s.id) * 0.35;
     const vulnerable = s.struct ? this.vulnerableCache.get(s.id) !== false : true;
-    for (const g of rig.glow) g.emissiveIntensity = (vulnerable ? pulse : pulse * 0.5) * (s.hp / s.s.maxHp < 0.35 ? 0.7 + Math.random() * 0.6 : 1);
-    if (rig.orb && s.kind === 'tower') rig.orb.position.y += Math.sin(t * 2 + s.id) * 0.003;
+    v.rig.update(dt, t, { vulnerable, hpFrac: s.hp / s.s.maxHp, deadT: s.alive ? 0 : Math.max(v.deadT, 0.001) });
+    if (!s.alive) return;
     if (s.hp / s.s.maxHp < 0.3 && Math.random() < dt * 7) {
       this.particles.emit(s.x + (Math.random() - 0.5) * 3, s.height * 0.8, s.z + (Math.random() - 0.5) * 3, 0x707070, { vy: 3, life: 1.2, size: 1.8, grow: 2 });
     }
@@ -416,10 +398,10 @@ export class GameRenderer {
           const cv = this.champViews.get(ev.id);
           cv?.onAttack();
           const ma = this.minionAnim.get(ev.id);
-          if (ma) ma.atk = 0.25;
+          if (ma) ma.atk = ATK_DUR;
           if (a.kind === 'tower') {
             const tv = this.structViews.get(a.id);
-            if (tv?.rig.orb) this.particles.burst(a.x, a.height * 0.75, a.z, teamColor(a.team), 6, 6, 0.3, 1);
+            if (tv) this.particles.burst(a.x, a.height * 0.75, a.z, teamColor(a.team), 6, 6, 0.3, 1);
           }
           break;
         }
@@ -451,6 +433,10 @@ export class GameRenderer {
             this.particles.burst(ev.x, 2.5, ev.z, 0xffffff, 20, 8, 0.8, 0.9);
             this.decals.flash(ev.x, ev.z, 7, col, 0.6);
             this.rig.shake(0.7, 0.25);
+          }
+          {
+            const ma = this.minionAnim.get(ev.id);
+            if (ma && (ev.kind === 'minion' || ev.kind === 'monster') && this.dying.length < 80) this.dying.push({ key: ma.key, x: ma.x, z: ma.z, yaw: ma.yaw, phase: ma.phase, t: 0 });
           }
           this.minionAnim.delete(ev.id);
           break;

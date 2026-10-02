@@ -153,9 +153,9 @@ export function paintMap(ctx: CanvasRenderingContext2D, size: number, detail: bo
       const x = pts[seg].x + (pts[seg + 1].x - pts[seg].x) * t + rng.range(-LANE_WIDTH / 2, LANE_WIDTH / 2);
       const z = pts[seg].z + (pts[seg + 1].z - pts[seg].z) * t + rng.range(-LANE_WIDTH / 2, LANE_WIDTH / 2);
       const k = rng.next();
-      ctx.fillStyle = k < 0.4 ? 'rgba(96,74,46,0.32)' : k < 0.8 ? 'rgba(236,220,176,0.28)' : 'rgba(120,120,116,0.4)';
+      ctx.fillStyle = k < 0.4 ? 'rgba(96,74,46,0.2)' : k < 0.8 ? 'rgba(236,220,176,0.2)' : 'rgba(120,120,116,0.3)';
       ctx.beginPath();
-      ctx.ellipse(p.tx(x), p.tz(z), rng.range(0.25, 1.0) * S, rng.range(0.2, 0.6) * S, rng.range(0, 3), 0, Math.PI * 2);
+      ctx.ellipse(p.tx(x), p.tz(z), rng.range(0.15, 0.55) * S, rng.range(0.12, 0.35) * S, rng.range(0, 3), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.strokeStyle = 'rgba(80,60,36,0.13)';

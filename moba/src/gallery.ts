@@ -10,6 +10,8 @@ import type { HeroModel } from './render/heroes/index.ts';
 import { RenderPipeline, setupLighting } from './render/pipeline.ts';
 import { tickMaterials } from './render/materials.ts';
 import { CHAMPION_IDS } from './data/champions.ts';
+import { Crowd } from './render/crowd.ts';
+import { MONSTER_KEYS, buildMinionModel, buildMonsterModel } from './render/minions.ts';
 
 declare global {
   interface Window {
@@ -44,6 +46,21 @@ export function startGallery(parent: HTMLElement) {
   const cam = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.5, 400);
   const pipeline = new RenderPipeline(renderer, scene, cam, quality, window.innerWidth, window.innerHeight);
 
+  const showCrowd = params.get('crowd') === '1';
+  const crowd = showCrowd ? new Crowd(scene, () => {}, quality) : null;
+  const crowdKeys: string[] = [];
+  if (crowd) {
+    for (const team of [0, 1]) for (const t of ['melee', 'caster', 'cannon', 'super'] as const) {
+      const key = `minion:${t}:${team}`;
+      crowd.register(key, buildMinionModel(t, team), 8);
+      crowdKeys.push(key);
+    }
+    for (const n of MONSTER_KEYS) {
+      const key = `monster:${n}`;
+      crowd.register(key, buildMonsterModel(n), 8);
+      crowdKeys.push(key);
+    }
+  }
   let team = Number(params.get('team') ?? 0);
   let heroes: { id: string; model: HeroModel; st: AnimState }[] = [];
   let only = params.get('only') ?? '';
@@ -56,7 +73,7 @@ export function startGallery(parent: HTMLElement) {
   function rebuild() {
     for (const h of heroes) scene.remove(h.model.group);
     heroes = [];
-    const ids = CHAMPION_IDS.filter((id) => hasHero(id) && (!only || only === id));
+    const ids = CHAMPION_IDS.filter((id) => hasHero(id) && (!only || only === id) && !showCrowd);
     const spacing = 9;
     ids.forEach((id, i) => {
       const model = buildHero(id, team);
@@ -86,11 +103,20 @@ export function startGallery(parent: HTMLElement) {
 
   function frame() {
     tickMaterials(tNow);
+    if (crowd) {
+      crowd.begin();
+      crowdKeys.forEach((k, i) => {
+        const x = (i - (crowdKeys.length - 1) / 2) * 6.2;
+        const moving = state === 'run';
+        crowd.push(k, x, 0, 0, angle, tNow * 9, moving ? 1 : 0, state === 'attack' ? (tNow % 0.9) / 0.9 : 0, state === 'dead' ? tNow % 1.2 : 0);
+      });
+      crowd.end();
+    }
     for (const h of heroes) {
       h.model.group.rotation.y = angle;
       pose(h);
     }
-    const n = Math.max(1, heroes.length);
+    const n = crowd ? crowdKeys.length * 0.7 : Math.max(1, heroes.length);
     const span = n * 9 * 0.62 * zoom;
     if (camMode === 'game') {
       const pitch = THREE.MathUtils.degToRad(62);
