@@ -7,8 +7,8 @@ const BASE = (process.env.BASE_URL || 'http://localhost:5174/') + '?seed=3';
 const SHOTS = process.env.SHOTS || '';
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
-const browser = await chromium.launch();
-const ctx = await browser.newContext({ ...devices['iPhone 13'], hasTouch: true, reducedMotion: 'reduce' });
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
+const ctx = await browser.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 1, hasTouch: true, reducedMotion: 'reduce' });
 const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -22,7 +22,7 @@ const ok = (cond, msg) => {
 const shot = async (name) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
 const S = () => page.evaluate(() => JSON.parse(JSON.stringify(window.tidehold.game.S)));
 const wait = (ms) => page.waitForTimeout(ms);
-const screenOf = (type, dz = 30) => page.evaluate(([t, z]) => {
+const screenOf = (type, dz = 0.7) => page.evaluate(([t, z]) => {
   const g = window.tidehold.game;
   const b = g.S.buildings.find((x) => x.type === t);
   const s = window.tidehold.D.BUILDINGS[t].size;
@@ -30,14 +30,14 @@ const screenOf = (type, dz = 30) => page.evaluate(([t, z]) => {
 }, [type, dz]);
 
 await page.goto(BASE, { waitUntil: 'load' });
-await page.waitForSelector('.dock');
+await page.waitForSelector('.dock', { timeout: 90000 });
 await wait(1200);
 console.log('boot');
 ok(await page.locator('.pill.res.gold .v').innerText() === '1,500', 'starts with 1,500 gold');
 await shot('01-home');
 
 console.log('collect');
-let [x, y] = await screenOf('gmine', 20);
+let [x, y] = await screenOf('gmine', 0.7);
 await page.touchscreen.tap(x, y);
 await wait(400);
 let s = await S();
@@ -126,8 +126,16 @@ ok(await page.evaluate(() => window.tidehold.game.mode) === 'home', 'cancel leav
   await wait(300);
   const spot = await page.evaluate((b) => {
     const T = window.tidehold; const g = T.game;
-    for (let y = 5; y < 28; y++) for (let x = 5; x < 28; x++) if ((x !== b.x || y !== b.y) && T.St.canPlace(g.S, 'cannon', x, y, b.id)) return g.r.cam.toScreen(x + 1, y + 1);
-    return null;
+    const cam = g.r.cam;
+    let best = null;
+    for (let y = 5; y < 28; y++) for (let x = 5; x < 28; x++) {
+      if ((x === b.x && y === b.y) || !T.St.canPlace(g.S, 'cannon', x, y, b.id)) continue;
+      const [sx, sy] = cam.toScreen(x + 1, y + 1);
+      if (sx < 40 || sx > cam.w - 40 || sy < cam.h * 0.35 || sy > cam.h * 0.62) continue; // keep clear of the HUD and the dock
+      const d = Math.hypot(sx - cam.w / 2, sy - cam.h * 0.48);
+      if (!best || d < best.d) best = { d, p: [sx, sy] };
+    }
+    return best && best.p;
   }, before);
   await page.touchscreen.tap(spot[0], spot[1]);
   await wait(200);
@@ -164,21 +172,42 @@ ok(await page.evaluate(() => window.tidehold.game.mode) === 'battle', 'battle st
 await shot('07-battle-start');
 const drop = await page.evaluate(() => {
   const g = window.tidehold.game;
-  const pts = [];
-  for (let x = 2; x < 32; x += 0.7) for (const y of [1.6, 31.6]) pts.push([x, y]);
-  const ok2 = pts.find(([wx, wy]) => window.tidehold.Sim.canDeploy(g.B, wx, wy));
-  return g.r.cam.toScreen(ok2[0], ok2[1]);
+  const cam = g.r.cam;
+  let best = null;
+  for (let x = 1.5; x < 32; x += 0.7) {
+    for (const y of [1.6, 31.6]) {
+      if (!window.tidehold.Sim.canDeploy(g.B, x, y)) continue;
+      const [sx, sy] = cam.toScreen(x, y);
+      if (sx < 30 || sx > cam.w - 30 || sy < cam.h * 0.2 || sy > cam.h * 0.75) continue;
+      const d = Math.hypot(sx - cam.w / 2, sy - cam.h / 2);
+      if (!best || d < best.d) best = { d, p: [sx, sy] };
+    }
+    for (const y of [1.6, 31.6]) {
+      if (!window.tidehold.Sim.canDeploy(g.B, y, x)) continue;
+      const [sx, sy] = cam.toScreen(y, x);
+      if (sx < 30 || sx > cam.w - 30 || sy < cam.h * 0.2 || sy > cam.h * 0.75) continue;
+      const d = Math.hypot(sx - cam.w / 2, sy - cam.h / 2);
+      if (!best || d < best.d) best = { d, p: [sx, sy] };
+    }
+  }
+  return best && best.p;
 });
 for (let i = 0; i < 6; i++) { await page.touchscreen.tap(drop[0], drop[1]); await wait(120); }
 await wait(1500);
 await shot('08-battle');
 const used = await page.evaluate(() => Object.values(window.tidehold.game.B.used).reduce((a, b) => a + b, 0));
 ok(used >= 3, `troops were dropped by tapping (${used})`);
-await page.locator('.bt-right .btn', { hasText: '1×' }).click();
-for (let i = 0; i < 40 && !(await page.locator('.results').count()); i++) {
-  await page.evaluate(() => { const g = window.tidehold.game; if (g.B && !g.B.ended) { const t = Object.keys(g.B.reserve).find((k) => g.B.reserve[k].count > 0); if (t) for (let k = 0; k < 3; k++) { g.deployTroop = t; } } });
-  for (let k = 0; k < 4; k++) await page.touchscreen.tap(drop[0] + k * 6, drop[1]);
-  await wait(900);
+// software rendering is slow, so push the simulation along directly instead of waiting on frames
+for (let i = 0; i < 60 && !(await page.locator('.results').count()); i++) {
+  const live = await page.evaluate(() => { const B = window.tidehold.game.B; return !!B && !B.ended && Object.values(B.reserve).some((r) => r.count > 0); });
+  if (live) for (let k = 0; k < 4; k++) await page.touchscreen.tap(drop[0] + k * 6, drop[1]);
+  await page.evaluate(() => {
+    const T = window.tidehold; const g = T.game; const B = g.B;
+    if (!B) return;
+    for (let k = 0; k < 150 && !B.ended; k++) { T.Sim.step(B); g.handleBattleEvents(B.events); B.events = []; }
+  });
+  await wait(700);
+  if (process.env.DEBUG_E2E) console.log('   battle', await page.evaluate(() => { const B = window.tidehold.game.B; return B ? JSON.stringify({ t: B.t.toFixed(0), units: B.units.length, left: Object.values(B.reserve).reduce((a, r) => a + r.count, 0), destroyed: B.destroyed, ended: B.ended }) : 'none'; }));
 }
 ok(await page.locator('.results').count() === 1, 'results appear when the raid ends');
 await shot('09-results');
@@ -192,7 +221,7 @@ console.log('persistence');
 await page.evaluate(() => window.tidehold.game.save());
 const before = await S();
 await page.reload({ waitUntil: 'load' });
-await page.waitForSelector('.dock');
+await page.waitForSelector('.dock', { timeout: 90000 });
 await wait(800);
 const after = await S();
 ok(after.stats.raids === 1 && after.buildings.length === before.buildings.length, 'island survives a reload');
@@ -212,8 +241,10 @@ await wait(200);
 await page.locator('.btn', { hasText: 'Watch a raid' }).click();
 await wait(600);
 ok(await page.evaluate(() => window.tidehold.game.spectate), 'defence test runs as a spectator');
-await page.evaluate(() => { window.tidehold.game.speed = 8; });
-for (let i = 0; i < 60 && !(await page.locator('.panel h2', { hasText: 'Defence report' }).count()); i++) await wait(500);
+for (let i = 0; i < 60 && !(await page.locator('.panel h2', { hasText: 'Defence report' }).count()); i++) {
+  await page.evaluate(() => { const T = window.tidehold; const g = T.game; const B = g.B; if (!B) return; for (let k = 0; k < 150 && !B.ended; k++) { T.Sim.step(B); g.handleBattleEvents(B.events); B.events = []; } });
+  await wait(600);
+}
 ok(await page.locator('.panel h2', { hasText: 'Defence report' }).count() === 1, 'defence report appears');
 const raidsBefore = (await S()).stats.raids;
 await page.locator('.results .btn').click();

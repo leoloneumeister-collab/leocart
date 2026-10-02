@@ -1,6 +1,6 @@
 # Tidehold
 
-**A base-building and raiding game that runs in your phone browser.** Build an island, collect gold and crystal, train troops, then raid rival islands. Everything on screen and in your ears is drawn or synthesized in code: no image or audio files.
+**A base-building and raiding game that runs in your phone browser, in 3D.** Build an island, collect gold and crystal, train troops, then raid rival islands. The fighters and buildings are modelled, rigged and animated in Blender (`blender/`) and drawn with Three.js; sound is synthesized in code.
 
 Play it: `https://leoloneumeister-collab.github.io/leocart/tidehold/` (after the branch is merged to `main` and Pages deploys). Add it to your home screen for full screen and offline play.
 
@@ -22,10 +22,11 @@ npm run tidehold:build    # tidehold/dist, static files
 npm run tidehold:test     # logic tests: economy, saves, generator, battle balance (pure node)
 npm run tidehold:e2e      # plays the game on an emulated phone (needs the dev server and Playwright browsers)
 npm run tidehold:icons    # redraw the app icons from the game's own art
+# art: see tidehold/blender/README.md (Blender as a Python module regenerates the GLB models and UI icons)
 npm run tidehold:single -- out.html   # one self-contained page (add --fragment for claude.ai artifacts)
 ```
 
-URL options: `?seed=N` picks the starting island layout (handy for tests).
+URL options: `?seed=N` picks the starting island layout (handy for tests). `?2d=1` forces the flat Canvas2D view, which is also what you get automatically if WebGL or the models fail to load.
 
 ## Layout
 
@@ -35,8 +36,10 @@ URL options: `?seed=N` picks the starting island layout (handy for tests).
 | `js/state.js` | Game state and every economy rule. Pure functions that take a timestamp, so offline progress is just "tick to now" |
 | `js/sim.js` | Battle simulation: seeded and deterministic, Dijkstra pathing with breakable walls, defences, traps, the Beacon |
 | `js/gen.js` | Procedural enemy islands (campaign outposts and rivals), typical armies |
-| `js/art.js` | All sprites: isometric buildings, troops, obstacles, rubble, icons |
-| `js/render.js` | Camera, island, depth sorting, particles, overlays |
+| `js/render3d.js` | The 3D view: loads the GLB models, plays fighter animations, shadows, water, camera, effects, picking |
+| `js/art.js`, `js/render.js` | The older flat 2D view (isometric canvas sprites), kept as a fallback |
+| `blender/` | Python scripts that model, rig and animate every asset in Blender and export `public/models/*.glb` |
+| `viewer.html` | Dev tool: inspect any model and animation in the engine |
 | `js/input.js` | Tap, hold, pan, pinch and drag-the-ghost gestures |
 | `js/ui.js`, `css/style.css` | DOM interface for phones (safe areas, 44px+ touch targets) |
 | `js/main.js` | Game controller and loop |
@@ -52,6 +55,8 @@ URL options: `?seed=N` picks the starting island layout (handy for tests).
 - **Original everything.** Names, art and sounds are invented for this game.
 - **Troops are consumed by a raid.** Survivors do not return. This keeps training and crystal meaningful.
 - **Home screen draws at about 30 fps** and full speed in battle, to be kind to phone batteries.
+- **3D budget:** about 70 draw calls at home. Shadows turn off by themselves if frames stay slow, and unit shadows stop above 36 troops. Models total about 5 MB, cached after the first visit.
+- **Why vertex colours:** no textures, one material per model, so units are one draw call each and the whole model set is small.
 
 ## Ideas for later
 

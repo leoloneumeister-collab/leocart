@@ -56,6 +56,10 @@ export class UI {
   // ---------- small helpers ----------
 
   icon(type, lvl = 1, size = 64) {
+    if (this.game.mode3d) {
+      const tier = lvl <= 2 ? 1 : lvl <= 4 ? 2 : 3;
+      return h('img', { class: 'icon', src: `icons/ui/b_${type}_${tier}.webp`, width: size, height: size, alt: '', draggable: 'false' });
+    }
     const key = `${type}|${lvl}|${size}`;
     let c = this.iconCache.get(key);
     if (!c) {
@@ -73,6 +77,9 @@ export class UI {
   }
 
   troopIcon(troop, size = 56) {
+    if (this.game.mode3d) {
+      return h('img', { class: 'icon', src: `icons/ui/u_${troop}.webp`, width: size, height: size, alt: '', draggable: 'false' });
+    }
     const c = A.troopIcon(troop, size);
     c.className = 'icon';
     c.style.width = size + 'px';

@@ -5,6 +5,7 @@ import * as St from './state.js';
 import * as G from './gen.js';
 import * as Sim from './sim.js';
 import { Renderer } from './render.js';
+import { Renderer3D, loadAssets } from './render3d.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { UI } from './ui.js';
@@ -34,7 +35,7 @@ const TUTORIAL = [
 ];
 
 class Game {
-  constructor() {
+  constructor(renderer, mode3d) {
     this.skew = 0;
     this.storage = makeStorage();
     const now = this.now();
@@ -65,8 +66,9 @@ class Game {
     this.lastTs = performance.now();
     this.scn = { buildings: [], obstacles: [], units: [] };
 
-    this.cv = document.getElementById('scene');
-    this.r = new Renderer(this.cv);
+    this.r = renderer;
+    this.cv = renderer.cv;
+    this.mode3d = mode3d;
     this.sfx = new Sfx();
     this.sfx.on = this.S.settings.sound !== false;
     this.ui = new UI(this, document.getElementById('ui'));
@@ -141,7 +143,9 @@ class Game {
     const cam = this.r.cam;
     cam.cx = 17;
     cam.cy = 17;
-    cam.zoom = clamp(Math.min(cam.w / (15 * 64), cam.h / (17 * 32)), cam.minZoom(), 0.9);
+    cam.zoom = this.mode3d
+      ? clamp(Math.min(cam.w / (11 * 64), cam.h / (13 * 32)), cam.minZoom(), 1.0)
+      : clamp(Math.min(cam.w / (15 * 64), cam.h / (17 * 32)), cam.minZoom(), 0.9);
     cam.clamp();
   }
 
@@ -757,7 +761,7 @@ class Game {
     const cam = this.r.cam;
     cam.cx = 17;
     cam.cy = 17;
-    cam.zoom = Math.max(cam.minZoom(), 0.3);
+    cam.zoom = Math.max(cam.minZoom(), this.mode3d ? 0.34 : 0.3);
     cam.clamp();
     if (this.spectate) {
       Sim.autoPlay(B, { seed });
@@ -942,23 +946,45 @@ class Game {
   }
 }
 
-const game = new Game();
-game.start();
-connectCloud(game, St).then((link) => { game.cloud = link; });
+// Pick the 3D renderer when WebGL and the models load; otherwise fall back to the Canvas2D view.
+async function createRenderer(canvas) {
+  const bar = document.querySelector('#boot .bar i');
+  const params = new URLSearchParams(location.search);
+  if (params.get('2d') !== '1') {
+    try {
+      const assets = await loadAssets((p) => { if (bar) bar.style.width = Math.round(p * 100) + '%'; });
+      const r = new Renderer3D(canvas, document.getElementById('overlay'), assets);
+      return { r, mode3d: true };
+    } catch (e) {
+      console.warn('3D view unavailable, using the 2D view', e);
+    }
+  }
+  const fresh = canvas.cloneNode(false);
+  canvas.replaceWith(fresh);
+  const overlay = document.getElementById('overlay');
+  if (overlay) overlay.style.display = 'none';
+  return { r: new Renderer(fresh), mode3d: false };
+}
+
+createRenderer(document.getElementById('scene')).then(({ r: renderer, mode3d }) => {
+  const game = new Game(renderer, mode3d);
+  game.start();
+  connectCloud(game, St).then((link) => { game.cloud = link; });
+
+  // Handy for tests and tinkering in the console.
+  window.tidehold = {
+    game,
+    D, St, G, Sim,
+    advance(ms) {
+      game.skew += ms;
+      game.handleStateEvents(St.tick(game.S, game.now()));
+      return game.S;
+    },
+    dist,
+  };
+});
 
 // Offline support, only on a real https host (the dev server must never be cached).
 if ('serviceWorker' in navigator && location.protocol === 'https:' && window.self === window.top) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
-
-// Handy for tests and tinkering in the console.
-window.tidehold = {
-  game,
-  D, St, G, Sim,
-  advance(ms) {
-    game.skew += ms;
-    game.handleStateEvents(St.tick(game.S, game.now()));
-    return game.S;
-  },
-  dist,
-};

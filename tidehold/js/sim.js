@@ -357,7 +357,7 @@ function damageUnit(B, u, dmg) {
   u.hp -= dmg;
   if (u.hp <= 0) {
     u.alive = false;
-    B.events.push({ t: 'die', x: u.x, y: u.y, troop: u.troop, flying: u.flying });
+    B.events.push({ t: 'die', x: u.x, y: u.y, troop: u.troop, flying: u.flying, dir: u.dir });
   }
 }
 
