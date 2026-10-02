@@ -14,6 +14,9 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,16 +25,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Kart racer (site root)
+          cache: npm
       - run: npm ci
+      - name: Lint and validate tracks
+        run: |
+          npm run lint
+          npm run validate
       - run: npm run build
-      # Shadow Protocol shooter (served under /shooter/)
+      # Shadow Protocol shooter (published under /shooter/)
       - run: npm ci
         working-directory: shooter
       - run: npm run build
         working-directory: shooter
       - run: mkdir -p dist/shooter && cp -r shooter/dist/. dist/shooter/
-      # LANEFALL MOBA (served under /moba/)
+      # LANEFALL MOBA (published under /moba/)
       - run: npm ci
         working-directory: moba
       - run: npm run build
@@ -40,6 +47,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
   deploy:
     needs: build
     runs-on: ubuntu-latest

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { WEAPONS, WeaponId } from './defs';
 import { damp, lerp, makeCanvas, smoothstep, easeInOut } from '../../engine/util';
 
@@ -13,20 +14,31 @@ const MAT = {
   sleeve: new THREE.MeshStandardMaterial({ color: 0x2d3b2c, metalness: 0.0, roughness: 0.95 }),
   lens: new THREE.MeshStandardMaterial({ color: 0x1a4a6a, emissive: 0x2a8acc, emissiveIntensity: 0.9, metalness: 0.9, roughness: 0.1 }),
   dot: new THREE.MeshBasicMaterial({ color: 0xff3a2a }),
+  black: new THREE.MeshStandardMaterial({ color: 0x08090a, metalness: 0.3, roughness: 0.8 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x103040, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.55 }),
 };
 
 function bx(parent: THREE.Object3D, w: number, h: number, d: number, x: number, y: number, z: number, mat: THREE.Material, rx = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  const r = Math.min(w, h, d) * 0.3;
+  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 2, r), mat);
   m.position.set(x, y, z); m.rotation.x = rx;
   parent.add(m);
   return m;
 }
 function cyl(parent: THREE.Object3D, r: number, len: number, x: number, y: number, z: number, mat: THREE.Material, r2 = r) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r, len, 14), mat);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r, len, 22), mat);
   m.rotation.x = Math.PI / 2;
   m.position.set(x, y, z);
   parent.add(m);
   return m;
+}
+
+/** Picatinny-style rail teeth. */
+function rail(parent: THREE.Object3D, x: number, y: number, z0: number, z1: number, mat: THREE.Material) {
+  for (let z = z0; z < z1; z += 0.014) bx(parent, 0.026, 0.006, 0.007, x, y, z, mat);
+}
+function vents(parent: THREE.Object3D, x: number, y: number, z0: number, z1: number, mat: THREE.Material, side = 1) {
+  for (let z = z0; z < z1; z += 0.032) bx(parent, 0.004, 0.018, 0.014, x * side, y, z, mat);
 }
 
 interface GunModel {
@@ -43,6 +55,7 @@ interface GunModel {
   ads: THREE.Vector3;
   shell: boolean;
   stock: THREE.Group;
+  optic?: THREE.Object3D;
 }
 
 function buildVK7(): GunModel {
@@ -55,6 +68,19 @@ function buildVK7(): GunModel {
   bx(g, 0.04, 0.01, 0.26, 0, 0.034, -0.3, MAT.steel);
   cyl(g, 0.0105, 0.22, 0, 0.012, -0.55, MAT.steel);
   cyl(g, 0.017, 0.055, 0, 0.012, -0.66, MAT.metal);
+  rail(g, 0, 0.0625, -0.1, 0.12, MAT.steel); rail(g, 0, 0.0625, -0.38, -0.17, MAT.steel);
+  vents(g, 0.031, -0.005, -0.4, -0.18, MAT.black, 1); vents(g, 0.031, -0.005, -0.4, -0.18, MAT.black, -1);
+  bx(g, 0.012, 0.03, 0.06, 0.028, 0.012, -0.03, MAT.black); // ejection port
+  bx(g, 0.03, 0.012, 0.03, 0, 0.04, 0.12, MAT.steel); // charging handle
+  // red dot optic
+  const optic = new THREE.Group(); g.add(optic);
+  bx(optic, 0.05, 0.012, 0.09, 0, 0.075, -0.04, MAT.black);
+  bx(optic, 0.004, 0.05, 0.09, 0.024, 0.1, -0.04, MAT.black); bx(optic, 0.004, 0.05, 0.09, -0.024, 0.1, -0.04, MAT.black);
+  bx(optic, 0.05, 0.006, 0.09, 0, 0.126, -0.04, MAT.black);
+  bx(optic, 0.044, 0.04, 0.003, 0, 0.1, -0.082, MAT.glass); bx(optic, 0.004, 0.004, 0.003, 0, 0.1, -0.081, MAT.dot);
+  // laser module + flash hider prongs
+  bx(g, 0.022, 0.03, 0.06, 0.04, -0.01, -0.5, MAT.black);
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; bx(g, 0.006, 0.006, 0.03, Math.cos(a) * 0.016, 0.012 + Math.sin(a) * 0.016, -0.69, MAT.metal); }
   const stock = new THREE.Group(); g.add(stock);
   bx(stock, 0.046, 0.1, 0.2, 0, -0.012, 0.26, MAT.poly, 0.12);
   bx(stock, 0.05, 0.12, 0.02, 0, -0.016, 0.375, MAT.metal, 0.12);
@@ -71,7 +97,7 @@ function buildVK7(): GunModel {
   return {
     group: g, mag, magRest: mag.position.clone(), slide: bolt, slideRest: bolt.position.clone(), muzzle, eject,
     leftGrip: new THREE.Vector3(0, -0.055, -0.32), leftMag: new THREE.Vector3(0, -0.14, -0.03),
-    hip: new THREE.Vector3(0.17, -0.2, -0.42), ads: new THREE.Vector3(0, -0.092, -0.36), shell: false, stock,
+    hip: new THREE.Vector3(0.17, -0.2, -0.42), ads: new THREE.Vector3(0, -0.092, -0.36), shell: false, stock, optic,
   };
 }
 
@@ -214,8 +240,11 @@ export class Viewmodel {
 
     // hands: simple gloved fist + sleeve
     const mk = (g: THREE.Group, mirror: number) => {
-      bx(g, 0.05, 0.05, 0.075, 0, 0, 0, MAT.glove);
+      bx(g, 0.05, 0.04, 0.075, 0, 0, 0, MAT.glove);
       bx(g, 0.052, 0.018, 0.05, 0, 0.026, -0.006, MAT.glove);
+      for (let i = 0; i < 4; i++) { const f = bx(g, 0.011, 0.012, 0.045, -0.018 + i * 0.012, 0.012, -0.055, MAT.glove); f.rotation.x = 0.5; bx(g, 0.01, 0.01, 0.025, -0.018 + i * 0.012, -0.004, -0.085, MAT.glove).rotation.x = 1.0; }
+      bx(g, 0.014, 0.014, 0.04, 0.032 * mirror, 0.0, -0.03, MAT.glove).rotation.y = 0.5 * mirror;
+      bx(g, 0.052, 0.01, 0.03, 0, -0.022, 0.03, MAT.poly); // knuckle guard
       const arm = bx(g, 0.07, 0.07, 0.5, mirror * 0.01, -0.04, 0.3, MAT.sleeve);
       arm.rotation.x = 0.28; arm.rotation.y = mirror * -0.15;
       bx(g, 0.074, 0.074, 0.05, 0, 0, 0.06, MAT.poly);
@@ -380,6 +409,7 @@ export class Viewmodel {
     this.root.rotation.set(rx, ry, rz);
     m.group.position.set(0, 0, 0);
     m.stock.visible = s.ads < 0.45;
+    if (m.optic) m.optic.visible = s.ads < 0.4;
     this.leftHand.visible = s.ads < 0.8 || s.reloadT >= 0;
     this.rightHand.visible = s.ads < 0.45;
     if (m.mag) {

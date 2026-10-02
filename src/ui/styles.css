@@ -8,7 +8,7 @@
   --accent-2: #ff4f6d;
   --accent-3: #3ee0ff;
   --good: #5dff9a;
-  --u: min(1vw, 1.7vh); /* responsive unit */
+  --u: min(0.82vw, 1.45vh); /* responsive HUD unit */
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +37,7 @@ canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block
   height: calc(var(--u) * 11);
   max-width: 120px; max-height: 120px; min-width: 64px; min-height: 64px;
   border-radius: 22%;
-  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(10,14,34,0.7));
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.14), rgba(8,12,30,0.84));
   border: 3px solid var(--line);
   box-shadow: 0 6px 18px rgba(0,0,0,0.4);
   display: grid; place-items: center;
@@ -85,9 +85,9 @@ canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block
 
 .hud-board {
   left: calc(var(--u) * 2.2); top: calc(var(--u) * 15);
-  width: calc(var(--u) * 17); min-width: 120px; max-width: 190px;
+  font-size: max(12px, calc(var(--u) * 1.9));
+  width: 9.4em;
   display: flex; flex-direction: column; gap: 3px;
-  font-size: calc(var(--u) * 1.9);
 }
 .hud-board .row {
   display: flex; align-items: center; gap: 7px;
@@ -138,6 +138,8 @@ canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block
 .hud-sub { left: 50%; top: calc(36% + var(--u) * 8); transform: translateX(-50%); font-size: calc(var(--u) * 3.4); font-weight: 800; opacity: 0; text-shadow: 0 2px 0 #000a; transition: opacity .2s; }
 .hud-sub.show { opacity: 1; }
 
+.hud-hint { left: 50%; bottom: calc(var(--u) * 3); transform: translateX(-50%); background: var(--panel); padding: .5em 1.2em; border-radius: 99px; font-weight: 700; font-size: calc(var(--u) * 2.2); opacity: 0; transition: opacity .3s; white-space: nowrap; }
+.hud-hint.on { opacity: 1; }
 .hud-flash { inset: 0; opacity: 0; }
 .hud-flash.on { animation: flash .7s ease-out; }
 @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
@@ -228,11 +230,11 @@ kbd { background: #fff; color: #0b0e1f; border-radius: 6px; padding: 1px 7px; fo
 .footer { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .6; padding: 0 12px; }
 
 /* character select */
-.screen.select { display: grid; grid-template-columns: minmax(300px, 34%) 1fr minmax(300px, 32%); padding: 3vh 2.5vw; gap: 2vw; align-items: stretch; }
+.screen.select { display: grid; grid-template-columns: minmax(360px, 38%) 1fr minmax(300px, 30%); padding: 3vh 2.5vw; gap: 2vw; align-items: stretch; }
 .screen.select .panel.left { grid-column: 1; display: flex; flex-direction: column; gap: 12px; }
 .screen.select .panel.info { grid-column: 3; align-self: end; display: flex; flex-direction: column; gap: 10px; }
 .screen.select .hint { grid-column: 2; align-self: end; justify-self: center; text-align: center; font-size: 13px; opacity: .75; max-width: 420px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: start; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; align-content: start; }
 .card { appearance: none; color: #fff; cursor: pointer; font-family: var(--font); text-align: left; position: relative; border-radius: 16px; border: 2px solid rgba(255,255,255,.18); }
 .card.char {
   background: linear-gradient(160deg, color-mix(in srgb, var(--c) 55%, #141a3a) 0%, #141a3a 75%);
@@ -343,8 +345,20 @@ input[type=range]:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
   .cols { grid-template-columns: 1fr; }
   .screen.title { background: linear-gradient(180deg, rgba(8,12,34,.7), rgba(8,12,34,.2) 60%); }
 }
+@media (max-width: 900px) and (orientation: landscape) {
+  .screen.select { grid-template-columns: 1.15fr 1fr; grid-template-rows: 1fr; gap: 12px; padding: 10px 12px; }
+  .screen.select .panel.left { grid-column: 1; }
+  .screen.select .panel.info { grid-column: 2; align-self: stretch; justify-content: center; }
+  .grid { grid-template-columns: 1fr 1fr; }
+  .card.char { padding: 8px 10px 8px 52px; }
+  .card.char .badge { display: grid; width: 32px; height: 32px; }
+}
 @media (max-height: 560px) {
   .screen.select .panel.info p { display: none; }
   .logo small { display: none; }
   h3 { margin: 10px 0 4px; }
 }
+
+.card.char { padding: 8px 8px 8px 12px !important; min-height: 62px !important; border-left: 6px solid var(--c); }
+.card.char .badge { display: none !important; }
+.card.char .cname { font-size: clamp(14px, 1.9vmin, 19px); }

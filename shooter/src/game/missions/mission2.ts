@@ -53,16 +53,16 @@ export class Mission2 implements Mission {
     b.wallRect(-26, 40, 24, 16, 9, 0.6, [
       { side: 'e', at: -3, width: 2.4 }, { side: 'e', at: 5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 's', at: 0, width: 2, sill: 1.1, top: 2.4 },
       { side: 'n', at: -6, width: 2.4 }, { side: 'e', at: 0, width: 1.6, sill: 3.4, top: 4.8 }, { side: 'e', at: -6, width: 1.6, sill: 3.4, top: 4.8 },
-    ], brick[0], { roofColor: 0x2a2d30 });
+    ], brick[0], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(-26, 14, 24, 18, 7, 0.6, [
       { side: 'e', at: 0, width: 2.4 }, { side: 'e', at: -6, width: 1.6, sill: 1.1, top: 2.3 }, { side: 'n', at: 4, width: 2.4 }, { side: 's', at: -5, width: 2.4 },
-    ], brick[1], { roofColor: 0x2a2d30 });
+    ], brick[1], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(26, 40, 24, 16, 10, 0.6, [
       { side: 'w', at: 2, width: 2.4 }, { side: 'w', at: -5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 's', at: 4, width: 2, sill: 1.1, top: 2.4 }, { side: 'n', at: 0, width: 2.4 },
-    ], brick[2], { roofColor: 0x2a2d30 });
+    ], brick[2], { roofColor: 0x2a2d30, mat: 'brick' });
     b.wallRect(26, 16, 24, 18, 8, 0.6, [
       { side: 'w', at: -2, width: 2.4 }, { side: 'w', at: 5, width: 1.6, sill: 1.1, top: 2.3 }, { side: 'n', at: -5, width: 2.4 }, { side: 's', at: 5, width: 2.4 },
-    ], brick[3], { roofColor: 0x2a2d30 });
+    ], brick[3], { roofColor: 0x2a2d30, mat: 'brick' });
     b.crate(-30, 40, 1.2); b.crateStack(-22, 12); b.crateStack(30, 38); b.crate(24, 14, 1.2);
     b.lamp(-26, 7.5, 40, 0xffc890, 1, true); b.lamp(26, 8.5, 40, 0xffc890, 1, false); b.lamp(-26, 5.5, 14, 0xffc890, 1, true); b.lamp(26, 6.5, 16, 0xffc890, 1, false);
     b.car(-4, 46, false, 0x445566, true); b.car(5, 37, true, 0x445566, true); b.car(-6, 29, false, 0x445566, true); b.car(2, 22, true, 0x445566, true);
@@ -74,8 +74,8 @@ export class Mission2 implements Mission {
     b.container(-9, 52, false, C.rust); b.container(10, 54, false, C.blue);
 
     // ---- zone 1: market plaza
-    b.wallRect(-56, -14, 14, 26, 9, 0.6, [{ side: 'e', at: -4, width: 2.6 }, { side: 'e', at: 6, width: 2.6 }, { side: 'n', at: 0, width: 2 }], brick[1], { roofColor: 0x2a2d30 });
-    b.wallRect(56, -10, 14, 28, 9, 0.6, [{ side: 'w', at: -4, width: 2.6 }, { side: 'w', at: 6, width: 2.6 }, { side: 's', at: 0, width: 2 }], brick[0], { roofColor: 0x2a2d30 });
+    b.wallRect(-56, -14, 14, 26, 9, 0.6, [{ side: 'e', at: -4, width: 2.6 }, { side: 'e', at: 6, width: 2.6 }, { side: 'n', at: 0, width: 2 }], brick[1], { roofColor: 0x2a2d30, mat: 'brick' });
+    b.wallRect(56, -10, 14, 28, 9, 0.6, [{ side: 'w', at: -4, width: 2.6 }, { side: 'w', at: 6, width: 2.6 }, { side: 's', at: 0, width: 2 }], brick[0], { roofColor: 0x2a2d30, mat: 'brick' });
     b.box(0, 0, -12, 14, 1.2, 14, 0x5c5f60); b.box(0, 1.2, -12, 4, 2.2, 4, 0x6a6d6e); b.box(0, 3.4, -12, 2, 1, 2, 0x555a5e);
     for (const [x, z, c] of [[-24, -2, 0x8a3b2a], [24, 0, 0x2f4a62], [-30, -20, 0x3f4c38], [30, -22, 0x8a7d5c], [-14, -26, 0x2f4a62], [16, -28, 0x8a3b2a], [-36, 6, 0x8a7d5c], [38, 8, 0x3f4c38]] as [number, number, number][]) {
       b.box(x, 0, z, 3.2, 1.0, 1.6, 0x4a4036, { kind: 'wood' });
@@ -129,7 +129,7 @@ export class Mission2 implements Mission {
     for (const x of [-22, 22]) b.shaft(x, 8, -66.3, x - 14, 0, -59.3, 3.0, 0xffc890, 0.14);
 
     const bounds = { minX: -66, maxX: 66, minZ: -110, maxZ: 60 };
-    const level = b.build(bounds, 0x7c7872, 19);
+    const level = b.build(bounds, 0x8a8782, 19);
     const sky = makeSky({ top: 0x2c4a7a, horizon: 0xf0986a, ground: 0x7a6254, sunDir: new THREE.Vector3(0.8, 0.28, -0.4), sunColor: 0xffa862, sunSize: 130, stars: false });
     return {
       level, fogColor: 0xa6806a, fogDensity: 0.010, exposure: 1.4,
@@ -140,35 +140,67 @@ export class Mission2 implements Mission {
   }
 
   start(game: Game, cp: number) {
-    this.fired.clear(); this.done = false; this.boss = null;
-    for (const s of SPAWNS) {
-      if (s.zone < cp) continue;
-      const e = game.spawnEnemyAt(s);
-      if (s.type === 'boss') { this.boss = e; }
-    }
+    this.fired.clear(); this.done = false; this.boss = null; this.cp = cp; this.started.clear(); this.cleared.clear();
+    for (let k = 0; k < cp; k++) { this.started.add(k); this.cleared.add(k); }
     for (const [x, z] of [[-20, 30], [-6, 14], [12, 40], [-30, 8], [32, 6], [-10, -22], [20, -26], [-22, -46], [-14, -60], [20, -50], [0, -48], [30, -60], [-18, -84], [18, -84], [-6, -100]] as [number, number][]) game.addBarrel(x, z);
-    for (const [x, z] of [[-9, 56], [-20, 8], [24, -6], [-10, -40], [14, -62], [-22, -70]] as [number, number][]) game.addAmmo(x, z);
+    for (const [x, z] of [[-9, 46], [-20, 8], [24, -6], [-10, -40], [14, -62], [-22, -70]] as [number, number][]) game.addAmmo(x, z);
     for (const [x, z] of [[-5, 36], [6, 22], [-2, 44]] as [number, number][]) game.addFire(x, z);
-    game.setObjectives(this.objectives(cp));
-    this.fired.add(`cp${cp}`);
-    if (cp === 0) { game.setMarker(new THREE.Vector3(0, 0, -34)); game.radio(LINES.m2.start, 1.2); }
-    else if (cp === 1) game.setMarker(new THREE.Vector3(0, 0, -34));
-    else game.setMarker(new THREE.Vector3(0, 0, -66));
-    game.setMusic(cp >= 3 ? 0.6 : 0.2);
-    this.cp = cp;
+    game.setObjectives(this.objectives());
+    game.setMarker(null);
+    game.setMusic(0.2);
   }
   private cp = 0;
+  private started = new Set<number>();
+  private cleared = new Set<number>();
 
-  private objectives(cp: number) {
+  begin(game: Game, cp: number) {
+    if (cp === 0) game.radio(LINES.m2.start, 1.2);
+    else game.radio([{ who: 'GHOST-2', text: 'Checkpoint reached. Stay sharp, Wraith.' }], 0.8);
+    this.startZone(game, cp, cp === 0 ? 8 : 4);
+  }
+
+  private zoneWaves(zone: number): Spawn[][] {
+    const L = SPAWNS.filter((s) => s.zone === zone);
+    const g = L.filter((s) => s.type === 'grunt'), r = L.filter((s) => s.type === 'rusher'), h = L.filter((s) => s.type === 'heavy');
+    if (zone === 3) {
+      const rush: Spawn[] = [{ type: 'rusher', zone: 3, x: -12, z: -82 }, { type: 'rusher', zone: 3, x: 12, z: -82 }];
+      return [g.slice(0, 2), [...g.slice(2), ...rush], L.filter((s) => s.type === 'boss')];
+    }
+    const w1 = g.slice(0, Math.min(3, Math.ceil(g.length * 0.4)));
+    const w2 = [...g.slice(w1.length, w1.length + 3), ...r.slice(0, 1)];
+    const w3 = [...h, ...r.slice(1), ...g.slice(w1.length + 3)].slice(0, 5);
+    return [w1, w2, w3].filter((w) => w.length);
+  }
+
+  private startZone(game: Game, zone: number, delay: number) {
+    this.started.add(zone);
+    if (zone >= 1) game.saveCheckpoint(zone);
+    game.setMarker(null);
+    game.setObjectives(this.objectives());
+    if (zone === 1) game.radio(LINES.m2.plaza);
+    if (zone === 2) game.radio(LINES.m2.yard);
+    if (zone === 3) { game.radio(LINES.m2.arena, 0.5); game.setMusic(0.7); }
+    game.startWaves(zone, this.zoneWaves(zone), () => {
+      this.cleared.add(zone);
+      game.setObjectives(this.objectives());
+      this.updateMarker(game);
+    }, delay);
+  }
+
+  private objectives() {
     return [
-      { text: 'Fight through the district', done: cp >= 2 || this.fired.has('yard') },
-      { text: 'Breach the warehouse', done: cp >= 3 || this.fired.has('arena') },
-      { text: 'Eliminate Colonel Voss', done: this.done },
+      { text: 'Clear the street', done: this.cleared.has(0) },
+      { text: 'Clear the market plaza', done: this.cleared.has(1) },
+      { text: 'Clear the warehouse yard', done: this.cleared.has(2) },
+      { text: 'Defeat Colonel Voss', done: this.done },
     ];
   }
 
-  private once(key: string, cond: boolean, fn: () => void) {
-    if (cond && !this.fired.has(key)) { this.fired.add(key); fn(); }
+  private updateMarker(game: Game) {
+    if (game.wavesActive || this.done) { game.setMarker(null); return; }
+    const next = [10, -32, -66].findIndex((_, i) => this.cleared.has(i) && !this.started.has(i + 1));
+    if (next >= 0) game.setMarker(new THREE.Vector3(0, 0, [10, -32, -66][next]));
+    else game.setMarker(null);
   }
 
   onAlert(game: Game) {
@@ -176,21 +208,21 @@ export class Mission2 implements Mission {
     game.setMusic(0.8);
   }
 
+  private once(key: string, cond: boolean, fn: () => void) {
+    if (cond && !this.fired.has(key)) { this.fired.add(key); fn(); }
+  }
+
   update(dt: number, game: Game) {
     const p = game.player.pos;
-    void dt;
-    this.once('plaza', p.z < 8 && this.cp <= 1, () => { game.radio(LINES.m2.plaza); game.saveCheckpoint(1); game.banner('MARKET PLAZA', 'CHECKPOINT'); });
-    this.once('yard', p.z < -32, () => {
-      game.radio(LINES.m2.yard); game.saveCheckpoint(2); game.setObjectives(this.objectives(2)); game.setMarker(new THREE.Vector3(0, 0, -66));
-      game.banner('WAREHOUSE YARD', 'CHECKPOINT');
-    });
-    this.once('arena', p.z < -68 && Math.abs(p.x) < 5, () => {
-      game.saveCheckpoint(3); game.setObjectives(this.objectives(3));
-      game.radio(LINES.m2.arena, 0.5);
-      game.setMusic(0.7);
-      if (this.boss) { game.bossIntro(this.boss); game.setMarker(null); }
-    });
-    if (this.boss && !this.boss.dead && this.fired.has('arena')) game.setBossBar(this.boss.hp / this.boss.maxHp, this.boss.def.name);
+    if (game.time % 1 < dt) this.updateMarker(game);
+    if (!game.wavesActive) {
+      if (this.cleared.has(0) && !this.started.has(1) && p.z < 10) this.startZone(game, 1, 4);
+      else if (this.cleared.has(1) && !this.started.has(2) && p.z < -30) this.startZone(game, 2, 4);
+      else if (this.cleared.has(2) && !this.started.has(3) && p.z < -66 && Math.abs(p.x) < 6) this.startZone(game, 3, 5);
+    }
+    const b = game.enemies.find((e) => e.type === 'boss' && !e.dead);
+    if (b && !this.boss) { this.boss = b; game.bossIntro(b); }
+    if (this.boss && !this.boss.dead) game.setBossBar(this.boss.hp / this.boss.maxHp, this.boss.def.name);
   }
 
   onBossEvent(name: string, game: Game) {
@@ -205,7 +237,7 @@ export class Mission2 implements Mission {
     if (e.type === 'boss' && !this.done) {
       this.done = true;
       game.setBossBar(-1, '');
-      game.setObjectives(this.objectives(3));
+      game.setObjectives(this.objectives());
       game.slowMo(0.25, 2.6);
       game.banner('VOSS ELIMINATED', '');
       game.radio(LINES.m2.end, 2.5);

@@ -12,6 +12,7 @@ export class Input {
     this.padPrev = {};
     this.rebinding = null;
     this.enabled = true;
+    this.steerSmooth = 0;
 
     window.addEventListener('keydown', (e) => {
       if (this.rebinding) return; // the settings screen handles this key
@@ -57,7 +58,7 @@ export class Input {
   }
 
   /** Returns one snapshot of driving input. Edge-triggered fields (item, reset, pause) fire once. */
-  poll() {
+  poll(dt = 1 / 60) {
     const s = { steer: 0, throttle: 0, brake: 0, drift: false, item: false, back: false, look: false, reset: false, pause: false };
     let steer = 0;
     if (this._held('left')) steer -= 1;
@@ -98,7 +99,17 @@ export class Input {
       s.pause = s.pause || pauseE;
       s.look = s.look || lookE;
     }
-    s.steer = clamp(steer, -1, 1);
+    // Keyboard steering is digital, so ease towards the target: quick enough to feel direct,
+    // slow enough that a tap gives a small correction. Analog sticks are passed through as-is.
+    if (pad && Math.abs(pad.axes[0] || 0) >= deadzone) {
+      this.steerSmooth = steer;
+    } else {
+      const target = clamp(steer, -1, 1);
+      const rate = Math.abs(target) > Math.abs(this.steerSmooth) || Math.sign(target) !== Math.sign(this.steerSmooth) ? 9 : 12;
+      const dv = target - this.steerSmooth;
+      this.steerSmooth += Math.sign(dv) * Math.min(Math.abs(dv), rate * dt);
+    }
+    s.steer = clamp(this.steerSmooth, -1, 1);
     s.back = s.brake > 0.5;
     this.pressedQueue.clear();
     return s;

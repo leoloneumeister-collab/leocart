@@ -4,9 +4,7 @@
 import * as THREE from 'three';
 import { distToRoadEdge, distToPolyline } from '../game/trackMath.js';
 import { mulberry32, clamp } from '../util/math.js';
-import {
-  box, sph, sphLow, ico, dodeca, cone, coneLow, cyl, cylLow, merge, instanced, part, BOX, CYL_LOW, DODECA, SPH_LOW,
-} from './geo.js';
+import { box, sphLow, ico, dodeca, coneLow, cylLow, merge, instanced, part, SPH_LOW } from './geo.js';
 import { windowTexture, glowTexture, makeCanvas } from './textures.js';
 
 /** Random positions beside the road, outside the walls and away from other parts of the track. */

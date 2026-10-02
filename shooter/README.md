@@ -57,7 +57,7 @@ npm test          # headless browser smoke test (needs Chromium)
 
 It is a static site. `npm run build` produces `dist/`.
 
-- **GitHub Pages:** the root `.github/workflows/pages.yml` builds the kart game and this shooter together and publishes the shooter at `/shooter/` (enable Pages with "GitHub Actions" as the source in repo settings).
+- **GitHub Pages:** the root `.github/workflows/deploy.yml` builds the kart game and this shooter together and publishes the shooter at `/shooter/` (enable Pages with "GitHub Actions" as the source in repo settings).
 - **Netlify / Vercel:** `netlify.toml` and `vercel.json` are included, just import the repo.
 
 ## Debug URL flags

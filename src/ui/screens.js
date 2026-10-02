@@ -334,6 +334,7 @@ export class UI {
               ${slider('sfx', 'Sound effects')}
               <h3>Gameplay</h3>
               ${cycle('difficulty', 'AI difficulty', [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']])}
+              ${cycle('assist', 'Driving assist', [[true, 'On'], [false, 'Off']])}
               ${cycle('shake', 'Camera shake', [[true, 'On'], [false, 'Off']])}
               ${cycle('speedUnit', 'Speed unit', [['kmh', 'km/h'], ['mph', 'mph']])}
               <h3>Graphics</h3>
@@ -362,7 +363,7 @@ export class UI {
     });
 
     const cycles = {
-      difficulty: ['easy', 'normal', 'hard'], shake: [true, false], speedUnit: ['kmh', 'mph'], quality: ['low', 'medium', 'high'],
+      difficulty: ['easy', 'normal', 'hard'], assist: [true, false], shake: [true, false], speedUnit: ['kmh', 'mph'], quality: ['low', 'medium', 'high'],
     };
     const labels = { easy: 'Easy', normal: 'Normal', hard: 'Hard', true: 'On', false: 'Off', kmh: 'km/h', mph: 'mph', low: 'Low', medium: 'Medium', high: 'High' };
     el.querySelectorAll('[data-cycle]').forEach((b) => {

@@ -5,6 +5,17 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+
+// Keep transparent helpers (light cones, shafts, tracers) and sprites out of the AO depth/normal pass.
+(GTAOPass.prototype as unknown as { _overrideVisibility: () => void })._overrideVisibility = function (this: { scene: THREE.Scene; _visibilityCache: THREE.Object3D[] }) {
+  this.scene.traverse((o) => {
+    const m = o as THREE.Mesh;
+    const mat = m.material as THREE.Material | undefined;
+    const skip = (o as THREE.Points).isPoints || (o as THREE.Line).isLine || (o as THREE.Sprite).isSprite || (mat && (mat.transparent || (mat as THREE.MeshBasicMaterial).blending === THREE.AdditiveBlending)) || o.userData.noAO;
+    if (skip && o.visible) { o.visible = false; this._visibilityCache.push(o); }
+  });
+};
 import type { Settings } from './save';
 
 const GradeShader = {
@@ -61,6 +72,7 @@ export class GameRenderer {
   bloom: UnrealBloomPass;
   grade: ShaderPass;
   fxaa: ShaderPass;
+  gtao: GTAOPass;
   quality: Quality = 'medium';
   pixelRatio = 1;
   private adaptScale = 1;
@@ -84,6 +96,11 @@ export class GameRenderer {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.5, 0.55, 0.82);
     this.grade = new ShaderPass(GradeShader);
     this.composer.addPass(this.worldPass);
+    this.gtao = new GTAOPass(scene, cam as THREE.PerspectiveCamera, 512, 512);
+    this.gtao.output = GTAOPass.OUTPUT.Default;
+    this.gtao.updateGtaoMaterial({ radius: 1.1, distanceExponent: 1.5, thickness: 1.2, scale: 1.4, samples: 12, distanceFallOff: 1, screenSpaceRadius: false });
+    this.gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 5, radiusExponent: 1, rings: 2, samples: 12 });
+    this.composer.addPass(this.gtao);
     this.composer.addPass(this.viewPass);
     this.composer.addPass(this.bloom);
     this.composer.addPass(this.grade);
@@ -97,6 +114,7 @@ export class GameRenderer {
   setScenes(scene: THREE.Scene, cam: THREE.Camera) {
     this.worldPass.scene = scene;
     this.worldPass.camera = cam;
+    this.gtao.scene = scene;
   }
 
   setQuality(q: Quality) {
@@ -108,6 +126,7 @@ export class GameRenderer {
     this.renderer.shadowMap.enabled = this.shadows;
     this.bloom.enabled = q !== 'low';
     this.fxaa.enabled = q !== 'low';
+    this.gtao.enabled = q !== 'low';
     this.grade.uniforms.uAb.value = q === 'low' ? 0 : 0.004;
     this.resize();
   }

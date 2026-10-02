@@ -37,8 +37,19 @@ const WAVE: Spawn[] = [
 
 const RELAYS: [number, number][] = [[-48, 6], [-32, -26], [34, -70]];
 const LZ = new THREE.Vector3(-44, 0, -74);
+
+/** Split a zone's enemies into 3 manageable waves: grunts first, then mixed, heavy last. */
+function makeWaves(zone: number): Spawn[][] {
+  const L = SPAWNS.filter((s) => s.zone === zone);
+  const g = L.filter((s) => s.type === 'grunt'), r = L.filter((s) => s.type === 'rusher'), h = L.filter((s) => s.type === 'heavy');
+  const w1 = g.slice(0, Math.min(3, Math.ceil(g.length * 0.4)));
+  const w2 = [...g.slice(w1.length, w1.length + 3), ...r.slice(0, 1)];
+  const w3 = [...h, ...r.slice(1), ...g.slice(w1.length + 3)].slice(0, 5);
+  return [w1, w2, w3].filter((w) => w.length);
+}
+const ZONE_NAMES = ['OUTER YARD', 'COURTYARD', 'COMMAND YARD'];
 const STARTS: Start[] = [
-  { x: 0, z: 68, yaw: 0 }, { x: -34, z: 14, yaw: 0 }, { x: -10, z: -40, yaw: 0 }, { x: 20, z: -72, yaw: Math.PI * 0.5 },
+  { x: 0, z: 44, yaw: 0 }, { x: -34, z: 14, yaw: 0 }, { x: -10, z: -40, yaw: 0 }, { x: 20, z: -72, yaw: Math.PI * 0.5 },
 ];
 
 export class Mission1 implements Mission {
@@ -154,7 +165,7 @@ export class Mission1 implements Mission {
     b.sandbags(-36, -64, 5);
 
     const bounds = { minX: -76, maxX: 76, minZ: -100, maxZ: 80 };
-    const level = b.build(bounds, 0xa39d8e, 7);
+    const level = b.build(bounds, 0x74767c, 7, { wet: true });
     const sea = makeSea(500, 240, 0, 80 + 120, 0x07202e);
     level.group.add(sea);
     const sky = makeSky({ top: 0x01040a, horizon: 0x112a40, ground: 0x1c2a38, sunDir: new THREE.Vector3(-0.4, 0.5, -0.7), sunColor: 0xa8bcff, sunSize: 46, stars: true });
@@ -169,42 +180,57 @@ export class Mission1 implements Mission {
   start(game: Game, cp: number) {
     this.fired.clear(); this.relaysDown = Math.min(cp, 3); this.relays = []; this.heliT = -1; this.extractActive = false; this.done = false;
     game.stats.relays = this.relaysDown;
-    const zoneFrom = cp;
-    for (const s of SPAWNS) {
-      if (s.zone < zoneFrom) continue;
-      const e = game.spawnEnemyAt(s);
-      void e;
-    }
     RELAYS.forEach(([x, z], i) => {
       if (i < this.relaysDown) { game.addWreck(x, z); return; }
-      this.relays.push(game.addRelay(x, z, i));
+      const r = game.addRelay(x, z, i);
+      r.setShielded(!game.god);
+      this.relays.push(r);
     });
     for (const [x, z] of [[-38, 4], [-38, 5.4], [-37.2, 4.7], [27, -4], [28.2, -4.2], [38, -18], [37, -17], [-10, -22], [14, -12], [-18, -10], [-30, 12], [8, 18], [-14, -56], [6, -50], [30, -56], [24, -70]] as [number, number][]) {
       game.addBarrel(x, z);
     }
-    for (const [x, z] of [[-8, 54], [-38, 22], [26, 4], [-18, -12], [34, -42], [6, -50]] as [number, number][]) game.addAmmo(x, z);
+    for (const [x, z] of [[-8, 40], [-38, 22], [26, 4], [-18, -12], [34, -42], [6, -50]] as [number, number][]) game.addAmmo(x, z);
     game.heli.group.visible = true; game.heli.group.position.set(0, -600, 0);
     game.setObjectives(this.objectives());
-    if (cp === 0) game.setMarker(new THREE.Vector3(0, 0, 28)); else this.updateMarker(game);
-    if (cp === 0) game.radio(LINES.m1.start, 1.2);
-    else game.radio([{ who: 'GHOST-2', text: 'Checkpoint reached. Keep pushing, Wraith.' }], 0.8);
-    if (cp >= 3) this.beginExtraction(game, false);
+    game.setMarker(null);
     game.setMusic(0.15);
   }
 
+  /** Called when the player confirms the briefing. */
+  begin(game: Game, cp: number) {
+    if (cp >= 3) { this.beginExtraction(game, false); return; }
+    if (cp === 0) game.radio(LINES.m1.start, 1.2);
+    else game.radio([{ who: 'GHOST-2', text: 'Checkpoint reached. Next wave is coming. Hold your ground, Wraith.' }], 0.8);
+    this.startZone(game, cp, cp === 0 ? 9 : 5);
+  }
+
+  private startZone(game: Game, zone: number, delay: number) {
+    game.setMarker(null);
+    game.setObjectives(this.objectives());
+    game.startWaves(zone, makeWaves(zone), () => {
+      const relay = this.relays.find((r) => r.id === zone);
+      relay?.setShielded(false);
+      game.banner('RELAY SHIELD DOWN', 'DESTROY THE RELAY TOWER');
+      game.setMusic(0.2);
+      this.updateMarker(game);
+      game.setObjectives(this.objectives());
+    }, delay);
+  }
+
   private objectives() {
+    const done = this.relaysDown;
     return [
-      { text: 'Breach the compound', done: this.fired.has('inside') || this.relaysDown > 0 },
-      { text: `Destroy relay towers (${this.relaysDown}/3)`, done: this.relaysDown >= 3 },
-      { text: 'Reach the extraction zone', done: this.done },
+      { text: 'Clear the outer yard, destroy relay 1', done: done >= 1 },
+      { text: 'Clear the courtyard, destroy relay 2', done: done >= 2 },
+      { text: 'Clear the command yard, destroy relay 3', done: done >= 3 },
+      { text: 'Reach the helicopter', done: this.done },
     ];
   }
 
   private updateMarker(game: Game) {
     if (this.extractActive) { game.setMarker(LZ); return; }
-    const alive = this.relays.filter((r) => !r.destroyed);
+    const alive = this.relays.filter((r) => !r.destroyed && !r.shielded);
     if (!alive.length) { game.setMarker(null); return; }
-    if (!this.fired.has('inside') && this.relaysDown === 0) { game.setMarker(new THREE.Vector3(0, 0, 28)); return; }
     let best = alive[0], bd = Infinity;
     for (const r of alive) { const d = r.pos.distanceTo(game.player.pos); if (d < bd) { bd = d; best = r; } }
     game.setMarker(best.pos);
@@ -221,9 +247,7 @@ export class Mission1 implements Mission {
 
   update(dt: number, game: Game) {
     const p = game.player.pos;
-    this.once('gate', p.z < 52 && p.z > 30, () => game.radio(LINES.m1.gate));
-    this.once('inside', p.z < 26, () => { game.setObjectives(this.objectives()); this.updateMarker(game); game.banner('COMPOUND BREACHED', 'DESTROY THE RELAYS'); });
-    this.once('courtyard', p.z < -6 && this.relaysDown >= 1, () => game.radio(LINES.m1.courtyard));
+    this.once('courtyard', this.relaysDown >= 1 && game.wavesActive, () => game.radio(LINES.m1.courtyard));
     if (game.time % 1 < dt) this.updateMarker(game);
 
     if (this.extractActive) {
@@ -258,8 +282,8 @@ export class Mission1 implements Mission {
     game.banner('RELAY DESTROYED', `${this.relaysDown} OF 3`);
     audioObjective();
     this.updateMarker(game);
-    if (this.relaysDown === 1) game.radio(LINES.m1.relayA, 1.5);
-    else if (this.relaysDown === 2) game.radio(LINES.m1.relayB, 1.5);
+    if (this.relaysDown === 1) { game.radio(LINES.m1.relayA, 1.5); this.startZone(game, 1, 9); }
+    else if (this.relaysDown === 2) { game.radio(LINES.m1.relayB, 1.5); this.startZone(game, 2, 9); }
     else {
       game.radio(LINES.m1.relayC, 1.5);
       const tk = game.token;

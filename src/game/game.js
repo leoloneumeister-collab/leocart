@@ -19,13 +19,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // MSAA is wasted work on high-DPI screens, where the extra pixels already hide the jaggies
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.75, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
 
     this.audio = new AudioEngine();
     this.input = new Input();
     this.hud = new Hud(document.getElementById('hud'));
+    this.hud.onTick = () => this.audio.sfx('move', { gain: 0.5 });
     const uiRoot = document.getElementById('ui');
     this.nav = new Nav(uiRoot, { onSound: (n) => this.audio.sfx(n) });
     this.ui = new UI(uiRoot, { audio: this.audio, input: this.input, nav: this.nav });
@@ -67,6 +71,9 @@ export class Game {
     this.renderer.setSize(w, h, false);
     this.race?.resize(w, h);
     this.menu.resize(w, h);
+    // resizing clears the canvas; draw straight away so there is no blank flash
+    if (this.mode === 'race' && this.race) this.race.render();
+    else if (this.mode === 'menu') this.menu.render();
   }
 
   start() {
@@ -78,10 +85,12 @@ export class Game {
         trackId: quick,
         playerId: params.get('char') || 'nova',
         seed: Number(params.get('seed') || 1),
-        quick: true,
       });
     } else {
       this.showTitle();
+    }
+    if (window.matchMedia?.('(pointer: coarse)').matches && !navigator.getGamepads?.().some((p) => p)) {
+      setTimeout(() => this.ui.toast('Best played on desktop with a keyboard or gamepad', 4200), 800);
     }
     requestAnimationFrame((t) => this.frame(t));
   }
@@ -153,24 +162,38 @@ export class Game {
 
   // ------------------------------------------------------------------ cup
 
+  /** Player plus five random opponents out of the twelve racers. */
+  _pickField(playerId, seed) {
+    const rng = mulberry32(seed * 104729 + 17);
+    const others = CHARACTERS.filter((c) => c.id !== playerId).map((c) => c.id);
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    return [playerId, ...others.slice(0, 5)];
+  }
+
   startCup(charId) {
+    const field = this._pickField(charId, 1 + Math.floor(Math.random() * 100000));
     this.cup = {
       charId,
+      field,
       index: 0,
       tracks: TRACKS.map((t) => t.id),
-      totals: Object.fromEntries(CHARACTERS.map((c) => [c.id, 0])),
-      lastPlace: Object.fromEntries(CHARACTERS.map((c) => [c.id, 6])),
+      totals: Object.fromEntries(field.map((id) => [id, 0])),
+      lastPlace: Object.fromEntries(field.map((id) => [id, 6])),
     };
     this.beginRace({ trackId: this.cup.tracks[0], playerId: charId });
   }
 
   _gridOrder(playerId, seed) {
-    const rng = mulberry32(seed * 7919 + 3);
     if (this.cup && this.cup.index > 0) {
       // later cup races: the points leader starts at the front
-      return [...CHARACTERS].sort((a, b) => this.cup.totals[b.id] - this.cup.totals[a.id] || this.cup.lastPlace[a.id] - this.cup.lastPlace[b.id]).map((c) => c.id);
+      return [...this.cup.field].sort((a, b) => this.cup.totals[b] - this.cup.totals[a] || this.cup.lastPlace[a] - this.cup.lastPlace[b]);
     }
-    const others = CHARACTERS.filter((c) => c.id !== playerId).map((c) => c.id);
+    const field = this.cup ? this.cup.field : this._pickField(playerId, seed);
+    const rng = mulberry32(seed * 7919 + 3);
+    const others = field.filter((id) => id !== playerId);
     for (let i = others.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [others[i], others[j]] = [others[j], others[i]];
@@ -181,7 +204,7 @@ export class Game {
 
   // ------------------------------------------------------------------ race lifecycle
 
-  async beginRace({ trackId, playerId, seed, quick = false }) {
+  async beginRace({ trackId, playerId, seed }) {
     if (this.busy) return;
     this.busy = true;
     this.lastRaceArgs = { trackId, playerId, seed };
@@ -205,8 +228,6 @@ export class Game {
       this.ui.clear();
       this.audio.startMusic(THEMES[trackId].music);
       this.audio.startEngines(this.race.karts, this.race.karts.indexOf(this.race.player));
-      this.cupIndexForRace = this.cup ? this.cup.index : null;
-      if (quick) this.race.quick = true;
     });
     this.busy = false;
   }
@@ -306,7 +327,7 @@ export class Game {
   }
 
   showCupFinal() {
-    const standings = CHARACTERS.map((c) => ({ char: c, points: this.cup.totals[c.id] })).sort(
+    const standings = this.cup.field.map((id) => ({ char: CHARACTER_BY_ID[id], points: this.cup.totals[id] })).sort(
       (a, b) => b.points - a.points || this.cup.lastPlace[a.char.id] - this.cup.lastPlace[b.char.id],
     );
     const order = standings.map((s) => CHARACTERS.indexOf(s.char));
@@ -371,7 +392,7 @@ export class Game {
   /** Fast-forward the simulation without rendering. Used by the end-to-end tests. */
   advance(seconds, input = null) {
     const step = 1 / 60;
-    for (let t = 0; t < seconds; t += step) this.race?.update(step, input || this.input.poll());
+    for (let t = 0; t < seconds; t += step) this.race?.update(step, input || this.input.poll(step));
     if (this.race) this.hud.update(seconds);
   }
 
@@ -401,11 +422,13 @@ export class Game {
     const dtMs = now - this.last;
     const dt = Math.min(0.1, dtMs / 1000);
     this.last = now;
-    const input = this.input.poll();
+    const input = this.input.poll(dt);
 
     if (this.mode === 'race' && this.race) {
       if (input.pause && this.race.state !== 'done' && !this.busy) this.pause(!this.paused);
-      if (!this.paused) {
+      if (this.manual) {
+        // media capture: the script steps the simulation itself, we only draw
+      } else if (!this.paused) {
         if (this.race.state === 'finished' && input.item) this.race.forceDone();
         this.race.update(dt, input);
         this.hud.update(dt);

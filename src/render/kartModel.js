@@ -154,6 +154,81 @@ function buildDriver(ch) {
       body.push(sph(c.body, 0.45, 0.5, 0.4, [0, 1.3, -0.35]));
       break;
     }
+    case 'pip': {
+      head.push(sph(c.body, 0.5, 0.47, 0.48));
+      head.push(sph(c.accent, 0.36, 0.34, 0.2, [0, -0.04, 0.34]));
+      eye(0.15, 0.1, 0.5, 0.1);
+      eye(-0.15, 0.1, 0.5, 0.1);
+      head.push(cone(0xffa31a, 0.12, 0.3, [0, -0.1, 0.68], [HALF_PI, 0, 0]));
+      for (const s of [-1, 1]) body.push(box(c.body, 0.12, 0.6, 0.4, [s * 0.5, 1.25, -0.2], [0, 0, -s * 0.5]));
+      body.push(sph(c.accent, 0.3, 0.42, 0.12, [0, 1.3, 0.05]));
+      break;
+    }
+    case 'hopper': {
+      head.push(sph(c.body, 0.56, 0.4, 0.5));
+      for (const s of [-1, 1]) {
+        head.push(sph(c.body, 0.2, 0.2, 0.2, [s * 0.28, 0.4, 0.15]));
+        head.push(sph(0xffffff, 0.15, 0.15, 0.12, [s * 0.28, 0.42, 0.28]));
+        head.push(sph(0x1b1b1b, 0.08, 0.08, 0.06, [s * 0.28, 0.42, 0.37]));
+        head.push(sph(0xff8fa3, 0.09, 0.07, 0.04, [s * 0.4, -0.1, 0.42]));
+      }
+      head.push(box(0x2b6a2b, 0.5, 0.05, 0.1, [0, -0.15, 0.47]));
+      body.push(sph(c.accent, 0.4, 0.45, 0.2, [0, 1.25, 0.0]));
+      break;
+    }
+    case 'kiko': {
+      head.push(sph(c.body, 0.54, 0.48, 0.5));
+      for (const s of [-1, 1]) {
+        head.push(sph(c.accent, 0.17, 0.17, 0.12, [s * 0.4, 0.42, -0.05]));
+        head.push(sph(c.accent, 0.15, 0.2, 0.08, [s * 0.2, 0.08, 0.44], [0, 0, -s * 0.5]));
+        head.push(sph(0xffffff, 0.05, 0.05, 0.04, [s * 0.2, 0.1, 0.5]));
+      }
+      head.push(sph(c.body, 0.2, 0.14, 0.16, [0, -0.13, 0.42]));
+      head.push(sph(c.accent, 0.07, 0.05, 0.05, [0, -0.07, 0.56]));
+      body.push(sph(c.body, 0.5, 0.52, 0.42, [0, 1.3, -0.35]));
+      break;
+    }
+    case 'rusty': {
+      head.push(sph(c.body, 0.52, 0.45, 0.5));
+      head.push(box(c.accent, 0.86, 0.2, 0.2, [0, 0.08, 0.38]));
+      head.push(sph(0xe8e8ee, 0.2, 0.16, 0.22, [0, -0.12, 0.4]));
+      head.push(sph(0x1b1b1b, 0.07, 0.06, 0.06, [0, -0.07, 0.6]));
+      for (const s of [-1, 1]) {
+        eye(s * 0.2, 0.09, 0.5, 0.08);
+        head.push(cone(c.body, 0.16, 0.3, [s * 0.34, 0.48, -0.02], [0, 0, -s * 0.2]));
+      }
+      for (let i = 0; i < 4; i++) body.push(sph(i % 2 ? c.accent : c.body, 0.26 - i * 0.02, 0.26 - i * 0.02, 0.3, [0, 0.9 + i * 0.07, -0.9 - i * 0.28]));
+      break;
+    }
+    case 'zed': {
+      head.push(sph(c.body, 0.46, 0.58, 0.46));
+      for (const s of [-1, 1]) {
+        head.push(sph(0x14101f, 0.19, 0.28, 0.1, [s * 0.2, 0.06, 0.4], [0, 0, -s * 0.5]));
+        head.push(sph(0xffffff, 0.05, 0.07, 0.03, [s * 0.15, 0.14, 0.48]));
+        head.push(cyl(0x7a8a3a, 0.025, 0.4, [s * 0.18, 0.78, 0], [0, 0, -s * 0.3]));
+        head.push(sph(c.accent, 0.09, 0.09, 0.09, [s * 0.26, 0.98, 0]));
+      }
+      head.push(box(0x14101f, 0.14, 0.03, 0.04, [0, -0.25, 0.43]));
+      body.push(cyl(c.accent, 0.36, 0.6, [0, 1.3, -0.25], [-0.15, 0, 0], 0.42));
+      break;
+    }
+    case 'sol': {
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        head.push(sph(c.accent, 0.2, 0.2, 0.2, [Math.cos(a) * 0.52, Math.sin(a) * 0.5, -0.12]));
+      }
+      head.push(sph(c.accent, 0.56, 0.54, 0.3, [0, 0, -0.12]));
+      head.push(sph(c.body, 0.46, 0.43, 0.44, [0, 0, 0.1]));
+      head.push(sph(0xfff0c8, 0.22, 0.16, 0.2, [0, -0.13, 0.46]));
+      head.push(sph(0x3a1b10, 0.08, 0.06, 0.06, [0, -0.04, 0.64]));
+      for (const s of [-1, 1]) {
+        eye(s * 0.19, 0.1, 0.44, 0.09, 0x6b3a10);
+        head.push(sph(c.body, 0.12, 0.12, 0.08, [s * 0.34, 0.36, 0.05]));
+      }
+      body.push(cone(c.body, 0.2, 0.9, [0, 0.9, -1.0], [-1.1, 0, 0]));
+      body.push(sph(c.accent, 0.2, 0.2, 0.2, [0, 0.62, -1.4]));
+      break;
+    }
     default:
       head.push(sph(c.body, 0.5));
   }
@@ -163,13 +238,13 @@ function buildDriver(ch) {
 const glowTex = { v: null };
 
 export class KartModel {
-  constructor(character, { shadowTexture } = {}) {
+  constructor(character, { shadowTexture, envMap } = {}) {
     this.char = character;
     this.root = new THREE.Group();
     this.tilt = new THREE.Group();
     this.root.add(this.tilt);
 
-    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.12, envMap: envMap || null, envMapIntensity: 0.9 });
     this.mat = mat;
     const chassis = new THREE.Mesh(buildChassis(character.colors), mat);
     chassis.castShadow = true;
@@ -208,10 +283,22 @@ export class KartModel {
 
     // effects
     if (!glowTex.v) glowTex.v = glowTexture('rgba(255,255,255,1)');
-    this.shieldMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(2.3, 20, 14),
-      new THREE.MeshBasicMaterial({ color: 0x66e6ff, transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }),
-    );
+    this.shieldMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uAlpha: { value: 1 } },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: `varying vec3 vN; varying vec3 vV;
+        void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform float uTime; uniform float uAlpha; varying vec3 vN; varying vec3 vV;
+        void main() {
+          float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
+          float bands = 0.5 + 0.5 * sin(vN.y * 16.0 + uTime * 3.0);
+          float a = (0.07 + f * 0.9 + bands * 0.07) * uAlpha;
+          gl_FragColor = vec4(vec3(0.3, 0.85, 1.0) + f * 0.45, a);
+        }`,
+    });
+    this.shieldMesh = new THREE.Mesh(new THREE.SphereGeometry(2.3, 24, 16), this.shieldMat);
     this.shieldMesh.position.y = 1.1;
     this.shieldMesh.visible = false;
     this.tilt.add(this.shieldMesh);
@@ -288,8 +375,8 @@ export class KartModel {
 
     this.shieldMesh.visible = kart.shield > 0;
     if (kart.shield > 0) {
-      const flicker = kart.shield < 2 ? (Math.sin(time * 30) > 0 ? 1 : 0.4) : 1;
-      this.shieldMesh.material.opacity = 0.22 * flicker + Math.sin(time * 6) * 0.04;
+      this.shieldMat.uniforms.uTime.value = time;
+      this.shieldMat.uniforms.uAlpha.value = kart.shield < 2 ? (Math.sin(time * 30) > 0 ? 1 : 0.3) : 1;
       this.shieldMesh.scale.setScalar(1 + Math.sin(time * 5) * 0.03);
     }
     const boosting = kart.boostTimer > 0 || kart.comet > 0;

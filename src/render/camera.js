@@ -4,8 +4,6 @@ import * as THREE from 'three';
 import { clamp, damp, dampAngle, lerp, lerpAngle, smoothstep } from '../util/math.js';
 import { settings } from '../game/settings.js';
 
-const UP = new THREE.Vector3(0, 1, 0);
-
 export class ChaseCamera {
   constructor(camera) {
     this.camera = camera;

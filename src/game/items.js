@@ -51,7 +51,7 @@ export function rollItem(place, rng = Math.random) {
 }
 
 const BOX_RESPAWN = 4;
-const BOX_RADIUS = 2.3;
+const BOX_RADIUS = 3.9;
 
 export class ItemSystem {
   constructor(race) {
@@ -68,29 +68,41 @@ export class ItemSystem {
   _build() {
     const t = this.track;
     for (const row of t.itemRows) {
-      const spacing = Math.min(4.6, (t.w[row.i] * 0.78) / Math.max(1, row.count - 1 || 1));
+      const spacing = Math.min(6.4, (t.w[row.i] * 0.8) / Math.max(1, row.count - 1 || 1));
       for (let k = 0; k < row.count; k++) {
         const lat = (k - (row.count - 1) / 2) * spacing;
         const p = posAt(t, row.s, lat);
-        this.boxes.push({ x: p.x, z: p.z, active: true, timer: 0, phase: Math.random() * 6, hue: Math.random() });
+        this.boxes.push({ x: p.x, z: p.z, active: true, timer: 0, phase: Math.random() * 6, hue: Math.random(), scale: 1 });
       }
     }
     const n = this.boxes.length;
     const tex = itemBoxTexture();
     this.shells = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1.9, 1.9, 1.9),
+      new THREE.BoxGeometry(3.3, 3.3, 3.3),
       new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.85, depthWrite: false }),
       Math.max(1, n),
     );
     this.shells.renderOrder = 5;
     this.cores = new THREE.InstancedMesh(
-      new THREE.OctahedronGeometry(0.55),
+      new THREE.OctahedronGeometry(0.95),
       new THREE.MeshBasicMaterial({ color: 0xffffff }),
       Math.max(1, n),
     );
     this.shells.frustumCulled = false;
     this.cores.frustumCulled = false;
-    this.scene.add(this.shells, this.cores);
+    this.boxTex = tex;
+    this.glowPos = new Float32Array(Math.max(1, n) * 3);
+    this.glowCol = new Float32Array(Math.max(1, n) * 3);
+    this.glowGeo = new THREE.BufferGeometry();
+    this.glowGeo.setAttribute('position', new THREE.BufferAttribute(this.glowPos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.glowGeo.setAttribute('color', new THREE.BufferAttribute(this.glowCol, 3).setUsage(THREE.DynamicDrawUsage));
+    this.glowTex = glowTexture('rgba(255,255,255,1)');
+    this.glow = new THREE.Points(
+      this.glowGeo,
+      new THREE.PointsMaterial({ map: this.glowTex, size: 13, vertexColors: true, transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending }),
+    );
+    this.glow.frustumCulled = false;
+    this.scene.add(this.shells, this.cores, this.glow);
     this._d = new THREE.Object3D();
     this._col = new THREE.Color();
 
@@ -111,11 +123,14 @@ export class ItemSystem {
       box(0xff4a3a, 0.08, 0.9, 0.5, [0, 0, -0.7]),
     ]);
     this.seekerMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-    this.glowTex = glowTexture('rgba(255,255,255,1)');
   }
 
   dispose() {
-    this.scene.remove(this.shells, this.cores);
+    this.scene.remove(this.shells, this.cores, this.glow);
+    this.glowGeo.dispose();
+    this.glow.material.dispose();
+    this.glowTex.dispose();
+    this.boxTex.dispose();
     this.shells.geometry.dispose();
     this.cores.geometry.dispose();
     this.shells.material.dispose();
@@ -165,21 +180,31 @@ export class ItemSystem {
           }
         }
       }
-      const s = b.active ? 1 : Math.max(0, 1 - b.timer * 4) * 0 + (b.timer < 0.5 && !b.active ? (0.5 - b.timer) * 2 : 0);
-      d.position.set(b.x, 1.6 + Math.sin(this.time * 2.2 + b.phase) * 0.22, b.z);
+      b.scale += ((b.active ? 1 : 0) - b.scale) * Math.min(1, dt * 10);
+      const s = b.scale;
+      d.position.set(b.x, 2.4 + Math.sin(this.time * 2.2 + b.phase) * 0.22, b.z);
       d.rotation.set(0, this.time * 1.1 + b.phase, 0);
-      d.scale.setScalar(Math.max(0.0001, b.active ? 1 : s));
+      d.scale.setScalar(Math.max(0.0001, s));
       d.updateMatrix();
       this.shells.setMatrixAt(i, d.matrix);
       c.setHSL((b.hue + this.time * 0.25) % 1, 0.9, 0.58);
       this.shells.setColorAt(i, c);
       d.rotation.set(this.time * 1.7, -this.time * 1.3, 0);
-      d.scale.setScalar(Math.max(0.0001, b.active ? 1 : s));
+      d.scale.setScalar(Math.max(0.0001, s));
       d.updateMatrix();
       this.cores.setMatrixAt(i, d.matrix);
+      // glow halo so boxes read from far away, especially at night
+      this.glowPos[i * 3] = b.x;
+      this.glowPos[i * 3 + 1] = s > 0.2 ? 2.4 + Math.sin(this.time * 2.2 + b.phase) * 0.22 : -50;
+      this.glowPos[i * 3 + 2] = b.z;
+      this.glowCol[i * 3] = c.r;
+      this.glowCol[i * 3 + 1] = c.g;
+      this.glowCol[i * 3 + 2] = c.b;
     }
     this.shells.instanceMatrix.needsUpdate = true;
     this.cores.instanceMatrix.needsUpdate = true;
+    this.glowGeo.attributes.position.needsUpdate = true;
+    this.glowGeo.attributes.color.needsUpdate = true;
     if (this.shells.instanceColor) this.shells.instanceColor.needsUpdate = true;
 
     // item roulette timers
@@ -204,8 +229,6 @@ export class ItemSystem {
     const it = kart.item;
     if (!it || !it.ready || kart.itemCool > 0 || kart.spin > 0 || kart.comet > 0) return false;
     const race = this.race;
-    const fx = Math.sin(kart.h);
-    const fz = Math.cos(kart.h);
     let used = true;
     switch (it.id) {
       case 'bolt':

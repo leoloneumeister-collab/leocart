@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { AABB, SurfaceKind, makeBox } from '../collision';
 import { NavGrid } from '../nav';
 import { makeCanvas, mulberry32 } from '../../engine/util';
+import { TexKind, getTexSet, makeStandardMaterial } from '../../engine/texgen';
 
 export interface LampDef { pos: THREE.Vector3; color: number; intensity: number; flicker: boolean; mesh?: THREE.Mesh }
 export interface Level {
@@ -14,60 +15,16 @@ export interface Level {
 }
 
 export interface Opening { side: 'n' | 's' | 'e' | 'w'; at: number; width: number; sill?: number; top?: number }
-export interface BoxOpts { kind?: SurfaceKind; collide?: boolean; metal?: boolean; tint?: number; uv?: number }
+export interface BoxOpts { kind?: SurfaceKind; collide?: boolean; metal?: boolean; mat?: TexKind; tint?: number; uv?: number }
 
-function detailTexture(kind: 'concrete' | 'metal' | 'ground', seed: number) {
-  const rng = mulberry32(seed);
-  const S = 256;
-  const cv = makeCanvas(S, S);
-  const g = cv.getContext('2d')!;
-  const base = kind === 'ground' ? 150 : kind === 'metal' ? 236 : 220;
-  g.fillStyle = `rgb(${base},${base},${base})`;
-  g.fillRect(0, 0, S, S);
-  for (let i = 0; i < (kind === 'ground' ? 5000 : 2600); i++) {
-    const v = Math.floor(rng() * 255);
-    g.fillStyle = `rgba(${v},${v},${v},${0.04 + rng() * 0.1})`;
-    const s = rng() * 3 + 0.5;
-    g.fillRect(rng() * S, rng() * S, s, s);
-  }
-  for (let i = 0; i < 6; i++) {
-    const x = rng() * S, y = rng() * S, r = 30 + rng() * 70;
-    const grd = g.createRadialGradient(x, y, 1, x, y, r);
-    grd.addColorStop(0, 'rgba(0,0,0,0.10)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = grd; g.fillRect(0, 0, S, S);
-  }
-  if (kind === 'metal') {
-    for (let x = 0; x < S; x += 8) {
-      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x, 0, 2, S);
-      g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(x + 2, 0, 1, S);
-    }
-  } else if (kind === 'concrete') {
-    g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 3;
-    g.strokeRect(0, 0, S, S);
-    g.beginPath(); g.moveTo(0, S / 2); g.lineTo(S, S / 2); g.lineWidth = 1.2; g.stroke();
-  } else {
-    // asphalt cracks
-    g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 1;
-    for (let i = 0; i < 6; i++) {
-      g.beginPath(); let x = rng() * S, y = rng() * S; g.moveTo(x, y);
-      for (let k = 0; k < 8; k++) { x += (rng() - 0.5) * 40; y += (rng() - 0.5) * 40; g.lineTo(x, y); }
-      g.stroke();
-    }
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
-}
+const TILE: Record<TexKind, number> = { concrete: 2.8, brick: 1.0, corrugated: 1.0, paint: 2.0, wood: 1.0, fabric: 0.5, asphalt: 4 };
 
 export class LevelBuilder {
   boxes: AABB[] = [];
   lamps: LampDef[] = [];
   group = new THREE.Group();
   rng: () => number;
-  private rough: THREE.BufferGeometry[] = [];
-  private metal: THREE.BufferGeometry[] = [];
+  private buckets = new Map<TexKind, THREE.BufferGeometry[]>();
   private glow: THREE.BufferGeometry[] = [];
   private tmpColor = new THREE.Color();
 
@@ -100,9 +57,12 @@ export class LevelBuilder {
     const geo = new THREE.BoxGeometry(w, h, d);
     geo.translate(cx, y0 + h / 2, cz);
     const tint = o.tint ?? 0.9 + this.rng() * 0.18;
-    this.prep(geo, y0, color, tint, o.uv ?? 0.36, h);
-    (o.metal ? this.metal : this.rough).push(geo);
-    if (o.collide !== false) this.boxes.push(makeBox(cx, y0, cz, w, h, d, o.kind ?? (o.metal ? 'metal' : 'concrete')));
+    const mk: TexKind = o.mat ?? (o.metal ? 'paint' : 'concrete');
+    this.prep(geo, y0, color, tint, o.uv ?? 1 / TILE[mk], h);
+    let list = this.buckets.get(mk);
+    if (!list) { list = []; this.buckets.set(mk, list); }
+    list.push(geo);
+    if (o.collide !== false) this.boxes.push(makeBox(cx, y0, cz, w, h, d, o.kind ?? (mk === 'wood' ? 'wood' : mk === 'concrete' || mk === 'brick' || mk === 'asphalt' ? 'concrete' : mk === 'fabric' ? 'dirt' : 'metal')));
   }
 
   /** Emissive box (no collision) used for lights, signs, strips. */
@@ -130,14 +90,14 @@ export class LevelBuilder {
   }
 
   // ------------------------------------------------------------ structures
-  wallRect(cx: number, cz: number, w: number, d: number, h: number, t: number, openings: Opening[], color: number, o: { roof?: boolean; y0?: number; roofColor?: number; metal?: boolean } = {}) {
+  wallRect(cx: number, cz: number, w: number, d: number, h: number, t: number, openings: Opening[], color: number, o: { roof?: boolean; y0?: number; roofColor?: number; metal?: boolean; mat?: TexKind } = {}) {
     const y0 = o.y0 ?? 0;
     const metal = o.metal ?? false;
     const seg = (a: number, b: number, fixed: number, alongX: boolean, ya: number, yb: number) => {
       if (b - a < 0.05 || yb - ya < 0.05) return;
       const mid = (a + b) / 2, len = b - a;
-      if (alongX) this.box(mid, y0 + ya, fixed, len, yb - ya, t, color, { metal });
-      else this.box(fixed, y0 + ya, mid, t, yb - ya, len, color, { metal });
+      if (alongX) this.box(mid, y0 + ya, fixed, len, yb - ya, t, color, { metal, mat: o.mat });
+      else this.box(fixed, y0 + ya, mid, t, yb - ya, len, color, { metal, mat: o.mat });
     };
     const sides: Record<string, { alongX: boolean; fixed: number; from: number; to: number; center: number }> = {
       n: { alongX: true, fixed: cz - d / 2 + t / 2, from: cx - w / 2, to: cx + w / 2, center: cx },
@@ -182,7 +142,7 @@ export class LevelBuilder {
   }
 
   crate(x: number, z: number, s = 1, color = 0x6b5436, y0 = 0) {
-    this.box(x, y0, z, s, s, s, color, { kind: 'wood', tint: 0.85 + this.rng() * 0.3 });
+    this.box(x, y0, z, s, s, s, color, { mat: 'wood', tint: 0.85 + this.rng() * 0.3 });
     this.deco(x, y0 + s * 0.46, z, s * 1.02, s * 0.08, s * 1.02, 0x2a2118);
     this.deco(x, y0 + s * 0.02, z, s * 1.02, s * 0.08, s * 1.02, 0x2a2118);
   }
@@ -196,11 +156,11 @@ export class LevelBuilder {
   container(x: number, z: number, alongX = true, color = 0x8a3b2a, stacked = false) {
     const L = 6.1, W = 2.45, H = 2.6;
     const w = alongX ? L : W, d = alongX ? W : L;
-    this.box(x, 0, z, w, H, d, color, { metal: true, tint: 0.85 + this.rng() * 0.3 });
+    this.box(x, 0, z, w, H, d, color, { mat: 'corrugated', tint: 0.85 + this.rng() * 0.3 });
     // door end frame stripes
     this.deco(x, 0.05, z, w + 0.04, 0.1, d + 0.04, 0x222222, true);
     this.deco(x, H - 0.1, z, w + 0.04, 0.1, d + 0.04, 0x222222, true);
-    if (stacked) this.box(x + (alongX ? 0.4 : 0), H, z + (alongX ? 0 : 0.4), w, H, d, 0x3d5a70, { metal: true });
+    if (stacked) this.box(x + (alongX ? 0.4 : 0), H, z + (alongX ? 0 : 0.4), w, H, d, 0x3d5a70, { mat: 'corrugated' });
   }
 
   truck(x: number, z: number, alongX = true, color = 0x3d4a3a) {
@@ -239,8 +199,8 @@ export class LevelBuilder {
 
   sandbags(x: number, z: number, len = 3, alongX = true) {
     const w = alongX ? len : 0.8, d = alongX ? 0.8 : len;
-    this.box(x, 0, z, w, 0.55, d, 0x8a7d5c, { kind: 'dirt' });
-    this.box(x, 0.55, z, w * 0.88, 0.45, d * 0.88, 0x8f8260, { kind: 'dirt' });
+    this.box(x, 0, z, w, 0.55, d, 0x8a7d5c, { mat: 'fabric' });
+    this.box(x, 0.55, z, w * 0.88, 0.45, d * 0.88, 0x8f8260, { mat: 'fabric' });
   }
 
   stairs(x: number, z: number, dir: 'n' | 's' | 'e' | 'w', steps: number, width: number, rise = 0.32, run = 0.5, color = 0x5a5f63) {
@@ -349,30 +309,26 @@ export class LevelBuilder {
   }
 
   // ------------------------------------------------------------ finalise
-  build(bounds: { minX: number; maxX: number; minZ: number; maxZ: number }, groundTint: number, concretePattern = 7): Level {
-    const detailC = detailTexture('concrete', concretePattern);
-    const detailM = detailTexture('metal', concretePattern + 1);
-    const addMerged = (geos: THREE.BufferGeometry[], mat: THREE.Material, shadow = true) => {
-      if (!geos.length) return;
+  build(bounds: { minX: number; maxX: number; minZ: number; maxZ: number }, groundTint: number, _seed = 7, opts: { wet?: boolean } = {}): Level {
+    for (const [kind, geos] of this.buckets) {
+      if (!geos.length) continue;
       const merged = mergeGeometries(geos, false);
-      const mesh = new THREE.Mesh(merged, mat);
-      mesh.castShadow = shadow; mesh.receiveShadow = shadow;
+      const mesh = new THREE.Mesh(merged, makeStandardMaterial(kind));
+      mesh.castShadow = true; mesh.receiveShadow = true;
       this.group.add(mesh);
-    };
-    addMerged(this.rough, new THREE.MeshStandardMaterial({ vertexColors: true, map: detailC, roughness: 0.9, metalness: 0.04 }));
-    addMerged(this.metal, new THREE.MeshStandardMaterial({ vertexColors: true, map: detailM, roughness: 0.62, metalness: 0.1 }));
+    }
     if (this.glow.length) {
       const merged = mergeGeometries(this.glow, false);
       this.group.add(new THREE.Mesh(merged, new THREE.MeshBasicMaterial({ vertexColors: true })));
     }
     // ground
-    const gt = detailTexture('ground', concretePattern + 2);
+    const gts = getTexSet('asphalt', { wet: opts.wet });
     const gw = bounds.maxX - bounds.minX + 160, gd = bounds.maxZ - bounds.minZ + 160;
-    gt.repeat.set(gw / 6, gd / 6);
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(gw, gd),
-      new THREE.MeshStandardMaterial({ map: gt, color: groundTint, roughness: 0.92, metalness: 0.02 }),
-    );
+    for (const t of [gts.map, gts.normalMap, gts.ormMap]) t.repeat.set(gw / 4, gd / 4);
+    const gm = makeStandardMaterial('asphalt', { vertexColors: false, wet: opts.wet });
+    gm.color.setHex(groundTint);
+    gm.envMapIntensity = opts.wet ? 0.3 : 0.6;
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(gw, gd), gm);
     ground.rotation.x = -Math.PI / 2;
     ground.position.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
     ground.receiveShadow = true;

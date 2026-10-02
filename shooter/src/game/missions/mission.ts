@@ -34,6 +34,7 @@ export interface Mission {
   buildLevel(): LevelSetup;
   startFor(cp: number): Start;
   start(game: Game, cp: number): void;
+  begin(game: Game, cp: number): void;
   update(dt: number, game: Game): void;
   onRelayDestroyed?(r: Relay, game: Game): void;
   onEnemyKilled?(e: Enemy, game: Game): void;

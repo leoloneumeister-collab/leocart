@@ -11,7 +11,8 @@ const ev = (f, a) => page.evaluate(f, a);
 const st = () => ev(() => { const g = window.__game; const b = g.enemies.find((e) => e.type === 'boss'); return { state: g.state, cp: g.cp, boss: b && { hp: Math.round(b.hp), ph: b.phase, aware: b.aware, dead: b.dead }, alive: g.enemies.filter((e) => !e.dead).length, gren: g.grenades.length }; });
 console.log('start', JSON.stringify(await st()));
 await ev(() => { const g = window.__game; g.player.pos.set(0, 0, -72); g.player.yaw = 0; g.player.pitch = 0.0; });
-await page.waitForTimeout(3500);
+for (let i = 0; i < 3; i++) { await ev(() => window.__game.debugClearWave()); await page.waitForTimeout(2500); }
+await page.waitForTimeout(1500);
 await page.screenshot({ path: 'tests/shots/boss-1.png' });
 console.log('arena', JSON.stringify(await st()));
 await ev(() => { const g = window.__game; const b = g.enemies.find((e) => e.type === 'boss'); b.hp = b.maxHp * 0.6; b.checkPhase(g); });

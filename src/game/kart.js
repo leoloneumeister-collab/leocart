@@ -13,9 +13,9 @@ export const KART_RADIUS = 1.15;
 
 /** Drift charge thresholds in seconds of drifting and the boost each one pays out. */
 export const DRIFT_LEVELS = [
-  { t: 0.85, duration: 0.55, name: 'blue', color: 0x4aa8ff },
-  { t: 1.8, duration: 0.95, name: 'orange', color: 0xffa21f },
-  { t: 2.9, duration: 1.5, name: 'purple', color: 0xd24dff },
+  { t: 0.6, duration: 0.6, name: 'blue', color: 0x4aa8ff },
+  { t: 1.3, duration: 1.0, name: 'orange', color: 0xffa21f },
+  { t: 2.1, duration: 1.5, name: 'purple', color: 0xd24dff },
 ];
 
 export const SURFACE = { road: 1, dirt: 0.82 };
@@ -65,6 +65,7 @@ export class Kart {
     this.airY = 0;
     this.airV = 0;
     this.rubber = 1;
+    this.assist = 0;
     this.bumpCool = 0;
 
     // inventory
@@ -167,7 +168,6 @@ export class Kart {
   update(dt, world) {
     const st = this.stats;
     const c = this.controls;
-    const track = this.track;
 
     this.invuln = Math.max(0, this.invuln - dt);
     this.boostTimer = Math.max(0, this.boostTimer - dt);
@@ -218,13 +218,13 @@ export class Kart {
     // ---- drift state machine ----
     const pressed = driftKey && !this.driftKeyPrev;
     this.driftKeyPrev = driftKey;
-    if (pressed && speedAbs > 11 && !this.drifting && this.airY < 0.05) {
+    if (pressed && speedAbs > 8 && !this.drifting && this.airY < 0.05) {
       this.driftArm = true;
       this.hopT = 0.26;
       this.airV = Math.max(this.airV, 5.2);
     }
     if (!driftKey) this.driftArm = false;
-    if (this.driftArm && !this.drifting && Math.abs(this.steer) > 0.25) {
+    if (this.driftArm && !this.drifting && Math.abs(this.steer) > 0.15) {
       this.drifting = true;
       this.driftArm = false;
       this.driftDir = this.steer > 0 ? -1 : 1; // heading increases to the left
@@ -254,8 +254,15 @@ export class Kart {
     }
 
     // ---- steering ----
-    const steerAuth = clamp(speedAbs / 6, 0, 1) * (1 - 0.3 * clamp(speedAbs / st.vmax, 0, 1));
-    const turnLeft = -this.steer;
+    const steerAuth = clamp(speedAbs / 6, 0, 1) * (1 - 0.12 * clamp(speedAbs / st.vmax, 0, 1));
+    let turnLeft = -this.steer;
+    // Driving assist: with little steering input, gently follow the road and drift back towards its middle.
+    if (this.assist > 0 && !this.drifting && !spinning && this.speed > 6 && this.comet <= 0) {
+      const i = this.probe.idx;
+      const hErr = wrapPi(this.track.hd[i] - this.h);
+      const pull = clamp(hErr * 1.6 + this.probe.lat * 0.02, -0.5, 0.5);
+      turnLeft += pull * this.assist * (1 - clamp(Math.abs(this.steer) * 1.5, 0, 1));
+    }
     let dh;
     if (this.drifting) {
       const toward = turnLeft * this.driftDir;
@@ -346,7 +353,7 @@ export class Kart {
     if (vN > 0) {
       this.vx -= 1.25 * vN * ox;
       this.vz -= 1.25 * vN * oz;
-      const keep = 1 - clamp(vN * 0.012, 0, 0.3) / (0.6 + this.stats.mass * 0.4);
+      const keep = 1 - clamp(vN * 0.008, 0, 0.18) / (0.6 + this.stats.mass * 0.4);
       this.vx *= keep;
       this.vz *= keep;
       if (vN > 5 && this.bumpCool <= 0) {
@@ -422,23 +429,51 @@ export class Kart {
   }
 }
 
+// Karts are longer than they are wide, so each one is two overlapping circles (nose and tail).
+const BODY_R = 1.05;
+const BODY_OFF = 0.95;
+
 /** Resolve kart-vs-kart overlap with mass-weighted impulses. Returns true on contact. */
 export function collideKarts(a, b, world) {
-  const dx = b.x - a.x;
-  const dz = b.z - a.z;
-  const min = KART_RADIUS * 2;
-  const d2 = dx * dx + dz * dz;
-  if (d2 >= min * min || d2 < 1e-6) return false;
-  const d = Math.sqrt(d2);
-  const nx = dx / d;
-  const nz = dz / d;
+  const gx = a.x - b.x;
+  const gz = a.z - b.z;
+  const far = 2 * (BODY_R + BODY_OFF) + 0.5;
+  if (gx * gx + gz * gz > far * far) return false;
+  const afx = Math.sin(a.h);
+  const afz = Math.cos(a.h);
+  const bfx = Math.sin(b.h);
+  const bfz = Math.cos(b.h);
+  let best = 0;
+  let bnx = 0;
+  let bnz = 0;
+  const min = BODY_R * 2;
+  for (const sa of [BODY_OFF, -BODY_OFF]) {
+    const ax = a.x + afx * sa;
+    const az = a.z + afz * sa;
+    for (const sb of [BODY_OFF, -BODY_OFF]) {
+      const dx = b.x + bfx * sb - ax;
+      const dz = b.z + bfz * sb - az;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < min * min && d2 > 1e-8) {
+        const d = Math.sqrt(d2);
+        const overlap = min - d;
+        if (overlap > best) {
+          best = overlap;
+          bnx = dx / d;
+          bnz = dz / d;
+        }
+      }
+    }
+  }
+  if (best <= 0) return false;
+  const nx = bnx;
+  const nz = bnz;
   const ma = a.stats.mass * (a.comet > 0 ? 3 : 1);
   const mb = b.stats.mass * (b.comet > 0 ? 3 : 1);
-  const overlap = min - d;
-  a.x -= nx * overlap * (mb / (ma + mb));
-  a.z -= nz * overlap * (mb / (ma + mb));
-  b.x += nx * overlap * (ma / (ma + mb));
-  b.z += nz * overlap * (ma / (ma + mb));
+  a.x -= nx * best * (mb / (ma + mb));
+  a.z -= nz * best * (mb / (ma + mb));
+  b.x += nx * best * (ma / (ma + mb));
+  b.z += nz * best * (ma / (ma + mb));
   const rvn = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
   if (rvn > 0) {
     const e = 0.55;

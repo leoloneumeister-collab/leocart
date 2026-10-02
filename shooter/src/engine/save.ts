@@ -16,10 +16,10 @@ export interface SaveData {
   unlocked: number;
 }
 
-const KEY = 'shadow-protocol-save-v1';
+const KEY = 'shadow-protocol-save-v2';
 
 export const defaultSave = (): SaveData => ({
-  settings: { sens: 1, fov: 80, music: 0.5, sfx: 0.8, quality: 'medium', difficulty: 1, invertY: false },
+  settings: { sens: 1, fov: 80, music: 0.5, sfx: 0.8, quality: 'medium', difficulty: 0, invertY: false },
   records: {},
   unlocked: 2,
 });

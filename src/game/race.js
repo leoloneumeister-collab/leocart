@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { buildTrackData, posAt } from './trackMath.js';
-import { Kart, collideKarts, DRIFT_LEVELS, KART_RADIUS } from './kart.js';
+import { Kart, collideKarts, DRIFT_LEVELS } from './kart.js';
 import { AIDriver, AutoPilot } from './ai.js';
 import { ItemSystem } from './items.js';
 import { THEMES } from './themes.js';
@@ -13,12 +13,13 @@ import { buildScenery } from '../render/scenery.js';
 import { skyTexture, blobShadowTexture } from '../render/textures.js';
 import { Particles } from '../render/particles.js';
 import { ChaseCamera } from '../render/camera.js';
+import { Post } from '../render/post.js';
 import { mulberry32, clamp } from '../util/math.js';
 import { settings } from './settings.js';
 
 const NULL_AUDIO = new Proxy({}, { get: () => () => {} });
 
-const DIFFICULTY = { easy: -0.04, normal: 0, hard: 0.03 };
+const DIFFICULTY = { easy: -0.055, normal: -0.012, hard: 0.02 };
 
 export const INTRO_TIME = 3.0;
 export const COUNTDOWN_TIME = 3.0;
@@ -49,7 +50,6 @@ export class Race {
     this.countdownN = 4;
     this.rocketArmed = false;
     this.paused = false;
-    this.lastItemPress = false;
 
     this._buildScene();
     this._buildKarts(entrants);
@@ -85,7 +85,7 @@ export class Race {
     sh.camera.bottom = -size;
     sh.camera.near = 20;
     sh.camera.far = 320;
-    sh.mapSize.set(this.quality === 'high' ? 2048 : 1024, this.quality === 'high' ? 2048 : 1024);
+    sh.mapSize.set(this.quality === 'high' ? 3072 : 1024, this.quality === 'high' ? 3072 : 1024);
     sh.bias = -0.0006;
     sh.normalBias = 0.04;
     scene.add(sun, sun.target);
@@ -102,6 +102,11 @@ export class Race {
     sky.frustumCulled = false;
     scene.add(sky);
     this.sky = sky;
+    const pm = new THREE.PMREMGenerator(this.renderer);
+    skyTex.mapping = THREE.EquirectangularReflectionMapping;
+    this.envRT = pm.fromEquirectangular(skyTex);
+    pm.dispose();
+    this.post = this.quality === 'high' ? new Post(this.renderer, scene, this.camera, { strength: th.id === 'neon' ? 0.55 : th.id === 'dunes' ? 0.25 : 0.14, threshold: th.id === 'neon' ? 0.75 : th.id === 'dunes' ? 0.95 : 1.05 }) : null;
 
     this.trackGroup = buildTrackMeshes(this.track, th, { maxAniso: Math.min(8, this.renderer.capabilities.getMaxAnisotropy()) });
     scene.add(this.trackGroup);
@@ -121,8 +126,8 @@ export class Race {
     this.karts = [];
     this.models = [];
     this.drivers = new Map();
-    const difficulty = DIFFICULTY[settings.difficulty ?? 'normal'] ?? 0;
-    const trackBonus = ((this.def.difficulty ?? 1) - 1) * 0.012;
+    const difficulty = DIFFICULTY[settings.difficulty ?? 'normal'] ?? -0.012;
+    const trackBonus = ((this.def.difficulty ?? 1) - 1) * 0.007;
     entrants.forEach((e, slot) => {
       const row = slot >> 1;
       const side = slot % 2 === 0 ? -1 : 1;
@@ -132,10 +137,11 @@ export class Race {
       const kart = new Kart(t, e.char, { isPlayer: e.isPlayer, index: slot });
       kart.placeAt(p.x, p.z, p.h, s);
       kart.gridSlot = slot;
+      kart.assist = e.isPlayer && settings.assist !== false ? 0.7 : 0;
       kart.lapStart = 0;
       kart.rank = 0;
       this.karts.push(kart);
-      const model = new KartModel(e.char, { shadowTexture: this.shadowTex });
+      const model = new KartModel(e.char, { shadowTexture: this.shadowTex, envMap: this.envRT.texture });
       model.addTo(this.scene);
       this.models.push(model);
       if (e.isPlayer) this.player = kart;
@@ -149,8 +155,8 @@ export class Race {
   }
 
   /** Let the AI drive the player's kart. Used by the end-to-end test and attract mode. */
-  setPlayerBot(on) {
-    this.playerBot = on ? new AIDriver(this.player, this.track, { skill: 0.95, aggression: 0.6, seed: 77 }) : null;
+  setPlayerBot(on, skill = 0.95) {
+    this.playerBot = on ? new AIDriver(this.player, this.track, { skill, aggression: 0.6, seed: 77 }) : null;
   }
 
   on(fn) {
@@ -529,13 +535,25 @@ export class Race {
       const rx = -fz;
       const rz = fx;
       const speed = Math.hypot(k.vx, k.vz);
+      // emit along the path travelled this frame so trails are continuous instead of dotted
+      const px = k._px ?? k.x;
+      const pz = k._pz ?? k.z;
+      const moved = Math.hypot(k.x - px, k.z - pz);
+      const n = moved > 10 ? 1 : clamp(Math.ceil(moved / 0.4), 1, 8);
+      k._px = k.x;
+      k._pz = k.z;
+      const at = (i) => {
+        const f = moved > 10 ? 1 : (i + Math.random()) / n;
+        return [px + (k.x - px) * f, pz + (k.z - pz) * f];
+      };
       if (k.drifting) {
         const lvl = k.driftLevel;
         const col = lvl > 0 ? DRIFT_LEVELS[lvl - 1].color : 0xffffff;
-        for (const s of [-1, 1]) {
-          const bx = k.x - fx * 1.25 + rx * s * 0.95;
-          const bz = k.z - fz * 1.25 + rz * s * 0.95;
-          P.spark(bx, 0.25, bz, -fx * 4 + rx * s * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2, 3 + Math.random() * 3, -fz * 4 + rz * s * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2, col, 0.32, lvl > 0 ? 0.34 : 0.2);
+        for (let i = 0; i < Math.max(1, n >> 1); i++) {
+          const [cx, cz] = at(i);
+          for (const s of [-1, 1]) {
+            P.spark(cx - fx * 1.25 + rx * s * 0.95, 0.25, cz - fz * 1.25 + rz * s * 0.95, -fx * 4 + rx * s * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2, 3 + Math.random() * 3, -fz * 4 + rz * s * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2, col, 0.32, lvl > 0 ? 0.34 : 0.2);
+          }
         }
         if (Math.random() < 0.6) P.smoke(k.x - fx * 1.3 + rx * (Math.random() - 0.5) * 2, 0.3, k.z - fz * 1.3 + rz * (Math.random() - 0.5) * 2, -fx * 2, 1, -fz * 2, 0xe8e8e8, 0.6, 1.0, 0.32);
       }
@@ -544,8 +562,13 @@ export class Race {
         P.smoke(k.x - fx * 1.2 + rx * (Math.random() - 0.5) * 1.6, 0.3, k.z - fz * 1.2 + rz * (Math.random() - 0.5) * 1.6, -fx * 1.5 + (Math.random() - 0.5) * 2, 1.2, -fz * 1.5 + (Math.random() - 0.5) * 2, col, 0.8, 1.1, 0.45);
       }
       if (k.boostTimer > 0 || k.comet > 0) {
-        for (const s of [-1, 1]) {
-          P.flame(k.x - fx * 2.1 + rx * s * 0.38, 0.65, k.z - fz * 2.1 + rz * s * 0.38, -fx * 6, 0.4, -fz * 6, k.comet > 0 ? 0xffe066 : 0xff9a3a, 0.26, k.comet > 0 ? 1.1 : 0.8);
+        const comet = k.comet > 0;
+        for (let i = 0; i < n; i++) {
+          const [cx, cz] = at(i);
+          for (const s of [-1, 1]) {
+            P.flame(cx - fx * 2.1 + rx * s * 0.38, 0.62, cz - fz * 2.1 + rz * s * 0.38, -fx * 5, 0.3, -fz * 5, comet ? 0xffe066 : 0xff9a3a, 0.3, comet ? 1.3 : 1.0);
+          }
+          if (i % 2 === 0) P.flame(cx - fx * 2.4, 0.62, cz - fz * 2.4, -fx * 7, 0.2, -fz * 7, comet ? 0xfff4b0 : 0xffd24a, 0.22, comet ? 0.9 : 0.6);
         }
       }
       if (k.spin > 0 && Math.random() < 0.5) {
@@ -596,15 +619,19 @@ export class Race {
   render() {
     const r = this.renderer;
     this.particles.setScale(r, this.camera);
-    r.render(this.scene, this.camera);
+    if (this.post) this.post.render();
+    else r.render(this.scene, this.camera);
   }
 
   resize(w, h) {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.post?.resize();
   }
 
   dispose() {
+    this.post?.dispose();
+    this.envRT.dispose();
     this.items.dispose();
     for (const m of this.models) {
       m.removeFrom(this.scene);
