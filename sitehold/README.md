@@ -6,6 +6,12 @@ It borrows the **feel** of CS:GO and none of Valve's content: original name, ori
 
 **Play it:** `npm install && npm run dev`, open the URL Vite prints, click **Play**, click the game to capture the mouse. When this repo is deployed with GitHub Pages it is published at `/sitehold/`.
 
+| | |
+|---|---|
+| ![Main menu with bots playing behind it](docs/screenshots/01-menu.jpg) | ![Buy menu](docs/screenshots/02-buy-menu.jpg) |
+| ![Two Breachers in the hall](docs/screenshots/03-hall-fight.jpg) | ![A smoke grenade blocking the lane](docs/screenshots/04-smoke.jpg) |
+| ![Scoreboard](docs/screenshots/05-scoreboard.jpg) | ![Planting the bomb at A](docs/screenshots/06-planting.jpg) |
+
 ## What is in it
 
 - **Competitive mode, shortened.** First to 8 round wins, 14 rounds max, sides swap after round 7, a 7 to 7 tie goes to one sudden death round with $10,000 each. 12 s freeze and buy time, 1:55 round, 40 s bomb, 3.2 s plant, 10 s defuse (5 s with a kit).
@@ -57,6 +63,8 @@ npm run test:all     # both
 npm run sim          # 20 bot only matches, prints balance and stats
 npm run sim:full     # 100 matches
 npm run validate     # check the map for unreachable routes, holds and sites
+node scripts/capture-media.mjs   # regenerate the screenshots above (after npm run build)
+node scripts/plot-round.mjs 3 2  # top down plot of one bot round (seed, round) into tests/shots
 ```
 
 ## How it is built

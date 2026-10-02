@@ -219,8 +219,8 @@ export function buildGrenade(kind: GrenadeKind, small = false): THREE.Group {
 
 export function buildBomb(): THREE.Group {
   const g = new THREE.Group();
-  g.add(box(0.26, 0.09, 0.16, m(0x2c3036, 0.5, 0.4), 0, 0, 0));
-  g.add(box(0.2, 0.012, 0.1, m(0x151719, 0.3, 0.5), 0, 0.05, 0));
+  g.add(box(0.26, 0.09, 0.16, m(0x555c66, 0.5, 0.15), 0, 0, 0));
+  g.add(box(0.2, 0.012, 0.1, m(0x23272c, 0.4, 0.2), 0, 0.05, 0));
   const lcd = box(0.07, 0.006, 0.03, new THREE.MeshBasicMaterial({ color: 0xff2a1a }), -0.05, 0.058, 0);
   lcd.name = 'lcd';
   g.add(lcd);

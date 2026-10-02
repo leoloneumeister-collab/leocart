@@ -89,7 +89,8 @@ function addRamp(b: Builder, d: Deco) {
     const p0 = pt(0, side, 0), p1 = pt(1, side, 0), p2 = pt(1, side, hi(1)), p3 = pt(0, side, hi(0));
     const out = axis === 'x' ? [0, 0, side ? 1 : -1] : [side ? 1 : -1, 0, 0];
     const quad = side ? [p0, p1, p2, p3] : [p1, p0, p3, p2];
-    b.quad(quad, out, [[0, 0], [1, 0], [1, 1], [0, 1]], [c, c, c, c]);
+    const uvs = quad.map((q) => [(axis === 'x' ? q[0] : q[2]) / 3, q[1] / 3]);
+    b.quad(quad, out, uvs, [c, c, c, c]);
   }
 }
 

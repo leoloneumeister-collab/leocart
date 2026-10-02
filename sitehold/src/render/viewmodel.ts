@@ -105,8 +105,8 @@ export class ViewModel {
     } else if (key === 'bomb') {
       root = new THREE.Group();
       const b = buildBomb();
-      b.scale.setScalar(1.3);
-      b.position.set(0, -0.02, -0.12);
+      b.scale.setScalar(0.85);
+      b.position.set(0, -0.03, -0.14);
       root.add(b);
     } else {
       gun = buildGun(WEAPONS[key]);
