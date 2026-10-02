@@ -48,6 +48,9 @@ export function itemIconSvg(category: ItemCategory, color: number, tier: number)
   return `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="${c}" stroke="${c}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"><rect x="0.5" y="0.5" width="23" height="23" rx="2" fill="#141922" stroke="${frame}" stroke-width="1.2"/>${ITEM_GLYPH[category]}</svg>`;
 }
 
+let iconSeq = 0;
+
 export function champIconSvg(letter: string, primary: number, accent: number): string {
-  return `<svg viewBox="0 0 48 48" width="100%" height="100%"><defs><radialGradient id="g${letter}" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="${hex(accent)}"/><stop offset="1" stop-color="${hex(primary)}"/></radialGradient></defs><rect width="48" height="48" fill="url(#g${letter})"/><text x="24" y="33" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="26" fill="#fff" fill-opacity="0.92">${letter}</text></svg>`;
+  const id = `cg${iconSeq++}`;
+  return `<svg viewBox="0 0 48 48" width="100%" height="100%"><defs><radialGradient id="${id}" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="${hex(accent)}"/><stop offset="1" stop-color="${hex(primary)}"/></radialGradient></defs><rect width="48" height="48" fill="url(#${id})"/><text x="24" y="33" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="26" fill="#fff" fill-opacity="0.92">${letter}</text></svg>`;
 }

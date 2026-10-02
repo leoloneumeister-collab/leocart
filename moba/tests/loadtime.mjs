@@ -1,0 +1,14 @@
+import { startServer, launch } from './lib.mjs';
+const stop = await startServer({ port: 5175 });
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const t0 = Date.now();
+await page.goto('http://localhost:5175/');
+await page.waitForSelector('#start-btn');
+const tMenu = Date.now() - t0;
+const t1 = Date.now();
+await page.click('#start-btn');
+await page.waitForFunction(() => window.__game && window.__game.world.time > 0.5);
+console.log(`menu ready after ${tMenu}ms, match running ${Date.now() - t1}ms after clicking Start (software rendering)`);
+await browser.close();
+stop();

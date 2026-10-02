@@ -76,6 +76,7 @@ export class Hud {
   private bannerT = 0;
   private msgT = 0;
   private statTimer = 0;
+  private sbT = 0;
   private builtFor = 0;
   private itemKey = '';
   private fpsAcc = 0;
@@ -315,7 +316,12 @@ export class Hud {
     }
 
     this.scoreboard.classList.toggle('hidden', !scoreboardOn);
-    if (scoreboardOn) this.renderScoreboard(w, u);
+    this.sbT -= dt;
+    if (scoreboardOn && this.sbT <= 0) {
+      this.sbT = 0.25;
+      this.renderScoreboard(w, u);
+    }
+    if (!scoreboardOn) this.sbT = 0;
     this.passiveEl.classList.toggle('active', c.stacks > 0);
   }
 

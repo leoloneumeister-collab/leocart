@@ -12,7 +12,7 @@ function check(name: string, ok: boolean, info = '') {
 }
 
 function arena(champ: string, dummyChamp = 'oakhelm', dist = 10, rank = 3) {
-  const w = createMatch({ seed: 5, blueChampions: [champ], redChampions: [dummyChamp], playerChampion: champ, fog: false, startGold: 0 });
+  const w = createMatch({ seed: 5, blueChampions: [champ], redChampions: [dummyChamp], playerChampion: champ, fog: false, startGold: 0, noBots: true });
   const me = w.getPlayer()!;
   const dummy = w.champions.find((c) => c.team === 1)!;
   me.x = me.px = 0;

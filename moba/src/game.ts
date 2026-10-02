@@ -58,6 +58,8 @@ export class Game {
   private onExit: () => void;
   private choice: MenuChoice;
   private endShown = false;
+  /** Main-thread time per frame part, in ms, averaged since the last read (see window.__game.perf()). */
+  private perfAcc = { sim: 0, sync: 0, ui: 0, render: 0, frames: 0 };
   private endTimer = 0;
 
   constructor(parent: HTMLElement, choice: MenuChoice, audio: AudioEngine, onExit: () => void, opts: GameOptions = {}) {
@@ -125,6 +127,15 @@ export class Game {
     window.addEventListener('resize', this.onResize);
     this.lastT = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+  }
+
+  /** Average main-thread ms per frame since the last call (sim, scene sync, UI, render submit). */
+  perf() {
+    const a = this.perfAcc;
+    const n = Math.max(1, a.frames);
+    const out = { sim: a.sim / n, sync: a.sync / n, ui: a.ui / n, render: a.render / n, frames: a.frames };
+    this.perfAcc = { sim: 0, sync: 0, ui: 0, render: 0, frames: 0 };
+    return out;
   }
 
   get player(): Unit {
@@ -300,6 +311,7 @@ export class Game {
 
     const w = this.world;
     const events: SimEvent[] = [];
+    const t0 = performance.now();
     if (!this.paused) {
       this.acc += dtReal * SPEEDS[this.speedIdx];
       let steps = 0;
@@ -311,6 +323,7 @@ export class Game {
       }
       if (steps >= 24) this.acc = 0;
     }
+    const t1 = performance.now();
     const alpha = Math.min(1, this.acc / STEP);
     const p = this.player;
 
@@ -319,6 +332,7 @@ export class Game {
     if (this.frameCount % 6 === 0) this.renderer.updateProtection(w);
     this.handleEvents(events);
     this.updatePreview(p);
+    const t2 = performance.now();
 
     this.hover = this.paused ? null : this.renderer.pickUnit(this.input.mx, this.input.my, w, (u) => u.team !== this.team || u.kind === 'champion');
     this.gameEl.style.cursor = this.attackMoveMode ? 'crosshair' : this.hover && this.targetFilter(this.hover) ? 'crosshair' : 'default';
@@ -330,7 +344,15 @@ export class Game {
     this.minimap.draw(w, this.team, this.playerId, rig.x, rig.z, rig.dist * 0.83 * this.renderer.camera.aspect, rig.dist * 0.83, (u) => this.renderer.isVisible(w, u));
     this.audio.setListener(rig.x, rig.z);
     this.audio.update(dtReal);
+    const t3 = performance.now();
     this.renderer.render(dtReal, rig.x, rig.z);
+    const t4 = performance.now();
+    const pa = this.perfAcc;
+    pa.sim += t1 - t0;
+    pa.sync += t2 - t1;
+    pa.ui += t3 - t2;
+    pa.render += t4 - t3;
+    pa.frames++;
 
     if (w.winner !== -1 && !this.endShown) {
       this.ended = true;

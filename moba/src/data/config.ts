@@ -30,7 +30,7 @@ export const CONFIG = {
 
   // Economy
   startGold: 500,
-  passiveGoldPerSec: 2.6,
+  passiveGoldPerSec: 3.1,
   passiveGoldStart: 5,
   champKillGold: 300,
   champAssistGoldTotal: 150,
@@ -39,7 +39,7 @@ export const CONFIG = {
   maxLevel: 18,
   ultLevels: [6, 11, 16] as readonly number[],
   respawnBase: 6,
-  respawnPerLevel: 2.3,
+  respawnPerLevel: 2.4,
   respawnPerMinuteLate: 0.5,
   respawnMax: 55,
   startLevel: 1,

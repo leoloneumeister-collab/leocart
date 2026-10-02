@@ -252,8 +252,13 @@ function updatePlan(w: World, bb: TeamBB) {
       const f = bb.front[lane];
       const ownF = Number.isFinite(f.own) ? (team === 0 ? f.own : total - f.own) : 0;
       let towersDown = 0;
-      for (const s of w.structures) if (s.team !== team && s.struct!.lane === lane && !s.alive) towersDown++;
-      const score = ownF / total + towersDown * 0.45 + f.ownN * 0.05 - f.enemyN * 0.03 + w.rng.next() * 0.05;
+      let inhibDown = 0;
+      for (const s of w.structures) {
+        if (s.team === team || s.struct!.lane !== lane || s.alive) continue;
+        towersDown++;
+        if (s.kind === 'inhibitor') inhibDown++;
+      }
+      const score = ownF / total + towersDown * 0.45 + inhibDown * 0.9 + f.ownN * 0.05 - f.enemyN * 0.03 + w.rng.next() * 0.05;
       if (score > bestScore) {
         bestScore = score;
         bestLane = lane;
