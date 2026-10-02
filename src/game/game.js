@@ -19,13 +19,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // MSAA is wasted work on high-DPI screens, where the extra pixels already hide the jaggies
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.75, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
     this.audio = new AudioEngine();
     this.input = new Input();
     this.hud = new Hud(document.getElementById('hud'));
+    this.hud.onTick = () => this.audio.sfx('move', { gain: 0.5 });
     const uiRoot = document.getElementById('ui');
     this.nav = new Nav(uiRoot, { onSound: (n) => this.audio.sfx(n) });
     this.ui = new UI(uiRoot, { audio: this.audio, input: this.input, nav: this.nav });
@@ -67,6 +69,9 @@ export class Game {
     this.renderer.setSize(w, h, false);
     this.race?.resize(w, h);
     this.menu.resize(w, h);
+    // resizing clears the canvas; draw straight away so there is no blank flash
+    if (this.mode === 'race' && this.race) this.race.render();
+    else if (this.mode === 'menu') this.menu.render();
   }
 
   start() {
@@ -78,10 +83,12 @@ export class Game {
         trackId: quick,
         playerId: params.get('char') || 'nova',
         seed: Number(params.get('seed') || 1),
-        quick: true,
       });
     } else {
       this.showTitle();
+    }
+    if (window.matchMedia?.('(pointer: coarse)').matches && !navigator.getGamepads?.().some((p) => p)) {
+      setTimeout(() => this.ui.toast('Best played on desktop with a keyboard or gamepad', 4200), 800);
     }
     requestAnimationFrame((t) => this.frame(t));
   }
@@ -181,7 +188,7 @@ export class Game {
 
   // ------------------------------------------------------------------ race lifecycle
 
-  async beginRace({ trackId, playerId, seed, quick = false }) {
+  async beginRace({ trackId, playerId, seed }) {
     if (this.busy) return;
     this.busy = true;
     this.lastRaceArgs = { trackId, playerId, seed };
@@ -205,8 +212,6 @@ export class Game {
       this.ui.clear();
       this.audio.startMusic(THEMES[trackId].music);
       this.audio.startEngines(this.race.karts, this.race.karts.indexOf(this.race.player));
-      this.cupIndexForRace = this.cup ? this.cup.index : null;
-      if (quick) this.race.quick = true;
     });
     this.busy = false;
   }
@@ -371,7 +376,7 @@ export class Game {
   /** Fast-forward the simulation without rendering. Used by the end-to-end tests. */
   advance(seconds, input = null) {
     const step = 1 / 60;
-    for (let t = 0; t < seconds; t += step) this.race?.update(step, input || this.input.poll());
+    for (let t = 0; t < seconds; t += step) this.race?.update(step, input || this.input.poll(step));
     if (this.race) this.hud.update(seconds);
   }
 
@@ -401,7 +406,7 @@ export class Game {
     const dtMs = now - this.last;
     const dt = Math.min(0.1, dtMs / 1000);
     this.last = now;
-    const input = this.input.poll();
+    const input = this.input.poll(dt);
 
     if (this.mode === 'race' && this.race) {
       if (input.pause && this.race.state !== 'done' && !this.busy) this.pause(!this.paused);

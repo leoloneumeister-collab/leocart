@@ -71,14 +71,20 @@ export class AudioEngine {
       if (this.ctx && this.ctx.state === 'suspended' && !this.paused) this.ctx.resume();
       return;
     }
+    let ctx;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
-      this.ctx = new AC({ latencyHint: 'interactive' });
+      ctx = new AC({ latencyHint: 'interactive' });
     } catch {
       return;
     }
-    const ctx = this.ctx;
+    this._init(ctx);
+  }
+
+  /** Build the mixer graph on a context. Also used with an OfflineAudioContext by the audio test. */
+  _init(ctx) {
+    this.ctx = ctx;
     this.master = ctx.createGain();
     this.comp = ctx.createDynamicsCompressor();
     this.comp.threshold.value = -16;
@@ -103,7 +109,7 @@ export class AudioEngine {
 
     this.unlocked = true;
     this.applyVolumes();
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') ctx.resume?.().catch?.(() => {});
     if (this.pendingMusic) this.startMusic(this.pendingMusic);
   }
 
@@ -190,12 +196,11 @@ export class AudioEngine {
   sfx(name, { gain = 1, pan = 0, rate = 1 } = {}) {
     if (!this.ctx || this.paused) return;
     const t = this.ctx.currentTime + 0.005;
-    const o = { gain, pan };
     const G = (v) => v * gain;
     switch (name) {
       case 'hover':
       case 'move':
-        this._tone('sine', 880, t, 0.05, { gain: G(0.07), pan });
+        this._tone('sine', 880, t, 0.07, { gain: G(0.13), release: 0.04, pan });
         break;
       case 'click':
         this._tone('square', 520, t, 0.05, { gain: G(0.09) });
@@ -212,7 +217,7 @@ export class AudioEngine {
         for (const [i, f] of [660, 880, 1320].entries()) this._tone('square', f, t, 0.6, { gain: G(0.12), release: 0.4, detune: i * 4 });
         break;
       case 'driftStart':
-        this._noise(t, 0.22, { gain: G(0.12), f0: 2400, f1: 1500, q: 6, pan });
+        this._noise(t, 0.22, { gain: G(0.45), f0: 2400, f1: 1500, q: 2.5, pan });
         break;
       case 'driftLevel':
         this._tone('sine', 880 * rate, t, 0.1, { gain: G(0.14) });
@@ -305,7 +310,6 @@ export class AudioEngine {
       default:
         break;
     }
-    void o;
   }
 
   // ------------------------------------------------------------------ engines
