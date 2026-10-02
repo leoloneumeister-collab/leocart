@@ -49,12 +49,12 @@ export interface StructureDef {
 }
 
 export const STRUCTURES: Record<string, StructureDef> = {
-  tower1: { id: 'tower1', name: 'Outer Tower', hp: 3300, armor: 38, mr: 38, ad: 150, attackInterval: 0.9, range: 16, radius: 2.5, height: 9, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
-  tower2: { id: 'tower2', name: 'Inner Tower', hp: 3600, armor: 50, mr: 50, ad: 170, attackInterval: 0.9, range: 16, radius: 2.5, height: 9.5, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
-  tower3: { id: 'tower3', name: 'Inhibitor Tower', hp: 3800, armor: 60, mr: 60, ad: 190, attackInterval: 0.9, range: 16, radius: 2.6, height: 10, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
-  nexustower: { id: 'nexustower', name: 'Nexus Tower', hp: 3500, armor: 60, mr: 60, ad: 190, attackInterval: 0.9, range: 16, radius: 2.5, height: 10, vsMinion: 1.25, projectileSpeed: 45, gold: 200, hpRegen: 0 },
-  inhibitor: { id: 'inhibitor', name: 'Inhibitor', hp: 4000, armor: 20, mr: 0, ad: 0, attackInterval: 0, range: 0, radius: 3.2, height: 6, vsMinion: 0, projectileSpeed: 0, gold: 50, hpRegen: 3 },
-  nexus: { id: 'nexus', name: 'Nexus', hp: 5500, armor: 0, mr: 0, ad: 0, attackInterval: 0, range: 0, radius: 5.5, height: 12, vsMinion: 0, projectileSpeed: 0, gold: 0, hpRegen: 6 },
+  tower1: { id: 'tower1', name: 'Outer Tower', hp: 2500, armor: 36, mr: 36, ad: 150, attackInterval: 0.9, range: 16, radius: 2.5, height: 9, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
+  tower2: { id: 'tower2', name: 'Inner Tower', hp: 2800, armor: 46, mr: 46, ad: 170, attackInterval: 0.9, range: 16, radius: 2.5, height: 9.5, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
+  tower3: { id: 'tower3', name: 'Inhibitor Tower', hp: 3000, armor: 54, mr: 54, ad: 190, attackInterval: 0.9, range: 16, radius: 2.6, height: 10, vsMinion: 1.25, projectileSpeed: 45, gold: 250, hpRegen: 0 },
+  nexustower: { id: 'nexustower', name: 'Nexus Tower', hp: 2800, armor: 54, mr: 54, ad: 190, attackInterval: 0.9, range: 16, radius: 2.5, height: 10, vsMinion: 1.25, projectileSpeed: 45, gold: 200, hpRegen: 0 },
+  inhibitor: { id: 'inhibitor', name: 'Inhibitor', hp: 3000, armor: 20, mr: 0, ad: 0, attackInterval: 0, range: 0, radius: 3.2, height: 6, vsMinion: 0, projectileSpeed: 0, gold: 50, hpRegen: 3 },
+  nexus: { id: 'nexus', name: 'Nexus', hp: 4200, armor: 0, mr: 0, ad: 0, attackInterval: 0, range: 0, radius: 5.5, height: 12, vsMinion: 0, projectileSpeed: 0, gold: 0, hpRegen: 6 },
 };
 
 export interface MonsterDef {

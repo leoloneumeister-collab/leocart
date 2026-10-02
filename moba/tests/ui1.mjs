@@ -1,0 +1,27 @@
+import { launch } from './lib.mjs';
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = [];
+page.on('console', (m) => { if (['error'].includes(m.type())) errs.push(`[${m.type()}] ${m.text()}`); });
+page.on('pageerror', (e) => errs.push(`[pageerror] ${e.message}\n${e.stack}`));
+await page.goto('http://localhost:5174/');
+await page.waitForTimeout(800);
+await page.screenshot({ path: 'tests/shots/menu.png' });
+await page.click('.champ-card:nth-child(3)');
+await page.click('.opt-row[data-key=difficulty] .opt[data-val=hard]');
+await page.waitForTimeout(200);
+await page.screenshot({ path: 'tests/shots/menu2.png' });
+await page.click('#start-btn');
+await page.waitForTimeout(2500);
+await page.keyboard.press('p');
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'tests/shots/shop.png' });
+// buy an item by double clicking
+const cards = await page.$$('.item-card');
+console.log('item cards', cards.length);
+await cards[0].dblclick();
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'tests/shots/shop2.png' });
+console.log(await page.evaluate(() => ({ gold: window.__game.player.champ.gold, items: window.__game.player.champ.items })));
+console.log('errors', errs.length, errs.slice(0, 6).join('\n'));
+await browser.close();

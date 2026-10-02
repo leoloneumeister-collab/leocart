@@ -5,10 +5,10 @@ import { MAP_HALF } from '../data/map.ts';
 export class CameraRig {
   x = -80;
   z = 80;
-  dist = 66;
+  dist = 56;
   readonly minDist = 36;
   readonly maxDist = 110;
-  pitch = THREE.MathUtils.degToRad(56);
+  pitch = THREE.MathUtils.degToRad(62);
   locked = false;
   private shakeT = 0;
   private shakeAmp = 0;

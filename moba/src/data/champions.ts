@@ -6,6 +6,7 @@ import type { HitEffect, Role, Stats } from '../sim/types.ts';
 
 export type AbilityKind = 'skillshot' | 'target' | 'ground' | 'self' | 'nova' | 'dash' | 'blink';
 export type Targeting = 'point' | 'unit' | 'self';
+export type AiHint = 'damage' | 'cc' | 'engage' | 'escape' | 'shield' | 'buff' | 'ultimate';
 
 export interface AbilityDef {
   name: string;
@@ -34,6 +35,8 @@ export interface AbilityDef {
   /** Effects applied to the caster when the ability is used. */
   selfEffects?: HitEffect[];
   color: number;
+  /** What a bot should use this ability for. */
+  ai: AiHint;
   /** Extra tooltip line describing the damage. */
   tip?: string;
 }
@@ -78,7 +81,7 @@ const stats = (s: Partial<Stats>): Stats => ({
   armor: 30,
   mr: 32,
   as: 0.65,
-  ms: 6.6,
+  ms: 7.3,
   range: 3.5,
   hpRegen: 1.7,
   manaRegen: 1.7,
@@ -101,7 +104,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
     radius: 1.45,
     height: 4.6,
     projectileSpeed: 0,
-    base: stats({ maxHp: 640, maxMana: 300, ad: 64, armor: 36, mr: 32, as: 0.66, ms: 6.7, range: 1.7, hpRegen: 2.1, manaRegen: 1.6 }),
+    base: stats({ maxHp: 640, maxMana: 300, ad: 64, armor: 36, mr: 32, as: 0.66, ms: 7.4, range: 1.7, hpRegen: 2.1, manaRegen: 1.6 }),
     growth: { maxHp: 105, maxMana: 38, ad: 3.4, armor: 3.8, mr: 1.3, hpRegen: 0.12, manaRegen: 0.08 },
     asGrowthPct: 0.022,
     passive: { type: 'stackOnHit', name: 'Grit', desc: 'Hitting enemy champions grants stacking armor (up to 5 stacks).', stat: 'armor', perStack: 5, pct: false, max: 5, duration: 4 },
@@ -119,6 +122,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         radius: 4,
         effects: [{ type: 'damage', dmgType: 'physical', base: R5(70, 110, 150, 190, 230), bonusAd: 0.8 }],
         color: 0xffa040,
+        ai: 'engage',
       },
       {
         name: 'Bulwark Oath',
@@ -135,6 +139,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'buff', stat: 'ms', pct: true, amount: 0.2, duration: 2 },
         ],
         color: 0xc8d4e0,
+        ai: 'shield',
       },
       {
         name: 'Quakeline',
@@ -151,6 +156,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.35, duration: 1.5 },
         ],
         color: 0xd08040,
+        ai: 'damage',
       },
       {
         name: 'Iron Verdict',
@@ -168,11 +174,12 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'stun', duration: 1, tag: 'airborne' },
         ],
         color: 0xff5030,
+        ai: 'ultimate',
       },
     ],
     look: { primary: 0x8a8f99, secondary: 0x5a3a28, accent: 0xff9a3c, build: 'brute' },
     laneHint: 'top',
-    build: ['boots', 'warblade', 'steelvest', 'doomreaver', 'bastionheart', 'stormbow'],
+    build: ['swiftgreaves', 'doomreaver', 'bastionheart', 'spiritaegis', 'titancore'],
     levelOrder: [0, 2, 1, 0, 2, 0, 2, 0, 2, 1, 1, 1],
   },
 
@@ -186,7 +193,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
     radius: 1.2,
     height: 4.4,
     projectileSpeed: 32,
-    base: stats({ maxHp: 545, maxMana: 430, ad: 52, armor: 22, mr: 30, as: 0.64, ms: 6.5, range: 10.5, hpRegen: 1.4, manaRegen: 2.2 }),
+    base: stats({ maxHp: 545, maxMana: 430, ad: 52, armor: 22, mr: 30, as: 0.64, ms: 7.2, range: 10.5, hpRegen: 1.4, manaRegen: 2.2 }),
     growth: { maxHp: 86, maxMana: 52, ad: 2.7, armor: 3.0, mr: 1.3, hpRegen: 0.08, manaRegen: 0.14 },
     asGrowthPct: 0.02,
     passive: { type: 'onCastBuff', name: 'Spellweave', desc: 'Casting an ability grants a burst of move speed.', stat: 'ms', amount: 0.2, duration: 1.5 },
@@ -204,6 +211,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         width: 1.5,
         effects: [{ type: 'damage', dmgType: 'magic', base: R5(70, 110, 150, 190, 230), ap: 0.75 }],
         color: 0xff6a2a,
+        ai: 'damage',
       },
       {
         name: 'Frost Bloom',
@@ -221,6 +229,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.45, duration: 2 },
         ],
         color: 0x6ad0ff,
+        ai: 'cc',
       },
       {
         name: 'Mirror Step',
@@ -234,6 +243,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         effects: [],
         selfEffects: [{ type: 'shield', base: R5(50, 75, 100, 125, 150), ap: 0.3, duration: 2 }],
         color: 0xc690ff,
+        ai: 'escape',
       },
       {
         name: 'Cataclysm',
@@ -251,11 +261,12 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'stun', duration: 0.6 },
         ],
         color: 0xff3a20,
+        ai: 'ultimate',
       },
     ],
     look: { primary: 0x6a3fb0, secondary: 0x2a1a50, accent: 0xff7a30, build: 'robe' },
     laneHint: 'mid',
-    build: ['boots', 'arcanerod', 'amptome', 'archmagecrown', 'spiritaegis', 'archmagecrown'],
+    build: ['swiftgreaves', 'archmagecrown', 'spiritaegis', 'bastionheart', 'titancore'],
     levelOrder: [0, 1, 0, 2, 0, 1, 0, 1, 1, 2, 2, 2],
   },
 
@@ -269,7 +280,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
     radius: 1.2,
     height: 4.4,
     projectileSpeed: 38,
-    base: stats({ maxHp: 565, maxMana: 285, ad: 60, armor: 26, mr: 30, as: 0.7, ms: 6.5, range: 12, hpRegen: 1.4, manaRegen: 1.5 }),
+    base: stats({ maxHp: 565, maxMana: 285, ad: 60, armor: 26, mr: 30, as: 0.7, ms: 7.2, range: 12, hpRegen: 1.4, manaRegen: 1.5 }),
     growth: { maxHp: 88, maxMana: 35, ad: 3.0, armor: 3.4, mr: 1.25, hpRegen: 0.08, manaRegen: 0.08 },
     asGrowthPct: 0.03,
     passive: { type: 'stackOnHit', name: 'Keen Eye', desc: 'Consecutive basic attacks grant stacking attack speed.', stat: 'as', perStack: 0.07, pct: true, max: 5, duration: 3 },
@@ -286,6 +297,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         effects: [],
         selfEffects: [{ type: 'buff', stat: 'as', pct: true, amounts: R5(0.5, 0.6, 0.7, 0.8, 0.9), duration: 4 }],
         color: 0x7ae070,
+        ai: 'buff',
       },
       {
         name: 'Piercing Bolt',
@@ -304,6 +316,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.3, duration: 1.5 },
         ],
         color: 0xb8ff90,
+        ai: 'damage',
       },
       {
         name: 'Backflip',
@@ -318,6 +331,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         effects: [],
         selfEffects: [{ type: 'buff', stat: 'ms', pct: true, amount: 0.25, duration: 1.5 }],
         color: 0x90e0c0,
+        ai: 'escape',
       },
       {
         name: 'Skyfall Arrow',
@@ -336,11 +350,12 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.6, duration: 2 },
         ],
         color: 0xfff08a,
+        ai: 'ultimate',
       },
     ],
     look: { primary: 0x2f8f6a, secondary: 0x1c4a3a, accent: 0xe8d85a, build: 'archer' },
     laneHint: 'bot',
-    build: ['boots', 'rapidgear', 'quickfireblade', 'stormbow', 'doomreaver', 'bastionheart'],
+    build: ['swiftgreaves', 'stormbow', 'doomreaver', 'bastionheart', 'spiritaegis'],
     levelOrder: [1, 0, 1, 2, 1, 0, 1, 0, 0, 2, 2, 2],
   },
 
@@ -354,7 +369,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
     radius: 1.7,
     height: 5.2,
     projectileSpeed: 0,
-    base: stats({ maxHp: 690, maxMana: 285, ad: 58, armor: 40, mr: 34, as: 0.6, ms: 6.5, range: 1.8, hpRegen: 2.4, manaRegen: 1.6 }),
+    base: stats({ maxHp: 690, maxMana: 285, ad: 58, armor: 40, mr: 34, as: 0.6, ms: 7.2, range: 1.8, hpRegen: 2.4, manaRegen: 1.6 }),
     growth: { maxHp: 112, maxMana: 38, ad: 3.0, armor: 4.2, mr: 1.5, hpRegen: 0.14, manaRegen: 0.08 },
     asGrowthPct: 0.018,
     passive: { type: 'damageReduction', name: 'Thick Skin', desc: 'Takes 8% less damage from all sources.', amount: 0.08 },
@@ -375,6 +390,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'stun', duration: 1 },
         ],
         color: 0x6aa050,
+        ai: 'cc',
       },
       {
         name: 'Bark Armor',
@@ -391,6 +407,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'buff', stat: 'armor', amounts: R5(20, 30, 40, 50, 60), duration: 4 },
         ],
         color: 0x8a6a3a,
+        ai: 'shield',
       },
       {
         name: 'Stomp',
@@ -407,6 +424,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.4, duration: 2 },
         ],
         color: 0x9a8a60,
+        ai: 'damage',
       },
       {
         name: 'Landslide',
@@ -424,11 +442,12 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'stun', duration: 1.4, tag: 'airborne' },
         ],
         color: 0xb09050,
+        ai: 'ultimate',
       },
     ],
     look: { primary: 0x5a7a3a, secondary: 0x6b5a46, accent: 0xa6e07a, build: 'golem' },
     laneHint: 'bot',
-    build: ['boots', 'steelvest', 'vitalgem', 'bastionheart', 'spiritaegis', 'titancore'],
+    build: ['swiftgreaves', 'bastionheart', 'spiritaegis', 'titancore', 'steelvest'],
     levelOrder: [0, 2, 1, 0, 2, 0, 2, 0, 2, 1, 1, 1],
   },
 
@@ -442,7 +461,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
     radius: 1.2,
     height: 4.3,
     projectileSpeed: 0,
-    base: stats({ maxHp: 565, maxMana: 300, ad: 62, armor: 28, mr: 32, as: 0.68, ms: 7, range: 1.5, hpRegen: 1.5, manaRegen: 1.8 }),
+    base: stats({ maxHp: 565, maxMana: 300, ad: 62, armor: 28, mr: 32, as: 0.68, ms: 7.7, range: 1.5, hpRegen: 1.5, manaRegen: 1.8 }),
     growth: { maxHp: 92, maxMana: 40, ad: 3.3, armor: 3.5, mr: 1.25, hpRegen: 0.1, manaRegen: 0.1 },
     asGrowthPct: 0.03,
     passive: { type: 'lowHpBonus', name: 'Opportunist', desc: 'Deals 20% more damage to enemies below 40% health.', below: 0.4, mult: 1.2 },
@@ -463,6 +482,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
           { type: 'slow', amount: 0.3, duration: 1.5 },
         ],
         color: 0xc050c0,
+        ai: 'damage',
       },
       {
         name: 'Shadowstep',
@@ -477,6 +497,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         radius: 3,
         effects: [{ type: 'damage', dmgType: 'physical', base: R5(70, 110, 150, 190, 230), bonusAd: 0.8 }],
         color: 0x8030a0,
+        ai: 'engage',
       },
       {
         name: 'Smoke Veil',
@@ -491,6 +512,7 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         effects: [],
         selfEffects: [{ type: 'buff', stat: 'ms', pct: true, amount: 0.4, duration: 2 }],
         color: 0x606080,
+        ai: 'escape',
       },
       {
         name: 'Death Mark',
@@ -505,11 +527,12 @@ export const CHAMPIONS: Record<string, ChampionDef> = {
         radius: 2.5,
         effects: [{ type: 'damage', dmgType: 'physical', base: R3(200, 320, 440), bonusAd: 1.4, executeBelow: 0.3, executeMult: 1.5 }],
         color: 0xff2060,
+        ai: 'ultimate',
       },
     ],
     look: { primary: 0x25202e, secondary: 0x4a2a5a, accent: 0xff3a90, build: 'rogue' },
     laneHint: 'roam',
-    build: ['boots', 'warblade', 'quickfireblade', 'doomreaver', 'bastionheart', 'stormbow'],
+    build: ['swiftgreaves', 'doomreaver', 'stormbow', 'bastionheart', 'spiritaegis'],
     levelOrder: [0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 2, 2],
   },
 };

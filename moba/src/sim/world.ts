@@ -57,6 +57,8 @@ export interface MatchSetup {
   playerChampion: string;
   playerLane: Lane;
   difficulty: Difficulty;
+  /** Difficulty of the player's allied bots (default normal). */
+  allyDifficulty?: Difficulty;
   /** When true the player slot is controlled by a bot too (headless tests). */
   autoPlayer: boolean;
   /** Restrict the map to the mid lane only (phase 1 slice and quick tests). */
@@ -255,7 +257,7 @@ export class World {
       this.addChampion(blueIds[slot], 0, slot, lanePlan[slot], isPlayer);
     }
     for (let slot = 0; slot < redIds.length; slot++) this.addChampion(redIds[slot], 1, slot, redPlan[slot], false);
-    this.goldBonus = [1, s.difficulty === 'hard' ? 1.08 : s.difficulty === 'easy' ? 0.9 : 1];
+    this.goldBonus = [1, s.difficulty === 'hard' ? 1.12 : s.difficulty === 'easy' ? 0.85 : 1];
     // The human team is never penalised.
     this.goldBonus[0] = 1;
   }
@@ -337,6 +339,7 @@ export class World {
       stackUntil: 0,
       streak: 0,
       inShop: true,
+      holdFire: false,
     };
     u.champ = champ;
     this.champions.push(u);

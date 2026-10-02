@@ -84,11 +84,16 @@ function pickValid(w: World, u: Unit, id: number): Unit | null {
 
 function runOrder(w: World, u: Unit, dt: number) {
   const o = u.order;
+  const c = u.champ!;
   switch (o.t) {
     case 'idle': {
       let t = pickValid(w, u, u.target);
       if (t && !inAcquireRange(u, t, 0.4)) t = null;
       u.targetCheck -= dt;
+      if (c.holdFire) {
+        u.target = 0;
+        break;
+      }
       if (!t && u.targetCheck <= 0) {
         t = bestTarget(w, u, 0.4);
         u.targetCheck = 0.15;

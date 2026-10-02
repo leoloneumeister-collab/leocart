@@ -95,6 +95,8 @@ export interface ChampState {
   /** Streak counters for bounty and announcements. */
   streak: number;
   inShop: boolean;
+  /** Bots set this to stop auto-attacking while they wait to last hit. */
+  holdFire: boolean;
 }
 
 export interface MinionState {

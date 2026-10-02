@@ -15,10 +15,10 @@ export const CONFIG = {
   casterPerWave: 3,
   /** A cannon minion joins every Nth wave (and every wave after cannonEveryLate seconds). */
   cannonEvery: 3,
-  cannonEveryLateAfter: 1500,
+  cannonEveryLateAfter: 900,
   /** Minion stats grow this fraction per minute of game time. */
-  minionHpGrowthPerMin: 0.035,
-  minionDmgGrowthPerMin: 0.02,
+  minionHpGrowthPerMin: 0.05,
+  minionDmgGrowthPerMin: 0.045,
   minionGoldGrowthPerMin: 0.012,
 
   // Structures
@@ -30,7 +30,7 @@ export const CONFIG = {
 
   // Economy
   startGold: 500,
-  passiveGoldPerSec: 2.1,
+  passiveGoldPerSec: 2.6,
   passiveGoldStart: 5,
   champKillGold: 300,
   champAssistGoldTotal: 150,

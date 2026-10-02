@@ -68,6 +68,44 @@ export function pointOnLane(lane: Lane, d: number): Pt {
   return { ...pts[pts.length - 1] };
 }
 
+const cumCache: Partial<Record<Lane, number[]>> = {};
+
+function cumulative(lane: Lane): number[] {
+  let c = cumCache[lane];
+  if (!c) {
+    const pts = LANE_POINTS[lane];
+    c = [0];
+    for (let i = 1; i < pts.length; i++) c.push(c[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+    cumCache[lane] = c;
+  }
+  return c;
+}
+
+/** Project a point onto a lane. `s` is path distance from the blue end, `d` the distance off the lane center. */
+export function projectOnLane(lane: Lane, x: number, z: number): { s: number; d: number } {
+  const pts = LANE_POINTS[lane];
+  const cum = cumulative(lane);
+  let bestS = 0;
+  let bestD = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    const ax = pts[i - 1].x;
+    const az = pts[i - 1].z;
+    const bx = pts[i].x;
+    const bz = pts[i].z;
+    const abx = bx - ax;
+    const abz = bz - az;
+    const len2 = abx * abx + abz * abz;
+    let t = len2 > 0 ? ((x - ax) * abx + (z - az) * abz) / len2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const d = Math.hypot(x - (ax + abx * t), z - (az + abz * t));
+    if (d < bestD) {
+      bestD = d;
+      bestS = cum[i - 1] + Math.sqrt(len2) * t;
+    }
+  }
+  return { s: bestS, d: bestD };
+}
+
 /** Distance along each lane from a team's own end where its structures stand. */
 export const LANE_STRUCTURE_DIST: Record<Lane, { inhib: number; t3: number; t2: number; t1: number }> = {
   top: { inhib: 18, t3: 40, t2: 82, t1: 128 },
