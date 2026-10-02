@@ -1,0 +1,31 @@
+{
+  "name": "cvlens",
+  "version": "0.1.0",
+  "description": "Turn a CV into a visual one-pager inside ChatGPT and Claude (MCP App), plus the website that sells it.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build:widget": "vite build --config vite.widget.config.js",
+    "build:site": "vite build --config vite.site.config.js",
+    "build": "npm run build:widget && npm run build:site",
+    "dev:site": "vite --config vite.site.config.js",
+    "start": "node server/index.js",
+    "test": "node --test tests/core.test.mjs tests/server.test.mjs",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "express": "^5.2.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1",
+    "vite": "^8.3.2",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

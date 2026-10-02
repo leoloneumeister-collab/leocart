@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · CV Lens</title>
+<meta name="description" content="What CV Lens does with the CV text you send it: it draws a chart and keeps nothing.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Crect x='7' y='9' width='14' height='4' rx='2' fill='white'/%3E%3Crect x='11' y='15' width='14' height='4' rx='2' fill='white'/%3E%3Crect x='7' y='21' width='10' height='4' rx='2' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./index.html">CV Lens</a>
+    <nav aria-label="Main"><a href="./index.html#try">Try it</a><a href="./index.html#install">Install</a><a href="./index.html#pricing">Pricing</a></nav>
+  </div>
+</header>
+
+<main class="wrap prose" id="main">
+  <h1>Privacy</h1>
+  <p class="updated">Last updated: October 2026</p>
+
+  <h2>The short version</h2>
+  <p>CV Lens draws a chart from the CV details you give it and keeps nothing afterwards. There is no account, no tracking and no advertising.</p>
+
+  <h2>The connector (ChatGPT and Claude)</h2>
+  <ul>
+    <li><strong>What it receives.</strong> When you ask your AI to visualize a CV, the app sends the details it read from your CV (name, roles, employers, dates, skills) to the CV Lens server.</li>
+    <li><strong>What it does with it.</strong> It checks the dates, adds up the years, and returns the data the chart is drawn from. The chart is drawn on your device, inside the chat.</li>
+    <li><strong>What it keeps.</strong> Nothing. The request is not saved to a database, a file or a log. It lives in memory for the fraction of a second it takes to answer.</li>
+    <li><strong>Rate limiting.</strong> To stop abuse, the server counts requests per network address in memory for one minute. These counts are not logged and are gone after a restart.</li>
+    <li><strong>Hosting.</strong> The server runs with a hosting provider, which may keep ordinary infrastructure logs such as time and network address, and not the content of your requests.</li>
+  </ul>
+
+  <h2>This website</h2>
+  <ul>
+    <li>No cookies, no analytics and no third-party scripts.</li>
+    <li>The demo runs entirely in your browser. What you type into it never leaves your device.</li>
+  </ul>
+
+  <h2>Your AI app</h2>
+  <p>ChatGPT and Claude have their own privacy policies, and they see everything you paste into them. CV Lens only sees what the AI sends to it for the chart.</p>
+
+  <h2>Contact</h2>
+  <p id="contact">Questions about this page can be sent to the site owner through the portfolio linked in the footer.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span id="built"></span>
+    <span><a href="./index.html">Home</a></span>
+  </div>
+</footer>
+<script type="module" src="./shared.js"></script>
+</body>
+</html>

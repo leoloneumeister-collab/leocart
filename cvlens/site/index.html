@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Lens: your CV as a one-page visual, inside ChatGPT and Claude</title>
+<meta name="description" content="Paste your CV into ChatGPT or Claude and get a career timeline and a skills chart back. Free to use, nothing stored.">
+<meta property="og:title" content="CV Lens: your CV as a one-page visual">
+<meta property="og:description" content="Paste your CV into ChatGPT or Claude and get a career timeline and a skills chart back.">
+<meta property="og:type" content="website">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Crect x='7' y='9' width='14' height='4' rx='2' fill='white'/%3E%3Crect x='11' y='15' width='14' height='4' rx='2' fill='white'/%3E%3Crect x='7' y='21' width='10' height='4' rx='2' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top">CV Lens</a>
+    <nav aria-label="Main">
+      <a href="#try">Try it</a>
+      <a href="#install">Install</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div class="wrap">
+      <h1>Your CV as a picture people actually read.</h1>
+      <p class="lead">Paste your CV into ChatGPT or Claude. CV Lens sends back a career timeline and a chart of the skills you really used, in the chat, in seconds. Free to use.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="#try">See it with a sample CV</a>
+        <a class="btn" href="#install">Add it to ChatGPT or Claude</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="try">
+    <div class="wrap">
+      <h2>This is what you get back</h2>
+      <p class="sub">A made-up CV, drawn by the same code that runs in the chat. Change the data below and watch it redraw.</p>
+      <div class="demo">
+        <div class="demo-bar">
+          <div class="tabs" role="group" aria-label="View">
+            <button id="tab-chart" type="button" aria-pressed="true">Chart</button>
+            <button id="tab-table" type="button" aria-pressed="false">Table</button>
+          </div>
+          <button id="save" class="btn small" type="button">Save as SVG</button>
+        </div>
+        <div class="stage" id="stage" aria-live="polite"></div>
+        <details class="edit">
+          <summary>Edit the data</summary>
+          <p style="color:var(--ink2);margin:0 0 8px;font-size:14px">In the real thing your AI fills this in from your CV. Dates are YYYY-MM or YYYY. List skills on the role where you used them.</p>
+          <label for="json" style="position:absolute;left:-999px">CV data as JSON</label>
+          <textarea id="json" spellcheck="false" autocomplete="off"></textarea>
+          <p id="problem" role="alert"></p>
+          <ul id="warnings"></ul>
+          <button id="reset" class="btn small" type="button">Reset to the sample</button>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">No upload form, no account.</p>
+      <ol class="steps">
+        <li><h3>Add CV Lens to your AI</h3><p>One time, a minute. Steps for ChatGPT and Claude are below.</p></li>
+        <li><h3>Paste your CV</h3><p>Ask it to "visualize my CV". The AI reads your text and picks out roles, dates and the skills each role used.</p></li>
+        <li><h3>Get the picture</h3><p>A timeline and a skills chart appear in the chat. Save it as an image for your portfolio or applications.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Add it to your AI</h2>
+      <p class="sub">CV Lens is a connector built on MCP, the open standard both apps use for add-ons.</p>
+      <div class="cards">
+        <div class="card" id="card-chatgpt">
+          <h3>ChatGPT</h3>
+          <ol>
+            <li>Open Settings, then Apps (or Connectors).</li>
+            <li>Turn on developer mode and add a new app.</li>
+            <li>Paste the connector address below.</li>
+          </ol>
+          <div class="urlbox"></div>
+        </div>
+        <div class="card" id="card-claude">
+          <h3>Claude</h3>
+          <ol>
+            <li>Open Settings, then Connectors.</li>
+            <li>Choose Add custom connector.</li>
+            <li>Paste the connector address below.</li>
+          </ol>
+          <div class="urlbox"></div>
+        </div>
+      </div>
+      <p class="pending" style="margin-top:14px">Menu names change as the apps update. Once CV Lens is approved in the official directories you will be able to add it from there with one click.</p>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <h2>Free to try. Done for you if you want more.</h2>
+      <p class="sub">The chat tool costs nothing. If you would rather have it designed and written properly, that is what the rest is for.</p>
+      <div class="cards" id="offers"></div>
+    </div>
+  </section>
+
+  <section id="faq" class="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <details>
+        <summary>Is my CV stored anywhere?</summary>
+        <p>No. The text goes from your AI app to the CV Lens server, which draws the chart and answers. Nothing is saved or written to a log. Details are on the <a href="./privacy.html">privacy page</a>.</p>
+      </details>
+      <details>
+        <summary>How are skills measured?</summary>
+        <p>By time. For every role your CV lists a skill in, CV Lens adds up the months, without counting overlapping jobs twice. It does not guess a skill level, because a CV does not say how good you are, only where you used something.</p>
+      </details>
+      <details>
+        <summary>Can the AI get something wrong?</summary>
+        <p>Yes. Your AI reads the CV and fills in the dates and skills, so check the chart against your CV. The Table tab shows exactly what was drawn. If a date cannot be read, CV Lens says so instead of guessing.</p>
+      </details>
+      <details>
+        <summary>What does it cost?</summary>
+        <p>The chat tool is free. You pay for your own ChatGPT or Claude plan as usual.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span id="built"></span>
+    <span><a href="./privacy.html">Privacy</a></span>
+  </div>
+</footer>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

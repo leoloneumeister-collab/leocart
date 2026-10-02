@@ -127,3 +127,9 @@ MIT. See [LICENSE](LICENSE).
 A 3D first-person military shooter (two story missions, four guns, wave combat, a boss fight), also generated entirely in code. It lives in [`shooter/`](shooter/README.md) and is published at `/shooter/` next to the kart racer.
 
 Run it locally: `cd shooter && npm install && npm run dev`.
+
+## CV Lens
+
+A ChatGPT and Claude add-on (an MCP App) that turns a pasted CV into a career timeline and a skills chart, plus the website that sells it. It lives in [`cvlens/`](cvlens/README.md) and the site is published at `/cvlens/`. The MCP server needs its own host, see the README there.
+
+Run it locally: `cd cvlens && npm install && npm run build && npm start`.

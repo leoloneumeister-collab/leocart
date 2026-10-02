@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>CV Lens</title>
+<style>
+  :root {
+    --ink: #0b0b0b;
+    --ink2: #52514e;
+    --line: #e1e0d9;
+    --accent: #2a78d6;
+    --hover: rgba(11, 11, 11, 0.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --ink: #ffffff;
+      --ink2: #c3c2b7;
+      --line: #2c2c2a;
+      --accent: #3987e5;
+      --hover: rgba(255, 255, 255, 0.08);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ffffff;
+    --ink2: #c3c2b7;
+    --line: #2c2c2a;
+    --accent: #3987e5;
+    --hover: rgba(255, 255, 255, 0.08);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 8px;
+    background: transparent;
+    color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #status { margin: 12px 4px; color: var(--ink2); }
+  #bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 0 4px 10px; }
+  #bar[hidden] { display: none; }
+  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  button, .link {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  button:hover, .link:hover { background: var(--hover); }
+  button:focus-visible, .link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tabs button[aria-pressed="true"] { background: var(--hover); font-weight: 600; }
+  .actions { display: inline-flex; gap: 4px; align-items: center; }
+  .actions button, .actions .link { border: 1px solid var(--line); border-radius: 8px; }
+  .actions .cta { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  #view { overflow-x: auto; }
+  #view svg { display: block; width: 100%; height: auto; }
+  #notes { margin: 10px 4px 0; padding-left: 18px; color: var(--ink2); font-size: 13px; }
+  #notes:empty { display: none; }
+  #flash { color: var(--ink2); font-size: 13px; }
+  h3 { margin: 18px 4px 6px; font-size: 14px; }
+  .cvl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cvl-table th, .cvl-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .cvl-table th { color: var(--ink2); font-weight: 600; }
+</style>
+</head>
+<body>
+<p id="status" role="status">Building your overview…</p>
+<div id="bar" hidden>
+  <div class="tabs" role="group" aria-label="View">
+    <button id="tab-chart" type="button" aria-pressed="true">Chart</button>
+    <button id="tab-table" type="button" aria-pressed="false">Table</button>
+  </div>
+  <div class="actions">
+    <span id="flash" role="status"></span>
+    <button id="download" type="button">Save as SVG</button>
+    <button id="cta" class="cta" type="button" hidden>Get a polished version</button>
+  </div>
+</div>
+<div id="view"></div>
+<ul id="notes"></ul>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

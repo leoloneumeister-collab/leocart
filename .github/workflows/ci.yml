@@ -24,3 +24,9 @@ jobs:
         working-directory: shooter
       - run: npm run build
         working-directory: shooter
+      - run: npm ci
+        working-directory: cvlens
+      - run: npm run build
+        working-directory: cvlens
+      - run: npm test
+        working-directory: cvlens
