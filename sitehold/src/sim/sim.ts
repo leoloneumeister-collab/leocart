@@ -401,7 +401,6 @@ export class Sim {
       a.team = 0; a.helmet = true; a.armor = 100;
       a.primary = mkWeapon(this.rng.pick(['vk47', 'carbine', 'hornet', 'reaper', 'ranger', 'mantis', 'pump12', 'scout']));
       a.secondary = mkWeapon(this.rng.pick(['marshal', 'viper', 'cobra']));
-      a.grenades = { flash: 0, smoke: 0, he: 0, fire: 0 };
       this.dmSpawn(a);
     }
   }
@@ -426,6 +425,10 @@ export class Sim {
       if (a.secondary) a.secondary = mkWeapon(a.secondary.def.id);
     }
     a.armor = 100; a.helmet = true;
+    // practice utility: the human gets one of each (with a trajectory preview), bots get one random grenade
+    a.grenades = { flash: 0, smoke: 0, he: 0, fire: 0 };
+    if (a.isHuman) a.grenades = { flash: 1, smoke: 1, he: 1, fire: 1 };
+    else if (this.rng.chance(0.6)) a.grenades[this.rng.pick(['flash', 'smoke', 'he', 'fire'] as const)] = 1;
     this.reviveActor(a);
     a.spawnProtect = this.time + 1.5;
     this.emit({ t: 'spawn', id: a.id });
@@ -500,12 +503,12 @@ export class Sim {
       a.stepTimer -= DT * (sp / MOVE.maxSpeed) * 1.1;
       if (a.stepTimer <= 0) {
         a.stepTimer = MOVE.stepInterval;
-        this.emit({ t: 'step', id: a.id, pos: { ...a.pos }, surface: a.pos.y > 0.3 ? 'stone' : 'sand', loud: true });
+        this.emit({ t: 'step', id: a.id, pos: { ...a.pos }, surface: this.world.surfaceAt(a.pos.x, a.pos.y, a.pos.z), loud: true });
         this.noise(a, 'step', 24);
       }
     } else if (a.onGround && sp > 0.8 && !a.crouching) {
       a.stepTimer -= DT * (sp / MOVE.maxSpeed);
-      if (a.stepTimer <= 0) { a.stepTimer = MOVE.stepInterval * 1.3; this.emit({ t: 'step', id: a.id, pos: { ...a.pos }, surface: a.pos.y > 0.3 ? 'stone' : 'sand', loud: false }); }
+      if (a.stepTimer <= 0) { a.stepTimer = MOVE.stepInterval * 1.3; this.emit({ t: 'step', id: a.id, pos: { ...a.pos }, surface: this.world.surfaceAt(a.pos.x, a.pos.y, a.pos.z), loud: false }); }
     }
     stepWeapon(this, a, cmd, DT);
     this.stepUse(a, cmd);
@@ -580,16 +583,18 @@ export class Sim {
       this.emit({ t: 'defuseStop', id: a.id });
     }
 
-    // ---- swap weapon from the floor
+    // ---- swap weapon from the floor: the closest one within reach
     if (useEdge) {
+      let best: Drop | null = null, bd = 1.5;
       for (const d of this.drops) {
         if (d.kind !== 'weapon') continue;
-        if (Math.hypot(d.pos.x - a.pos.x, d.pos.z - a.pos.z) > 1.5 || Math.abs(d.pos.y - a.pos.y) > 1.5) continue;
+        const dd = Math.hypot(d.pos.x - a.pos.x, d.pos.z - a.pos.z);
+        if (dd > bd || Math.abs(d.pos.y - a.pos.y) > 1.5) continue;
         const def = WEAPONS[d.weaponId];
         if (def.team !== 2 && def.team !== a.team) continue;
-        this.takeDrop(a, d, true);
-        break;
+        best = d; bd = dd;
       }
+      if (best) this.takeDrop(a, best, true);
     }
   }
 

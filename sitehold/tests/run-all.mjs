@@ -7,6 +7,7 @@ const steps = [
   ['movement', ['node', 'tests/movement.mjs']],
   ['guns', ['node', 'tests/guns.mjs']],
   ['rules', ['node', 'tests/rules.mjs']],
+  ['weapon table', ['node', 'tests/weapons.mjs']],
   ['bot matches', ['node', 'scripts/sim.ts', '--matches', '10']],
   ['deathmatch', ['node', 'scripts/sim.ts', '--dm', '--matches', '4']],
 ];

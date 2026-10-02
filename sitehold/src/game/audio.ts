@@ -199,6 +199,18 @@ export class GameAudio {
 
   land(pos: Vec3 | null, dist: number, hard: number) { this.step('stone', pos, dist, 0.6 + Math.min(0.6, hard * 0.05)); this.tone(70, 0.12, 'sine', 0.3, 0, 40, pos, dist); }
 
+  impact(surface: string, pos: Vec3, dist: number) {
+    if (!this.ctx || dist > 45) return;
+    const ctx = this.ctx, t = this.t();
+    const o = this.out(pos, surface === 'flesh' || surface === 'head' ? 0.5 : 0.35, 0.1, dist);
+    const n = this.noiseSrc(0.07);
+    const f = surface === 'metal' ? 2400 : surface === 'wood' ? 700 : surface === 'sand' ? 450 : surface === 'flesh' || surface === 'head' ? 300 : 1400;
+    const bp = ctx.createBiquadFilter(); bp.type = surface === 'metal' ? 'bandpass' : 'lowpass'; bp.frequency.value = f; bp.Q.value = surface === 'metal' ? 8 : 0.8;
+    const g = ctx.createGain(); g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + (surface === 'metal' ? 0.16 : 0.07));
+    n.connect(bp); bp.connect(g); g.connect(o);
+    if (surface === 'metal') this.tone(1800 + Math.random() * 600, 0.1, 'triangle', 0.08, 0, 900, pos, dist);
+  }
+
   whoosh(pos: Vec3 | null = null, dist = 0, gain = 0.5) {
     if (!this.ctx) return;
     const ctx = this.ctx, t = this.t();

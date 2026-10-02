@@ -399,5 +399,15 @@ export class Effects {
     void GRENADE;
   }
 
+  /** Practice mode: draw the predicted flight of a grenade as a dotted arc. Call every frame while aiming. */
+  trajectory(pts: Array<{ x: number; y: number; z: number }>) {
+    pts.forEach((p, i) => {
+      if (i % 2) return;
+      this.glow.spawn(p.x, p.y, p.z, 0, 0, 0, 0.5, 1, 0.65, 0.9, 0.07, 0.045);
+    });
+    const e = pts[pts.length - 1];
+    if (e) for (let k = 0; k < 8; k++) { const a = (k / 8) * 6.283; this.glow.spawn(e.x + Math.cos(a) * 0.35, Math.max(0.05, e.y) , e.z + Math.sin(a) * 0.35, 0, 0, 0, 1, 0.9, 0.3, 0.9, 0.09, 0.045); }
+  }
+
   blinkBomb() { this.bombBlink = 1; }
 }

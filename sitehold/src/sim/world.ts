@@ -103,6 +103,16 @@ export class World {
     return best;
   }
 
+  /** What a player standing here is standing on, for footstep sounds. */
+  surfaceAt(x: number, y: number, z: number): Surface {
+    const list = this.scan(x - 0.2, z - 0.2, x + 0.2, z + 0.2, this.cand2);
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i];
+      if (Math.abs(b.maxY - y) < 0.12) return surfaceOf(b.mat);
+    }
+    return 'sand';
+  }
+
   raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, out?: RayHit): boolean {
     let bestT = maxT;
     let bestBox: Box | null = null;

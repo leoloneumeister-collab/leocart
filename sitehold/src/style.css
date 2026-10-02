@@ -145,6 +145,8 @@ label.f .v { color: var(--accent); min-width: 44px; text-align: right; font-vari
 #buy .cols { display: flex; gap: 14px; align-items: flex-start; }
 #buy .stack { display: flex; flex-direction: column; gap: 10px; min-width: 205px; }
 #buy .grp { min-width: 190px; }
+#buy .grp h4.on { color: var(--accent); }
+#buy .grp h4 .kbd { font-size: 11px; min-width: 18px; padding: 0 5px; margin-right: 4px; }
 #buy .grp h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; }
 #buy .item { display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: left; margin-bottom: 4px; padding: 7px 10px; font-size: 14px; }
 #buy .item .p { color: #b6ff7a; font-variant-numeric: tabular-nums; }

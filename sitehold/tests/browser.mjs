@@ -229,6 +229,8 @@ await page.click('#buy .item:has-text("Buy for me")', { timeout: 3000 }).catch((
 await page.click('button:has-text("Buy for me")');
 let sw = await state();
 check('Buy for me buys a rifle and armor', sw.primary !== null && sw.armor === 100, JSON.stringify({ p: sw.primary, a: sw.armor }));
+await page.keyboard.press('Digit3'); await page.keyboard.press('Digit2');
+check('quick buy keys work (3 then 2 buys the second rifle)', await page.evaluate(() => ['ranger', 'reaper'].includes(window.__game.sim.human.primary?.def.id)));
 await page.keyboard.press('KeyB');
 await page.evaluate(() => { const g = window.__game, h = g.sim.human; g.sim.buy(h, 'bolt50'); });
 await advance(16);
@@ -290,7 +292,7 @@ const audioReport = await page.evaluate(() => {
     () => a.click(1000, 0.05, 0.3, pos, 3, 0.01), () => a.reload('rifle', pos, 3), () => a.reload('shotgun', null, 0), () => a.dryfire(null, 0), () => a.draw(pos, 3),
     () => a.tone(440, 0.1), () => a.hitMarker(), () => a.headshot(), () => a.kill(), () => a.uiClick(), () => a.uiHover(), () => a.buy(), () => a.deny(), () => a.pickup(),
     () => a.roundStart(), () => a.win(), () => a.lose(), () => a.tick(), () => a.hurt(), () => a.step('sand', pos, 5), () => a.step('metal', null, 0), () => a.land(pos, 4, 8),
-    () => a.whoosh(), () => a.stab(pos, 2, true), () => a.stab(null, 0, false), () => a.explosion(pos, 20, true), () => a.flashBang(pos, 8), () => a.smokePop(pos, 8),
+    () => a.whoosh(), () => a.impact('wood', pos, 4), () => a.impact('metal', pos, 4), () => a.impact('flesh', pos, 4), () => a.stab(pos, 2, true), () => a.stab(null, 0, false), () => a.explosion(pos, 20, true), () => a.flashBang(pos, 8), () => a.smokePop(pos, 8),
     () => a.flashRing(1.5), () => a.bombBeep(pos, 8, true), () => a.plantTone(pos, 8), () => a.defuseTick(pos, 4), () => a.defused(), () => a.radio('Enemy spotted at A site'),
     () => a.setListener({ x: 0, y: 1.6, z: 0 }, 1.2), () => a.setVolumes(0.5, 0.2), () => { a.startMusic(); a.stopMusic(); }, () => a.toggleMute(), () => a.toggleMute(),
   ];
@@ -299,6 +301,18 @@ const audioReport = await page.evaluate(() => {
   return { total: calls.length, failures, state: a.ctx ? a.ctx.state : 'no context' };
 });
 check('every sound function runs without throwing', audioReport.failures.length === 0, JSON.stringify(audioReport));
+
+// ------------------------------------------------------------------ deathmatch grenade preview and a frame rate floor
+await page.goto('http://localhost:4173/?debug=1&auto=1&mode=dm&diff=1&seed=7');
+await page.waitForTimeout(1200);
+await page.keyboard.press('Digit4');
+await advance(1);
+check('deathmatch gives the player one of each grenade', await page.evaluate(() => { const g = window.__game.sim.human.grenades; return g.flash + g.smoke + g.he + g.fire === 4; }));
+await page.waitForTimeout(800);
+await shot('t15-trajectory');
+const fps = await page.evaluate(() => new Promise((res) => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else res(n / 3); }; requestAnimationFrame(f); }));
+console.log(`  frame rate in software rendering: ${fps.toFixed(1)} fps (a real GPU is far faster)`);
+check('the game keeps rendering frames', fps >= 1.5, `${fps.toFixed(1)} fps`);
 
 // ------------------------------------------------------------------ renderer stats and errors
 const info = await page.evaluate(() => { const i = window.__game.renderer.info; return { calls: i.render.calls, tris: i.render.triangles, geos: i.memory.geometries, tex: i.memory.textures }; });

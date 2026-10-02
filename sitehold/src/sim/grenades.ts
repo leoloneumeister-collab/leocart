@@ -109,6 +109,8 @@ function detonate(sim: Sim, g: Grenade) {
       }
       break;
     case 'he':
+      // the blast tears a hole in smoke nearby
+      for (const sm of sim.smokes) if (Math.hypot(sm.pos.x - pos.x, sm.pos.z - pos.z) < GRENADE.smokeRadius + 1.5) sm.end = Math.min(sm.end, sim.time + 1.0);
       for (const v of sim.actors) {
         if (!v.alive || (owner && !sim.isEnemy(owner, v) && v !== owner)) continue;
         if (v === owner) continue;
@@ -182,6 +184,23 @@ export function smokeBlocks(sim: Sim, ax: number, ay: number, az: number, bx: nu
     if (t1 - t0 > 0.9) return true;
   }
   return false;
+}
+
+/** Where a throw from this actor would fly, for the practice mode trajectory preview. */
+export function predictThrow(sim: Sim, a: Actor, power: number): Vec3[] {
+  const eye = eyePos(a);
+  const f = forwardOf(a.yaw, a.pitch + (power > 0.9 ? 0.1 : 0.05));
+  const body = { pos: v3(eye.x + f.x * 0.35, eye.y - 0.1 + f.y * 0.35, eye.z + f.z * 0.35), vel: v3(), rest: 0, bounces: 0 };
+  if (!sim.world.los(eye.x, eye.y, eye.z, body.pos.x, body.pos.y, body.pos.z)) { body.pos.x = eye.x; body.pos.y = eye.y - 0.1; body.pos.z = eye.z; }
+  const sp = GRENADE.throwSpeed * power;
+  body.vel.x = f.x * sp + a.vel.x * 0.45; body.vel.y = f.y * sp + a.vel.y * 0.3; body.vel.z = f.z * sp + a.vel.z * 0.45;
+  const pts: Vec3[] = [];
+  for (let t = 0; t < 3.4; t += 1 / 30) {
+    stepBody(sim.world, body, 1 / 30);
+    pts.push({ ...body.pos });
+    if (body.rest > 0.3) break;
+  }
+  return pts;
 }
 
 /** Finds a throw that lands near the target. Returns view angles and power, or null if nothing gets close.

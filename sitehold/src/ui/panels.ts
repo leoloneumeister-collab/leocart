@@ -34,7 +34,9 @@ export class BuyMenu {
     const rebuy = el('button', '', 'Rebuy last loadout'); rebuy.onclick = () => this.rebuy();
     const auto = el('button', '', 'Buy for me'); auto.onclick = () => this.auto();
     const close = el('button', '', 'Close (B)'); close.onclick = () => this.hide();
-    foot.append(rebuy, auto, close);
+    const hint = el('span', '', 'Quick buy: press a category number, then an item number');
+    hint.setAttribute('style', 'color:#9aa6b2;font-size:12px;align-self:center;margin-left:8px');
+    foot.append(rebuy, auto, close, hint);
     this.panel.append(head, this.cols, foot);
     this.root.append(this.panel);
     parent.append(this.root);
@@ -42,7 +44,7 @@ export class BuyMenu {
   }
 
   show(sim: Sim, human: Actor) {
-    this.sim = sim; this.human = human; this.bought = []; this.sig = '';
+    this.sim = sim; this.human = human; this.bought = []; this.sig = ''; this.cat = -1;
     this.visible = true;
     this.root.classList.remove('hidden');
     this.render();
@@ -50,6 +52,27 @@ export class BuyMenu {
   hide() { this.visible = false; this.root.classList.add('hidden'); }
 
   private sig = '';
+  private cat = -1;
+  private static readonly ORDER = ['Pistols', 'SMGs', 'Rifles', 'Snipers', 'Heavy', 'Gear', 'Grenades'];
+  private itemsOf(name: string): ShopEntry[] { return shopFor(this.human!.team).filter((e) => e.group === name); }
+
+  /** CS style quick buy: a number picks a category, a second number buys the item. Returns true if the key was used. */
+  handleKey(code: string): boolean {
+    if (!this.visible || !this.human) return false;
+    if (code === 'Backspace' || code === 'Escape') { if (this.cat >= 0) { this.cat = -1; this.sig = ''; this.render(); return true; } return false; }
+    const m = /^(?:Digit|Numpad)([1-9])$/.exec(code);
+    if (!m) return false;
+    const n = Number(m[1]) - 1;
+    if (this.cat < 0) {
+      if (n < BuyMenu.ORDER.length && this.itemsOf(BuyMenu.ORDER[n]).length) { this.cat = n; this.sig = ''; this.render(); }
+    } else {
+      const items = this.itemsOf(BuyMenu.ORDER[this.cat]);
+      this.cat = -1;
+      if (n < items.length) this.buy(items[n].id);
+      else { this.sig = ''; this.render(); }
+    }
+    return true;
+  }
   /** Called every frame, only rebuilds the DOM when something it shows has changed. */
   refresh() {
     if (!this.visible || !this.human) return;
@@ -114,11 +137,16 @@ export class BuyMenu {
         const list = groups.get(name);
         if (!list) continue;
         const col = el('div', 'grp');
-        col.append(el('h4', '', name));
+        const ci = BuyMenu.ORDER.indexOf(name);
+        const h4 = el('h4', this.cat === ci ? 'on' : '', `<span class="kbd">${ci + 1}</span> ${name}`);
+        col.append(h4);
+        let ii = 0;
         for (const e of list) {
           const price = priceFor(h, e.id);
           const owned = (h.primary?.def.id === e.id) || (h.secondary?.def.id === e.id) || (e.id === 'kit' && h.kit) || (e.id === 'armor' && h.armor >= 100 && h.helmet) || (e.id === 'kevlar' && h.armor >= 100) || (e.kind === 'grenade' && h.grenades[e.id as 'flash'] > 0);
-          const b = el('button', `item${price < 0 || h.money < price ? ' no' : ''}${owned ? ' owned' : ''}`, `<span>${e.name}</span><span class="p">$${e.price}</span>`);
+          const badge = this.cat === ci ? `<span class="kbd">${ii + 1}</span> ` : '';
+          ii++;
+          const b = el('button', `item${price < 0 || h.money < price ? ' no' : ''}${owned ? ' owned' : ''}`, `<span>${badge}${e.name}</span><span class="p">$${e.price}</span>`);
           b.onclick = () => this.buy(e.id);
           b.onmouseenter = () => { this.info.innerHTML = this.stats(e); audio.uiHover(); };
           col.append(b);

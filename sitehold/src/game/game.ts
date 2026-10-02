@@ -7,6 +7,7 @@ import { DT, MOVE, ROUND, TEAM_BREACHER } from '../sim/constants.ts';
 import { DEG, angleDiff, clamp, forwardOf, v3, type Vec3 } from '../sim/math.ts';
 import { currentWeapon, curDef, eyeHeight, eyePos, maxSpeedOf, newCmd, type Actor } from '../sim/actor.ts';
 import { currentSpread } from '../sim/combat.ts';
+import { predictThrow } from '../sim/grenades.ts';
 import { WEAPONS } from '../sim/weapons.ts';
 import { buyItem } from '../sim/economy.ts';
 import { createBrain } from '../sim/bots.ts';
@@ -82,6 +83,7 @@ export class Game {
   private landDip = 0;
   private loadoutBought: string[] = [];
   private renderScale = 1;
+  private impactBudget = 0;
   private slowT = 0;
   private fastT = 0;
 
@@ -291,8 +293,12 @@ export class Game {
     if (is('mute')) audio.toggleMute();
     if (this.state !== 'playing') return;
     const h = sim.human;
-    if (is('buy') && h && h.alive && (sim.cfg.mode === 'dm' || sim.m.phase === 'freeze')) this.toggleBuy();
-    else if (this.buyOpen && code === 'Escape') this.toggleBuy();
+    if (is('buy') && h && h.alive && (sim.cfg.mode === 'dm' || sim.m.phase === 'freeze')) { this.toggleBuy(); return; }
+    if (this.buyOpen) {
+      // while shopping, digits are quick buy keys and must not select weapons
+      if (!this.buy.handleKey(code) && code === 'Escape') this.toggleBuy();
+      return;
+    }
     if (is('scoreboard')) this.board.show();
     if (is('reload')) this.edge.reload = true;
     if (is('use')) this.edge.use = true;
@@ -353,6 +359,7 @@ export class Game {
     const dt = Math.min(0.05, Math.max(0.0001, (t - this.last) / 1000));
     this.last = t;
     this.fpsT += dt; this.fpsN++;
+    this.impactBudget = 6;
     this.adaptResolution(dt);
     if (this.fpsT >= 0.5) { this.fps = this.fpsN / this.fpsT; this.fpsT = 0; this.fpsN = 0; }
     try {
@@ -510,6 +517,10 @@ export class Game {
         }
         case 'hit': {
           if (e.attacker === hid) { hudCtx.hitMarker(e.head); if (e.head) audio.headshot(); else audio.hitMarker(); }
+          break;
+        }
+        case 'impact': {
+          if (this.impactBudget-- > 0) audio.impact(e.surface, e.pos, this.distTo(e.pos));
           break;
         }
         case 'hurt': {
@@ -711,6 +722,12 @@ export class Game {
       rig.update(dt, a, { x: ax, y: ay, z: az }, a.alive ? (a.isHuman ? a.yaw : ay2) : a.yaw, now, showTag);
     }
     audio.setListener(this.camera.position, yaw);
+    // practice mode only: preview where the grenade in hand would go
+    if (sim.cfg.mode === 'dm' && isHumanView && first && subject.cur === 'grenade' && subject.grenadeSel) {
+      const b = this.input.buttons;
+      const power = subject.pinPulled > 0 ? subject.pinPower : b.has(0) && b.has(2) ? 0.7 : b.has(2) ? 0.32 : 1;
+      this.fx.trajectory(predictThrow(sim, subject, power));
+    }
 
     // ---- viewmodel
     const ws = currentWeapon(subject);

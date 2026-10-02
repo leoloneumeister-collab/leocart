@@ -120,6 +120,14 @@ export class Brain {
     if (now >= this.nextPerceive) { this.perceive(); this.nextPerceive = now + 0.1 + ((a.id * 7) % 5) * 0.003; }
     const blind = a.flashFull > now;
     const flashed = a.flashEnd > now;
+    // shot from somewhere unseen: turn toward it and expect an enemy there
+    if (now - a.hurtTime < 0.12 && this.target < 0 && !flashed) {
+      const ang = a.hurtDir;
+      this.suspect = v3(a.pos.x - Math.sin(ang) * 14, 0, a.pos.z - Math.cos(ang) * 14);
+      this.suspectUntil = now + 3;
+      this.aimYaw = ang; this.aimPitch = 0;
+      this.lastKnown = { ...this.suspect }; this.lostAt = now;
+    }
 
     // ---- blind: look away, stop, maybe spray blindly
     if (blind) {
