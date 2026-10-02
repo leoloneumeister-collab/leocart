@@ -32,6 +32,12 @@ jobs:
           npm run lint
           npm run validate
       - run: npm run build
+      # Shadow Protocol shooter (published under /shooter/)
+      - run: npm ci
+        working-directory: shooter
+      - run: npm run build
+        working-directory: shooter
+      - run: mkdir -p dist/shooter && cp -r shooter/dist/. dist/shooter/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

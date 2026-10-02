@@ -1,0 +1,17 @@
+import { startServer, launch } from './lib.mjs';
+const id = process.argv[2] || 'vk7';
+const stop = await startServer();
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const errors = [];
+page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
+await page.goto(`http://localhost:4173/?debug=1&mission=1&god=1&q=medium&loadout=${id},hornet`);
+await page.waitForTimeout(5500);
+await page.evaluate(() => { const g = window.__game; g.player.pos.set(0, 0, 70); g.player.yaw = 0; g.player.pitch = 0.1; });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `tests/shots/vm-${id}-hip.png`, clip: { x: 640, y: 360, width: 640, height: 360 } });
+await page.evaluate(() => { window.__game.input.buttons.add(2); });
+await page.waitForTimeout(1200);
+await page.screenshot({ path: `tests/shots/vm-${id}-ads.png` });
+console.log(errors.join('\n'));
+await browser.close(); stop();

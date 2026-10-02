@@ -1,0 +1,13 @@
+import { startServer, launch } from './lib.mjs';
+const stop = await startServer();
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message + '\n' + e.stack));
+await page.goto(`http://localhost:4173/?debug=1&mission=1&cp=3&god=1&q=medium`);
+await page.waitForTimeout(5000);
+await page.evaluate(() => { const g = window.__game; g.mission.heliT = 0.999; for (const e of g.enemies) { g.scene.remove(e.rig.root); } g.enemies.length = 0; g.player.pos.set(-30, 0, -60); g.mission.beacon.visible = false; g.player.yaw = 0.7; g.player.pitch = 0.1; });
+await page.waitForTimeout(2500);
+await page.screenshot({ path: 'tests/shots/heli.png' });
+console.log(errs.join('\n'));
+await browser.close(); stop();

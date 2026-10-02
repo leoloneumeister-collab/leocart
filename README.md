@@ -121,3 +121,9 @@ tests/       end-to-end, audio and performance tests
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Also in this repo: Shadow Protocol
+
+A 3D first-person military shooter (two story missions, four guns, wave combat, a boss fight), also generated entirely in code. It lives in [`shooter/`](shooter/README.md) and is published at `/shooter/` next to the kart racer.
+
+Run it locally: `cd shooter && npm install && npm run dev`.
