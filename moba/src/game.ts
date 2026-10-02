@@ -125,6 +125,7 @@ export class Game {
     this.audio.startMusic();
     this.hud.showMessage('Right click to move. Q W E R cast abilities. You have 500 gold: press P to shop in your base. Y unlocks the camera.', 9);
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('blur', this.onBlur);
     this.lastT = performance.now();
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -292,6 +293,11 @@ export class Game {
     const slotIdx = ['q', 'w', 'e', 'r'].indexOf(key);
     if (slotIdx >= 0 && this.previewSlot === slotIdx) this.previewSlot = -1;
   }
+
+  private onBlur = () => {
+    this.previewSlot = -1;
+    this.scoreboardOn = false;
+  };
 
   private onResize = () => {
     this.renderer.resize();
@@ -561,6 +567,7 @@ export class Game {
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('blur', this.onBlur);
     this.input.dispose();
     this.minimap.dispose();
     this.audio.stopMusic();
