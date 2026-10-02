@@ -147,9 +147,11 @@ export class Brain {
     const plantingNearlyDone = a.planting > 1.6;
     // a carrier at the spot plants unless the enemy is close, a defuser keeps going if the threat is far
     const far = tgt ? dist2(tgt.pos, a.pos) > 15 : true;
-    const commitPlant = this.intent.k === 'plant' && a.hasBomb && dist2(a.pos, this.intent.pos) < 2.2 && far;
+    // the carrier runs for the plant spot instead of duelling at range, teammates cover
+    const carrierRun = this.intent.k === 'plant' && a.hasBomb && !!tgt && dist2(tgt.pos, a.pos) > 20;
+    const commitPlant = this.intent.k === 'plant' && a.hasBomb && dist2(a.pos, this.intent.pos) < 2.2 && (far || (!!tgt && dist2(tgt.pos, a.pos) > 11));
     const commitDefuse = this.intent.k === 'defuse' && sim.bomb.state === 'planted' && dist2(a.pos, sim.bomb.pos) < 2.0 && far;
-    if (tgt && !defusingNearlyDone && !plantingNearlyDone && !commitPlant && !commitDefuse) {
+    if (tgt && !defusingNearlyDone && !plantingNearlyDone && !commitPlant && !commitDefuse && !carrierRun) {
       this.fight(tgt);
       this.applyAim();
       this.manageWeapon(true);

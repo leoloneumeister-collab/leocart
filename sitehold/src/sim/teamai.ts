@@ -419,7 +419,7 @@ export class TeamAI {
     const count = (name: RegExp) => recent.filter((i) => name.test(i.place)).length;
     const threatA = count(/Long|^A |Roost|A Ramp|A Short/), threatB = count(/Tunnel|^B |B Hall|B Alley|West/);
     const rotate = (to: 'A' | 'B') => {
-      if (now - this.lastRotate[to] < 6) return;
+      if (now - this.lastRotate[to] < 8) return;
       const from = to === 'A' ? 'B' : 'A';
       const cands = bots.filter((a) => { const it = this.brain(a).intent; return it.k === 'hold' && (it.label.startsWith(from) || it.label.startsWith('Mid') || it.label.startsWith('Hall')); });
       if (!cands.length) return;
@@ -432,8 +432,8 @@ export class TeamAI {
       }
       this.say(send[0], `Rotating ${to}`);
     };
-    if (threatA >= 2 && threatB === 0) rotate('A');
-    else if (threatB >= 2 && threatA === 0) rotate('B');
+    if (threatA >= 3 && threatB === 0) rotate('A');
+    else if (threatB >= 3 && threatA === 0) rotate('B');
   }
 
   private execRetake(bots: Actor[], site: 'A' | 'B') {
