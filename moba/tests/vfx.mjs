@@ -18,7 +18,11 @@ await page.evaluate(async () => {
   g.renderer.rig.locked = true; g.renderer.rig.dist = 38;
   g.fixedDt = 1 / 30; g.acc = 0;
 });
-await page.waitForTimeout(1500);
+// let the level-up flood of effects die before casting
+{
+  const fc0 = await page.evaluate(() => window.__game.frameCount);
+  await page.waitForFunction((n) => window.__game.frameCount >= n, fc0 + 60, { timeout: 120000 });
+}
 for (const slot of slots.split(',').map(Number)) {
   await page.evaluate(async (slot) => {
     const g = window.__game, w = g.world, p = g.player;
