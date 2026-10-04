@@ -49,7 +49,7 @@ export class Menu {
     this.root = el('div', 'menu', '', parent);
     const wrap = el('div', 'menu-wrap', '', this.root);
     el('div', 'logo', 'LANEFALL', wrap);
-    el('div', 'tagline', 'Five against five. Three lanes. One nexus. Play it right here on localhost.', wrap);
+    el('div', 'tagline', 'Five against five. Three lanes. One nexus. Play it right here in your browser.', wrap);
 
     const body = el('div', 'menu-body', '', wrap);
     const left = el('div', 'menu-left', '', body);
