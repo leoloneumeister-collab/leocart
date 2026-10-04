@@ -1,3 +1,5 @@
+import { CHAMPIONS } from '../data/champions.ts';
+import { championPortrait } from '../render/portraits.ts';
 /** Inline SVG icons for abilities and items, generated from small path templates. */
 import type { ItemCategory } from '../data/items.ts';
 
@@ -53,4 +55,13 @@ let iconSeq = 0;
 export function champIconSvg(letter: string, primary: number, accent: number): string {
   const id = `cg${iconSeq++}`;
   return `<svg viewBox="0 0 48 48" width="100%" height="100%"><defs><radialGradient id="${id}" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="${hex(accent)}"/><stop offset="1" stop-color="${hex(primary)}"/></radialGradient></defs><rect width="48" height="48" fill="url(#${id})"/><text x="24" y="33" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="26" fill="#fff" fill-opacity="0.92">${letter}</text></svg>`;
+}
+
+/** Champion portrait: a 3D rendered bust when WebGL works, otherwise the letter badge. */
+export function champIcon(id: string): string {
+  const d = CHAMPIONS[id];
+  const url = championPortrait(id, 'bust', 0);
+  if (!url) return champIconSvg(d.name[0], d.look.primary, d.look.accent);
+  const bg = `radial-gradient(circle at 50% 30%, ${hex(d.look.accent)}66, ${hex(d.look.primary)}dd 85%)`;
+  return `<img class="pimg" src="${url}" alt="${d.name}" draggable="false" style="background:${bg}">`;
 }

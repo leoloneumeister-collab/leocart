@@ -7,6 +7,8 @@ import type { World } from '../sim/world.ts';
 import { angleLerp, TAU } from '../sim/math.ts';
 import { CameraRig } from './camera.ts';
 import { Decals, Particles } from './fx.ts';
+import { Vfx } from './vfx.ts';
+import type { ProjVisual } from './vfx.ts';
 import { G, lambert, teamColor } from './geo.ts';
 import { buildStructure } from './structures.ts';
 import { Crowd } from './crowd.ts';
@@ -48,8 +50,19 @@ class StructureView {
 }
 
 interface ProjView {
-  mesh: THREE.Mesh;
+  vis: ProjVisual;
+  born: number;
   trail: number;
+}
+
+function disposeTree(o: THREE.Object3D) {
+  o.traverse((c) => {
+    const m = c as THREE.Mesh;
+    if (m.geometry) m.geometry.dispose();
+    const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+    if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+    else mat?.dispose();
+  });
 }
 
 const PROJ_COLORS: Record<string, number> = {};
@@ -72,8 +85,7 @@ export class GameRenderer {
   private dying: { key: string; x: number; z: number; yaw: number; phase: number; t: number }[] = [];
   private projViews = new Map<number, ProjView>();
   private towerRings = new Map<number, THREE.Mesh>();
-  private projSphere = new THREE.SphereGeometry(0.5, 10, 8);
-  private projBolt = new THREE.CylinderGeometry(0.22, 0.22, 3.2, 6).rotateX(Math.PI / 2);
+  readonly vfx: Vfx;
   private raycaster = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -109,6 +121,8 @@ export class GameRenderer {
     this.scene.add(this.decals.group);
     this.particles = new Particles(this.camera);
     this.scene.add(this.particles.mesh);
+    this.vfx = new Vfx(this.camera);
+    this.scene.add(this.vfx.group);
     this.resize();
     this.pipeline = new RenderPipeline(renderer, this.scene, this.camera, quality, this.width, this.height);
   }
@@ -255,26 +269,40 @@ export class GameRenderer {
     for (const p of w.projectiles) {
       live.add(p.id);
       let pv = this.projViews.get(p.id);
-      if (!pv) {
-        pv = this.makeProjectile(p.visual, p.radius);
-        this.projViews.set(p.id, pv);
-        this.scene.add(pv.mesh);
-      }
       const x = p.px + (p.x - p.px) * alpha;
       const z = p.pz + (p.z - p.pz) * alpha;
       const spell = p.visual.startsWith('spell:');
-      pv.mesh.position.set(x, spell ? 2.2 : p.visual === 'tower' ? 8 : 2.4, z);
-      if (p.vx !== 0 || p.vz !== 0) pv.mesh.rotation.y = Math.atan2(p.vx, p.vz);
-      const color = this.projColor(p.visual);
+      const y = spell ? 2.4 : p.visual === 'tower' ? 8 : 2.6;
+      if (!pv) {
+        const vis = this.vfx.projectile(p.visual, this.projColor(p.visual), p.radius);
+        pv = { vis, born: this.time, trail: 0 };
+        vis.group.position.set(x, y, z);
+        this.scene.add(vis.group);
+        for (const r of vis.ribbons) {
+          r.reset(vis.group.position);
+          this.scene.add(r.mesh);
+        }
+        this.projViews.set(p.id, pv);
+      }
+      const g = pv.vis.group;
+      g.position.set(x, y, z);
+      if (p.vx !== 0 || p.vz !== 0) g.rotation.y = Math.atan2(p.vx, p.vz);
+      pv.vis.tick?.(this.time - pv.born);
+      for (const r of pv.vis.ribbons) r.update(g.position, dt, this.camera);
       pv.trail -= dt;
       if (pv.trail <= 0) {
-        pv.trail = 0.02;
-        this.particles.emit(x, pv.mesh.position.y, z, color, { life: 0.35, size: spell ? 1.1 : 0.55, vy: 0.4 });
+        pv.trail = spell ? 0.03 : 0.06;
+        this.particles.emit(x + (Math.random() - 0.5) * 0.6, y + (Math.random() - 0.5) * 0.6, z + (Math.random() - 0.5) * 0.6, this.projColor(p.visual), { life: 0.45, size: spell ? 0.9 : 0.4, vy: 0.6 });
       }
     }
     for (const [id, pv] of this.projViews) {
       if (!live.has(id)) {
-        this.scene.remove(pv.mesh);
+        this.scene.remove(pv.vis.group);
+        disposeTree(pv.vis.group);
+        for (const r of pv.vis.ribbons) {
+          this.scene.remove(r.mesh);
+          disposeTree(r.mesh);
+        }
         this.projViews.delete(id);
       }
     }
@@ -319,6 +347,7 @@ export class GameRenderer {
     this.fog.update(w, this.viewerTeam, dt);
     this.particles.update(dt);
     this.decals.update(dt);
+    this.vfx.update(dt, t);
     void FIXED_DT;
   }
 
@@ -338,20 +367,6 @@ export class GameRenderer {
     }
     PROJ_COLORS[visual] = c;
     return c;
-  }
-
-  private makeProjectile(visual: string, radius: number): ProjView {
-    const color = this.projColor(visual);
-    const spell = visual.startsWith('spell:');
-    const elongated = spell || visual === 'champ:kestrel';
-    const mat = new THREE.MeshBasicMaterial({ color });
-    const mesh = new THREE.Mesh(elongated ? this.projBolt : this.projSphere, mat);
-    if (spell) mesh.scale.set(Math.max(0.6, radius * 0.8), Math.max(0.6, radius * 0.8), 1);
-    else if (visual === 'tower') mesh.scale.setScalar(1.3);
-    else if (visual === 'attack') mesh.scale.setScalar(0.7);
-    else if (visual === 'champ:kestrel') mesh.scale.set(0.35, 0.35, 0.8);
-    else mesh.scale.setScalar(0.9);
-    return { mesh, trail: 0 };
   }
 
   private updateChampion(v: ChampionView, u: Unit, w: World, alpha: number, dt: number, t: number) {
@@ -410,8 +425,11 @@ export class GameRenderer {
           cv?.onCast(ev.slot);
           const def = CHAMPIONS[ev.champ];
           if (def) {
-            this.decals.flash(ev.x, ev.z, 3.2, def.abilities[ev.slot].color, 0.4);
-            this.particles.burst(ev.x, 2.5, ev.z, def.abilities[ev.slot].color, 10, 7, 0.5, 0.8);
+            const col = def.abilities[ev.slot].color;
+            this.decals.flash(ev.x, ev.z, 3.2, col, 0.4);
+            this.particles.burst(ev.x, 2.5, ev.z, col, 10, 7, 0.5, 0.8);
+            this.vfx.shockwave(ev.x, ev.z, 0.8, ev.slot === 3 ? 6 : 3.4, col, ev.slot === 3 ? 0.6 : 0.4);
+            if (ev.slot === 3) this.vfx.pillar(ev.x, ev.z, 1.6, 9, col, 0.9);
           }
           break;
         }
@@ -432,6 +450,8 @@ export class GameRenderer {
             this.particles.burst(ev.x, 2.5, ev.z, col, 50, 12, 1.1, 1.2, 4);
             this.particles.burst(ev.x, 2.5, ev.z, 0xffffff, 20, 8, 0.8, 0.9);
             this.decals.flash(ev.x, ev.z, 7, col, 0.6);
+            this.vfx.shockwave(ev.x, ev.z, 1, 7, col, 0.6);
+            this.vfx.pillar(ev.x, ev.z, 1.4, 8, col, 0.8);
             this.rig.shake(0.7, 0.25);
           }
           {
@@ -447,6 +467,8 @@ export class GameRenderer {
             this.particles.burst(u.x, 1, u.z, 0x9ad8ff, 40, 8, 1, 1.2);
             for (let i = 0; i < 24; i++) this.particles.emit(u.x + (Math.random() - 0.5) * 2, Math.random() * 3, u.z + (Math.random() - 0.5) * 2, 0x9ad8ff, { vy: 7, life: 0.9, size: 0.9 });
             this.decals.flash(u.x, u.z, 6, 0x9ad8ff, 0.7);
+            this.vfx.pillar(u.x, u.z, 2.2, 14, 0x9ad8ff, 1.2);
+            this.vfx.shockwave(u.x, u.z, 1, 7, 0xbfe8ff, 0.8);
           }
           break;
         }
@@ -454,6 +476,8 @@ export class GameRenderer {
           const u = w.get(ev.id);
           if (u) {
             this.decals.flash(u.x, u.z, 6, 0xffd860, 0.8);
+            this.vfx.pillar(u.x, u.z, 1.7, 10, 0xffd860, 1.1);
+            this.vfx.shockwave(u.x, u.z, 1, 6, 0xffe9a0, 0.7);
             for (let i = 0; i < 26; i++) {
               const a = Math.random() * TAU;
               this.particles.emit(u.x + Math.cos(a) * 1.8, 0.2, u.z + Math.sin(a) * 1.8, 0xffd860, { vy: 6 + Math.random() * 3, life: 1, size: 0.8 });
@@ -474,6 +498,9 @@ export class GameRenderer {
           const c = this.visualColor(ev.visual);
           this.decals.flash(ev.x, ev.z, ev.radius, c, 0.45);
           this.particles.burst(ev.x, 1, ev.z, c, 30, ev.radius * 2.2, 0.7, 1.3);
+          this.vfx.shockwave(ev.x, ev.z, ev.radius * 0.25, ev.radius * 1.05, c, 0.55);
+          this.vfx.shockwave(ev.x, ev.z, ev.radius * 0.1, ev.radius * 0.7, 0xffffff, 0.35, 1.6);
+          this.vfx.pillar(ev.x, ev.z, Math.max(1.2, ev.radius * 0.45), 4 + ev.radius * 0.8, c, 0.7);
           if (ev.radius > 7) this.rig.shake(0.9, 0.3);
           break;
         }
@@ -483,12 +510,19 @@ export class GameRenderer {
             const k = i / n;
             this.particles.emit(ev.fx + (ev.tx - ev.fx) * k, 1.5, ev.fz + (ev.tz - ev.fz) * k, 0xffffff, { life: 0.4, size: 1.2 });
           }
+          const du = w.get(ev.id);
+          const dcol = du && du.kind === 'champion' ? CHAMPIONS[du.defId].look.accent : 0xffffff;
+          this.vfx.streak(ev.fx, ev.fz, ev.tx, ev.tz, 2.6, dcol, 0.45);
+          this.vfx.shockwave(ev.tx, ev.tz, 0.6, 4.2, dcol, 0.4);
           break;
         }
         case 'blink': {
           this.particles.burst(ev.fx, 2, ev.fz, 0xc690ff, 24, 8, 0.6, 1);
           this.particles.burst(ev.tx, 2, ev.tz, 0xc690ff, 24, 8, 0.6, 1);
           this.decals.flash(ev.tx, ev.tz, 4, 0xc690ff, 0.4);
+          this.vfx.pillar(ev.fx, ev.fz, 1.6, 7, 0xc690ff, 0.6);
+          this.vfx.pillar(ev.tx, ev.tz, 1.6, 7, 0xc690ff, 0.7);
+          this.vfx.shockwave(ev.tx, ev.tz, 0.6, 4.5, 0xe0c0ff, 0.5);
           break;
         }
         case 'recallDone': {

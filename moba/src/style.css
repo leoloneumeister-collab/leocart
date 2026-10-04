@@ -1325,3 +1325,10 @@ kbd {
 #game.dead canvas {
   filter: grayscale(0.85) brightness(0.8);
 }
+
+/* rendered portraits */
+.pimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.champ-detail { display: flex; gap: 16px; align-items: flex-start; }
+.cd-main { flex: 1; min-width: 0; }
+.cd-hero { flex: 0 0 150px; width: 150px; height: auto; margin: -6px 0 -10px; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.55)); }
+@media (max-width: 900px) { .cd-hero { display: none; } }

@@ -44,3 +44,10 @@ Built autonomously, so these are the calls that were made without asking.
 - **Balance is only checked at the macro level.** Bot matches end and difficulty ordering holds, but individual champions and items have not been tuned against each other beyond that.
 - **No save data** other than the last menu choices in localStorage.
 - **Browser support.** Developed and tested on Chromium. Firefox and Safari should work (standard WebGL and WebAudio) but were not tested.
+
+## Visual overhaul
+
+- **Procedural 3D instead of generated meshes.** AI image-to-3D tools return heavy, unrigged, inconsistent meshes that cost credits and would need cleanup and rigging. Code-built characters on a shared rig animate, stay original, weigh a few hundred KB of JS and can be tuned from the browser.
+- **Look is inspired by the genre, not copied.** Chunky stylised heroes, rim light, glowing magic and a painted map. No Riot characters, names or assets appear anywhere.
+- **Minions animate in the vertex shader** (instanced) because skinned meshes cannot be instanced cheaply in three.js. Heroes use real skinned meshes because there are only ten of them.
+- **One composer, one grade.** Bloom threshold is high enough that only intentionally HDR-boosted materials glow.

@@ -3,7 +3,8 @@ import { CHAMPION_IDS, CHAMPIONS } from '../data/champions.ts';
 import type { Difficulty, Lane } from '../sim/types.ts';
 import type { World } from '../sim/world.ts';
 import { el, fmtNum, fmtTime } from './dom.ts';
-import { abilityIconSvg, champIconSvg } from './icons.ts';
+import { abilityIconSvg, champIcon } from './icons.ts';
+import { championPortrait } from '../render/portraits.ts';
 
 export interface MenuChoice {
   champion: string;
@@ -57,7 +58,7 @@ export class Menu {
     for (const id of CHAMPION_IDS) {
       const d = CHAMPIONS[id];
       const card = el('div', 'champ-card', '', grid);
-      el('div', 'cc-ico', champIconSvg(d.name[0], d.look.primary, d.look.accent), card);
+      el('div', 'cc-ico', champIcon(id), card);
       el('div', 'cc-name', d.name, card);
       el('div', 'cc-role', d.role, card);
       card.addEventListener('click', () => {
@@ -126,9 +127,11 @@ export class Menu {
       for (const b of row.querySelectorAll<HTMLElement>('.opt')) b.classList.toggle('sel', b.dataset.val === cur);
     }
     const d = CHAMPIONS[this.choice.champion];
-    this.detail.innerHTML = `<div class="cd-head"><b>${d.name}</b> <i>${d.title}</i></div><div class="cd-blurb">${d.blurb}</div><div class="cd-passive"><span>${d.passive.name}</span> ${d.passive.desc}</div><div class="cd-abilities">${d.abilities
+    const full = championPortrait(this.choice.champion, 'full', 0);
+    const hero = full ? `<img class="cd-hero" src="${full}" alt="${d.name}" draggable="false">` : '';
+    this.detail.innerHTML = `${hero}<div class="cd-main"><div class="cd-head"><b>${d.name}</b> <i>${d.title}</i></div><div class="cd-blurb">${d.blurb}</div><div class="cd-passive"><span>${d.passive.name}</span> ${d.passive.desc}</div><div class="cd-abilities">${d.abilities
       .map((a, i) => `<div class="cd-ab"><div class="cd-ab-ico">${abilityIconSvg(a.icon, a.color)}</div><div><b>${['Q', 'W', 'E', 'R'][i]} ${a.name}</b><br><small>${a.desc}</small></div></div>`)
-      .join('')}</div>`;
+      .join('')}</div></div>`;
   }
 }
 
@@ -147,7 +150,7 @@ export class EndScreen {
         .map((c) => {
           const cc = c.champ!;
           const d = CHAMPIONS[c.defId];
-          return `<tr class="${c.champ!.isPlayer ? 'you' : ''}"><td><span class="sb-ico">${champIconSvg(d.name[0], d.look.primary, d.look.accent)}</span>${d.name}</td><td>${cc.level}</td><td>${cc.kills}/${cc.deaths}/${cc.assists}</td><td>${cc.cs}</td><td>${fmtNum(cc.damageDealt)}</td><td>${fmtNum(cc.totalGold)}</td></tr>`;
+          return `<tr class="${c.champ!.isPlayer ? 'you' : ''}"><td><span class="sb-ico">${champIcon(c.defId)}</span>${d.name}</td><td>${cc.level}</td><td>${cc.kills}/${cc.deaths}/${cc.assists}</td><td>${cc.cs}</td><td>${fmtNum(cc.damageDealt)}</td><td>${fmtNum(cc.totalGold)}</td></tr>`;
         })
         .join('');
     const head = '<tr><th>Champion</th><th>Lv</th><th>K/D/A</th><th>CS</th><th>Damage</th><th>Gold</th></tr>';

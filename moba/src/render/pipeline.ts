@@ -84,7 +84,7 @@ export class RenderPipeline {
       });
       const composer = new EffectComposer(renderer, rt);
       composer.addPass(new RenderPass(scene, camera));
-      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), quality === 'high' ? 0.6 : 0.48, 0.6, 2.2);
+      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), quality === 'high' ? 0.6 : 0.48, 0.6, 1.7);
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       composer.addPass(new ShaderPass(GradeShader));

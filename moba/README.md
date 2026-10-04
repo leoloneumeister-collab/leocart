@@ -89,7 +89,7 @@ Ability numbers are arrays indexed by rank. Distances are world units (a champio
 src/
   data/      plain-object game data (see above)
   sim/       the game itself. No DOM or Three.js. 30 Hz fixed step, deterministic from a seed
-  render/    Three.js scene: procedural models, terrain texture, fog, particles, decals
+  render/    Three.js scene: skinned procedural heroes, instanced animated crowd, terrain, water, foliage, VFX, post processing
   ui/        HUD, shop, minimap, menu, screens (plain DOM + 2D canvas for health bars)
   audio/     WebAudio synthesis for effects and music
   game.ts    ties input, sim, renderer, HUD and audio together
@@ -100,6 +100,21 @@ tests/       headless sim tests, ability tests, bot ladder, browser smoke test
 - **Runs under plain Node.** `node tests/sim.ts` works with no build step (Node 22.18+), because the sim only uses erasable TypeScript syntax and explicit `.ts` imports.
 - **Deterministic.** The same seed and the same commands always produce the same match (checked by the tests).
 - **Pathfinding** is a 2 unit grid with A* and string pulling. Units slide around round obstacles. Structures block movement until destroyed.
+
+## Visuals
+
+Everything is generated in code, no asset files and no downloads.
+
+- **Post processing:** MSAA HDR render target, bloom (glowing runes, crystals and spells are brighter than 1.0), ACES tone mapping, a small colour grade and vignette. `Graphics: Low` skips the composer, shadows and outlines.
+- **Look:** stylised PBR with painterly colour noise, rim light, fake ambient occlusion and inverted-hull ink outlines (`src/render/materials.ts`).
+- **Heroes:** each champion is one skinned mesh per material bucket on a shared 20 bone humanoid rig, plus spring-driven capes, hair, scarves, plumes and beards. Locomotion, attack, cast, stun, knock up, dash, recall and death are animated procedurally (`src/render/biped.ts`, `src/render/heroes/*`). A hero costs about 8 draw calls.
+- **Minions and jungle monsters:** instanced models whose limbs, wheels, flags and weapons are animated in the vertex shader from per-instance phase, move, attack and death values (`src/render/crowd.ts`, `src/render/minions.ts`). Hundreds of units cost a handful of draw calls.
+- **Map:** painted 2048 or 4096 px ground texture (bases are tiled stone platforms with runes), animated river, instanced trees, bushes, grass, flowers, mossy rocks and cliffs, all swaying in the wind.
+- **Structures:** towers, inhibitors and the nexus have glowing runes, floating crystals and spinning rings, and collapse into rubble.
+- **Spell effects:** per-spell projectile visuals with ribbon trails, shockwaves, light pillars, dash streaks (`src/render/vfx.ts`).
+- **Portraits:** HUD, menu and scoreboard use 3D-rendered busts of the models.
+
+Look-dev tools (need `npm run dev`): `/?gallery=1` shows all heroes (`&only=ysolde&state=attack&angle=1.2`, `&crowd=1` for minions and monsters), `node tests/lab.mjs out.png '{"state":"idle"}'` screenshots it, `node tests/scene.mjs out.png '{"min":3,"focus":"minions"}'` frames a spot in a real match, `node tests/vfx.mjs ysolde "0,3"` casts abilities and screenshots them.
 
 ## Tests
 

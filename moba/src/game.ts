@@ -52,6 +52,8 @@ export class Game {
   private previewLine: THREE.Mesh | null = null;
   private destroyed = false;
   private frameCount = 0;
+  /** Test hook: when > 0 every frame advances exactly this many seconds (slow software GL still gets deterministic effects). */
+  fixedDt = 0;
   private fps = 60;
   private fpsSmooth = 60;
   private hover: Unit | null = null;
@@ -309,7 +311,7 @@ export class Game {
   private frame = (now: number) => {
     if (this.destroyed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const dtReal = Math.min(0.1, (now - this.lastT) / 1000);
+    const dtReal = this.fixedDt > 0 ? this.fixedDt : Math.min(0.1, (now - this.lastT) / 1000);
     this.lastT = now;
     this.frameCount++;
     this.fpsSmooth += (1 / Math.max(0.001, dtReal) - this.fpsSmooth) * 0.05;

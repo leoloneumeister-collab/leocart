@@ -8,7 +8,7 @@ import { canLevelSlot } from '../sim/economy.ts';
 import type { SimEvent, Unit } from '../sim/types.ts';
 import type { World } from '../sim/world.ts';
 import { attachTip, el, fmtNum, fmtTime } from './dom.ts';
-import { abilityIconSvg, champIconSvg, itemIconSvg } from './icons.ts';
+import { abilityIconSvg, champIcon, itemIconSvg } from './icons.ts';
 import { itemTipHtml } from './shop.ts';
 
 const KEYS = ['Q', 'W', 'E', 'R'];
@@ -118,7 +118,7 @@ export class Hud {
     // Bottom panel
     const bottom = el('div', 'hud-bottom', '', this.root);
     const left = el('div', 'hud-left', '', bottom);
-    this.portrait = el('div', 'portrait', champIconSvg(def.name[0], def.look.primary, def.look.accent), left);
+    this.portrait = el('div', 'portrait', champIcon(def.id), left);
     this.levelEl = el('div', 'lvl', '1', this.portrait);
     const xpBar = el('div', 'xpbar', '', left);
     this.xpFill = el('div', 'fill', '', xpBar);
@@ -334,7 +334,7 @@ export class Hud {
           const items = cc.items.map((i) => (i ? `<span class="sb-item">${itemIconSvg(ITEMS[i].category, ITEMS[i].color, ITEMS[i].tier)}</span>` : '<span class="sb-item empty"></span>')).join('');
           const you = c === viewer ? ' you' : '';
           const dead = c.alive ? '' : ' dead';
-          return `<tr class="${you}${dead}"><td class="sb-champ"><span class="sb-ico">${champIconSvg(CHAMPIONS[c.defId].name[0], CHAMPIONS[c.defId].look.primary, CHAMPIONS[c.defId].look.accent)}</span>${CHAMPIONS[c.defId].name}</td><td>${cc.level}</td><td>${cc.kills}/${cc.deaths}/${cc.assists}</td><td>${cc.cs}</td><td class="sb-items">${items}</td><td>${team === viewer.team ? fmtNum(cc.totalGold) : '-'}</td></tr>`;
+          return `<tr class="${you}${dead}"><td class="sb-champ"><span class="sb-ico">${champIcon(c.defId)}</span>${CHAMPIONS[c.defId].name}</td><td>${cc.level}</td><td>${cc.kills}/${cc.deaths}/${cc.assists}</td><td>${cc.cs}</td><td class="sb-items">${items}</td><td>${team === viewer.team ? fmtNum(cc.totalGold) : '-'}</td></tr>`;
         })
         .join('');
     const head = '<tr><th>Champion</th><th>Lv</th><th>K/D/A</th><th>CS</th><th>Items</th><th>Gold</th></tr>';
